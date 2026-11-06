@@ -8,6 +8,8 @@ The plan is nine chapters, each a voyage further out from Rhodes. **Chapter I, t
 
 Open `index.html` in a browser. It is a single file with nothing to install, and progress saves in the browser.
 
+To put it online for free with GitHub Pages (public repositories only on the free plan): in the repository, go to **Settings → Pages**, choose **Deploy from a branch**, then pick `main` and `/ (root)`. The game appears at `https://serski.github.io/Emporos/` a minute or two later.
+
 ## Chapter I: Halicarnassus
 
 Antimachos the banker has lent Ariston 150 drachmas on a sea loan. Bring the ship home and he owes 195. If she sinks, he owes nothing. A round trip takes six days at sea and about fifteen minutes to play.
@@ -44,7 +46,7 @@ Inside `src/game.html`, the rules sit between `// ===== ENGINE START =====` and 
 
 ## Working on it
 
-Run these from the `emporos` folder. After editing `src/game.html`, regenerate the standalone page:
+After editing `src/game.html`, regenerate the standalone page:
 
 ```bash
 node tools/build.mjs
