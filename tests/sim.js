@@ -1,4 +1,4 @@
-// Balance check: plays Chapter I with simple bots that follow different strategies, over many seeds,
+// Balance check: plays Chapter I, then Chapter II, with simple bots that follow different strategies, over many seeds,
 // and reports what each one earns. Reads the rules straight out of the game file. No dependencies.
 // Usage: node tests/sim.js [path/to/game.html] [games per strategy]
 const fs = require('fs');
@@ -10,7 +10,7 @@ const code = html.split('// ===== ENGINE START =====')[1].split('// ===== ENGINE
 const E = new Function(code + `
 return { newGame, begin, buy, sell, haggle, hire, autoPack, setSail, tick, setRow, campAct, sleep, needsRoute, resolveEvent,
   repay, eta, provisions, mouths, holdUsed, holdCells, sellPrice, buyPrice, merchantsAt, MERCHANTS, GOODS, OUT, dockItems,
-  atRisk, stockLeft, cargoValue, sailCheck, isCargo };`)();
+  atRisk, stockLeft, cargoValue, sailCheck, isCargo, takeLoan, nextChapter, migrate, offer, routeFrom, CHAPTERS, fitted, freeSquares, toll };`)();
 
 // Each strategy: what to carry out and home, who to hire, and what to do when things go wrong.
 const STRATEGIES = {
@@ -26,6 +26,23 @@ const STRATEGIES = {
     pirates: 'run', squall: 'shelter', route: 'coast', water: 2, barley: 1 },
   hungry: { bolt: false, hires: ['philon'], out: ['wine', 'wine', 'wine', 'wine', 'wine', 'wine', 'wine', 'wine', 'figs', 'figs', 'figs', 'figs', 'figs', 'figs'],
     home: ['honey', 'honey', 'honey', 'honey', 'honey', 'honey', 'honey', 'honey', 'marble'], pirates: 'pay', squall: 'ride', route: 'open', water: 0, barley: 0 },
+};
+
+// Chapter II strategies. Chapter I is played the careful way first, so every Chapter II game starts from a real save.
+const SUMMER = {
+  fitted: { loan: 'short', fit: ['bench', 'awning', 'pithos'], hires: { rhodes: ['philon'], kos: ['pythes', 'lykos'], miletus: ['seuthes'] },
+    out: ['wine', 'wine', 'wine', 'wine', 'cups', 'cups', 'cups', 'sponge', 'sponge', 'figs', 'figs'], kos: ['salve', 'salve', 'cloth'],
+    miletus: ['purple', 'purple', 'purple', 'couch', 'couch', 'wool', 'wool'], kosHome: [], warship: 'argue', flotsam: 'haul', pirates: 'fight', route: 'coast', water: 1, barley: 2 },
+  greedy: { loan: true, fit: [], hires: {}, out: ['wine', 'wine', 'wine', 'wine', 'wine', 'wine', 'wine', 'cups', 'cups', 'cups', 'cups', 'figs', 'figs', 'figs', 'figs'],
+    kos: ['salve', 'salve', 'salve', 'cloth', 'cloth'], miletus: ['couch', 'couch', 'couch', 'purple', 'purple', 'purple', 'wool', 'wool', 'wool'], kosHome: ['salve', 'salve'],
+    warship: 'pay', flotsam: 'haul', pirates: 'pay', route: 'open', water: 2, barley: 2 },
+  smart: { loan: 'short', oracle: true, fit: ['bench', 'awning'], hires: { rhodes: ['philon'], miletus: ['seuthes?'] },
+    out: ['wine', 'wine', 'wine', 'wine', 'cups', 'cups', 'cups', 'sponge', 'sponge', 'figs', 'figs'], kos: ['salve', 'salve', 'cloth'],
+    miletus: ['purple', 'purple', 'purple', 'couch', 'couch', 'couch', 'wool', 'wool'], kosHome: [], warship: 'argue', flotsam: 'haul', pirates: 'fight', route: 'coast', water: 1, barley: 2 },
+  oars: { loan: 'short', fit: ['bench', 'bench'], hires: { rhodes: ['philon'], miletus: ['seuthes'] }, out: ['wine', 'wine', 'wine', 'wine', 'figs', 'figs', 'figs', 'sponge', 'sponge'],
+    kos: ['cloth', 'cloth'], miletus: ['wool', 'wool', 'couch', 'purple', 'purple'], kosHome: [], warship: 'gift', flotsam: 'leave', pirates: 'fight', route: 'coast', water: 2, barley: 2 },
+  bare: { loan: 'short', fit: [], hires: {}, out: ['wine', 'wine', 'wine', 'figs', 'figs', 'figs'], kos: ['cloth'], miletus: ['wool', 'wool', 'couch'], kosHome: [],
+    warship: 'argue', flotsam: 'leave', pirates: 'run', route: 'coast', water: 2, barley: 2 },
 };
 
 function seller(s, g, dir) {   // the merchant here with the best price for g
@@ -49,16 +66,17 @@ function buyList(s, list) {
 function sellAll(s) {
   const tried = new Set();
   for (let guard = 0; guard < 80; guard++) {
-    const it = s.items.find(i => E.isCargo(i) && !tried.has(i.g) && seller(s, i.g, 'sell') && E.MERCHANTS[seller(s, i.g, 'sell')].buys[i.g]);
+    const it = s.items.find(i => E.isCargo(i) && !tried.has(i.g) && seller(s, i.g, 'sell') && E.offer(s, seller(s, i.g, 'sell')).buys[i.g]);
     if (!it) break;
     const m = seller(s, it.g, 'sell');
     if (!s.visit.tries[m]) E.haggle(s, m);
     if (!E.sell(s, m, it.g).ok) tried.add(it.g);
   }
 }
+const STORES = { rhodes: 'stores', halic: 'hstores', kos: 'kstores', miletus: 'mstores' };
 function provision(s, st) {
-  for (let k = 0; k < st.water; k++) E.buy(s, s.port === 'rhodes' ? 'stores' : 'hstores', 'water');
-  for (let k = 0; k < st.barley; k++) E.buy(s, s.port === 'rhodes' ? 'stores' : 'hstores', 'barley');
+  for (let k = 0; k < st.water; k++) E.buy(s, STORES[s.port], 'water');
+  for (let k = 0; k < st.barley; k++) E.buy(s, STORES[s.port], 'barley');
   for (const it of s.items) if (E.GOODS[it.g].water) it.fill = 10;   // the fountain is free
   E.autoPack(s);
 }
@@ -66,8 +84,9 @@ function voyage(s, st, notes) {
   for (let guard = 0; guard < 20000 && (s.phase === 'sea' || s.phase === 'camp'); guard++) {
     if (s.pending) {
       const id = s.pending;
-      let c = id === 'squall' ? (st.squall === 'auto' ? (E.atRisk(s).length ? 'shelter' : 'ride') : st.squall) : st.pirates;
+      let c = id === 'squall' ? (st.squall === 'auto' ? (E.atRisk(s).length ? 'shelter' : 'ride') : st.squall) : id === 'warship' ? st.warship : id === 'flotsam' ? st.flotsam : st.pirates;
       if (id === 'caught') c = st.pirates === 'run' ? 'pay' : st.pirates;
+      if (id === 'warship' && c === 'gift' && !s.items.some(i => i.where === 'hold' && (i.g === 'wine' || i.g === 'coanwine'))) c = 'pay';
       E.resolveEvent(s, c);
       notes.push(id + ':' + c);
       continue;
@@ -77,6 +96,7 @@ function voyage(s, st, notes) {
       if (stop === 'symi') { E.campAct(s, 'sponge'); E.campAct(s, 'sponge'); E.campAct(s, 'spring'); E.autoPack(s); }
       if (stop === 'triopion') E.campAct(s, 'fish');
       if (stop === 'loryma') E.campAct(s, 'spring');
+      if (stop === 'didyma') { E.campAct(s, 'spring'); if (st.oracle) E.campAct(s, 'oracle'); }
       E.sleep(s, E.needsRoute(s) ? st.route : undefined);
       continue;
     }
@@ -112,6 +132,59 @@ function play(name, seed) {
   return { sum: s.summary, outCargo, homeCargo, notes, hungry: s.stats.hungry, thirsty: s.stats.thirsty, nights: s.stats.nights };
 }
 
+function summer(name, seed) {
+  const st = SUMMER[name], s = E.newGame(seed), notes = [];
+  playChapterOne(s);
+  E.nextChapter(s);
+  E.begin(s);
+  if (st.loan === true || (st.loan === 'short' && s.silver < 120)) E.takeLoan(s);
+  for (const f of st.fit) { E.buy(s, 'arsenal', f); E.autoPack(s); }
+  for (const h of st.hires.rhodes || []) { E.hire(s, h); E.autoPack(s); }
+  for (const id of ['thras', 'korinna', 'aristeia']) E.haggle(s, id);
+  provision(s, st);
+  buyList(s, st.out);
+  E.setSail(s);
+  voyage(s, st, notes);
+  if (s.port !== 'kos') throw new Error(name + ' did not reach Kos: ' + s.phase);
+  for (const h of st.hires.kos || []) { E.hire(s, h); E.autoPack(s); }
+  provision(s, { water: 0, barley: 1 });
+  buyList(s, st.kos);
+  E.setSail(s);
+  voyage(s, st, notes);
+  if (s.port !== 'miletus') throw new Error(name + ' did not reach Miletus: ' + s.phase + ' ' + s.port);
+  sellAll(s);
+  for (const h of st.hires.miletus || []) { if (h.endsWith('?') && !s.flags.pirates2) continue; E.hire(s, h.replace('?', '')); E.autoPack(s); }   // '?': only if the oracle warned of pirates
+  provision(s, { water: 0, barley: 1 });
+  for (const id of ['leandros', 'archelaos']) if (!s.visit.tries[id]) E.haggle(s, id);
+  buyList(s, st.miletus);
+  E.setSail(s);
+  voyage(s, st, notes);
+  if (s.port !== 'kos') throw new Error(name + ' did not get back to Kos: ' + s.phase);
+  provision(s, { water: 0, barley: 1 });
+  buyList(s, st.kosHome);
+  E.setSail(s);
+  voyage(s, st, notes);
+  if (s.port !== 'rhodes' || !s.home) throw new Error(name + ' did not get home in summer: ' + s.phase + ' ' + s.port);
+  for (const g of ['couch']) if (s.items.some(i => i.g === g)) E.sell(s, 'bank', g);
+  sellAll(s);
+  E.repay(s);
+  E.OUT.length = 0;
+  if (!Number.isFinite(s.silver) || s.silver < 0) throw new Error('bad silver ' + s.silver);
+  return { sum: s.summary, start: s.history[0].silver, notes, hungry: s.stats.hungry, thirsty: s.stats.thirsty, nights: s.stats.nights };
+}
+function playChapterOne(s) {   // the careful way, without the bookkeeping
+  const st = STRATEGIES.careful, notes = [];
+  E.begin(s);
+  for (const id of ['thras', 'korinna', 'aristeia']) E.haggle(s, id);
+  E.buy(s, 'arsenal', 'bolt'); E.autoPack(s);
+  E.hire(s, 'philon'); E.autoPack(s);
+  provision(s, st); buyList(s, st.out); E.setSail(s); voyage(s, st, notes);
+  sellAll(s);
+  for (const h of ['lykos', 'kydas']) { E.hire(s, h); E.autoPack(s); }
+  provision(s, st); buyList(s, st.home); E.setSail(s); voyage(s, st, notes);
+  sellAll(s); E.repay(s);
+}
+
 const pct = (n, d) => Math.round(100 * n / d) + '%';
 let failed = false;
 for (const name of Object.keys(STRATEGIES)) {
@@ -129,5 +202,18 @@ for (const name of Object.keys(STRATEGIES)) {
   console.log(`          pirates ${Object.keys(pir).map(k => k + ' ' + pct(pir[k], rs.length)).join(', ')}  | crew lost ${(lost / rs.length).toFixed(2)}/game  broken ${(broken / rs.length).toFixed(2)}/game  in debt ${pct(debt, rs.length)}`);
   console.log(`          ratings ${[...new Set(rs.map(r => r.sum.rating))].map(t => t + ' ' + pct(rs.filter(r => r.sum.rating === t).length, rs.length)).join(', ')}`);
   if (name === 'careful' && mean <= 40) { console.log('FAIL: careful play should clear a decent profit'); failed = true; }
+}
+console.log('-- Chapter II, after a careful Chapter I --');
+for (const name of Object.keys(SUMMER)) {
+  const rs = [];
+  for (let k = 0; k < GAMES; k++) rs.push(summer(name, 5000 + k * 7919));
+  const profits = rs.map(r => r.sum.profit).sort((a, b) => a - b), mean = Math.round(profits.reduce((a, b) => a + b, 0) / rs.length);
+  const count = (key, fn) => { const o = {}; for (const r of rs) { const v = fn(r); o[v] = (o[v] || 0) + 1; } return Object.keys(o).map(k => k + ' ' + pct(o[k], rs.length)).join(', '); };
+  console.log(`${name.padEnd(9)} profit mean ${String(mean).padStart(4)}  min ${String(profits[0]).padStart(4)}  median ${String(profits[rs.length >> 1]).padStart(4)}  max ${String(profits[rs.length - 1]).padStart(4)}` +
+    `  | started with ${Math.round(rs.reduce((a, r) => a + r.start, 0) / rs.length)} dr  days ${(rs.reduce((a, r) => a + r.sum.days, 0) / rs.length).toFixed(1)}  nights at sea ${(rs.reduce((a, r) => a + r.nights, 0) / rs.length).toFixed(2)}` +
+    `  hungry ${(rs.reduce((a, r) => a + r.hungry, 0) / rs.length).toFixed(2)}d thirsty ${(rs.reduce((a, r) => a + r.thirsty, 0) / rs.length).toFixed(2)}d`);
+  console.log(`          pirates ${count('p', r => r.sum.pirates)}  | toll ${count('t', r => typeof r.sum.toll === 'number' ? 'paid' : r.sum.toll || 'none')}  | lost ${(rs.reduce((a, r) => a + r.sum.lost.length, 0) / rs.length).toFixed(2)}/game  broken ${(rs.reduce((a, r) => a + r.sum.broken, 0) / rs.length).toFixed(2)}/game  in debt ${pct(rs.filter(r => r.sum.debt > 0).length, rs.length)}`);
+  console.log(`          ratings ${count('r', r => r.sum.rating)}`);
+  if (name === 'smart' && mean <= 120) { console.log('FAIL: a summer played well should clear a good profit'); failed = true; }
 }
 if (failed) process.exit(1);
