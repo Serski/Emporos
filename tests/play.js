@@ -1,5 +1,5 @@
-// Plays Chapter I in a phone-sized browser through the real buttons, fast-forwarded, and saves screenshots
-// of the key moments. Needs Playwright.
+// Plays Chapter I and then Chapter II in a phone-sized browser through the real buttons, fast-forwarded,
+// and saves screenshots of the key moments. Needs Playwright.
 // Usage: node tests/play.js [path/to/index.html] [screenshot folder]
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -60,14 +60,17 @@ fs.mkdirSync(out, { recursive: true });
       if (sheet === 'outcome') { if (!seen.has(label + 'out')) { seen.add(label + 'out'); await snap(label + '-outcome'); } await page.click('#sheetCard button[data-act="continue"]'); continue; }
       if (sheet) {
         const risk = await page.evaluate(() => window.__emp.fns.atRisk(window.__emp.state()).length);
-        const pick = sheet === 'squall' ? (risk ? 'shelter' : 'ride') : 'fight';
+        const pick = sheet === 'squall' ? (risk ? 'shelter' : 'ride') : sheet === 'flotsam' ? 'haul' : sheet === 'warship' ? 'argue' : 'fight';
         await snap(label + '-event-' + sheet);
         await page.click(`#sheetCard button[data-c="${pick}"]`);
         continue;
       }
       if (s.phase === 'camp') {
         if (!seen.has(label + s.stop)) { seen.add(label + s.stop); await page.waitForTimeout(400); await snap(label + '-camp-' + s.stop); }
-        for (const id of ['spring', 'fish', 'sponge']) { const b = await page.$(`#panel button[data-act="camp"][data-id="${id}"]:not([disabled])`); if (b) await b.click(); }
+        for (const id of ['spring', 'fish', 'sponge', 'oracle']) {
+          const sel = `#panel button[data-act="camp"][data-id="${id}"]:not([disabled])`;
+          if (await page.$(sel)) { await page.click(sel, { timeout: 3000 }).catch(() => {}); await page.waitForTimeout(200); }
+        }
         if (s.dock) { await tab('hold'); await page.click('button[data-act="autopack"]'); await tab('main'); }
         const route = await page.$('#panel button[data-act="sleep"][data-route="coast"]');
         if (route) { await snap(label + '-route'); await route.click(); } else await page.click('#panel button[data-act="sleep"]');
@@ -117,11 +120,64 @@ fs.mkdirSync(out, { recursive: true });
   }
   await open('.person[data-m="bank"]'); await snap('31-bank');
   await page.click('#sheetCard button[data-act="repay"]');
-  await page.waitForSelector('#theater:not([hidden]) button[data-t="again"]');
+  await page.waitForSelector('#theater:not([hidden]) button[data-t="nextch"]');
   await page.waitForTimeout(500);
   await snap('32-summary');
   const sum = await page.evaluate(() => window.__emp.state().summary);
-  console.log('summary:', JSON.stringify(sum));
+  console.log('chapter I:', JSON.stringify(sum));
+
+  // ---- Chapter II: north to Miletus, against the summer wind ----
+  await page.click('button[data-t="nextch"]');
+  await page.waitForTimeout(300);
+  await snap('40-ch2-intro');
+  for (let i = 0; i < 12; i++) { const b = await page.$('button[data-t="next"]'); if (!b) break; await b.click(); }
+  await page.click('button[data-t="harbour"]');
+  await page.waitForTimeout(700);
+  await snap('41-ch2-rhodes');
+  await open('.person[data-m="bank"]'); await snap('42-ch2-loan'); await page.click('#sheetCard button[data-act="loan"]'); await close();
+  await open('.person[data-m="arsenal"]'); await page.click('#sheetCard button[data-act="buy"][data-g="bench"]'); await page.click('#sheetCard button[data-act="buy"][data-g="awning"]'); await snap('43-ch2-arsenal'); await close();
+  await open('.person[data-hire="philon"]'); await page.click('#sheetCard button[data-act="hire"]'); await close();
+  await buyN('stores', 'water', 1); await buyN('stores', 'barley', 1);
+  await buyN('thras', 'wine', 3); await buyN('aristeia', 'cups', 2); await buyN('korinna', 'sponge', 1);
+  await tab('hold'); await page.click('button[data-act="autopack"]'); await snap('44-ch2-hold'); await tab('main');
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('n1');
+  if (s.port !== 'kos') throw new Error('expected Kos, got ' + JSON.stringify(s));
+  await page.waitForTimeout(600); await snap('50-kos');
+  await open('.person[data-hire="pythes"]'); await page.click('#sheetCard button[data-act="hire"]'); await close();
+  await buyN('asklep', 'salve', 2);
+  await tab('hold'); await page.click('button[data-act="autopack"]'); await tab('main');
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('n2');
+  if (s.port !== 'miletus') throw new Error('expected Miletus, got ' + JSON.stringify(s));
+  await page.waitForTimeout(600); await snap('60-miletus');
+  await open('.person[data-m="thinker"]'); await page.click('#sheetCard button[data-act="talk"]'); await snap('61-philosopher'); await close();
+  for (const m of ['kallisto', 'glykera']) {
+    await open(`.person[data-m="${m}"]`);
+    for (let k = 0; k < 20; k++) { const b = await page.$('#sheetCard .trade button[data-act="sell"]:not([disabled])'); if (!b) break; await b.click(); }
+    await close();
+  }
+  await open('.person[data-hire="seuthes"]'); await page.click('#sheetCard button[data-act="hire"]'); await close();
+  await buyN('leandros', 'purple', 2); await buyN('archelaos', 'couch', 1); await buyN('leandros', 'wool', 1);
+  await tab('hold'); await page.click('button[data-act="autopack"]'); await snap('62-ch2-hold-home'); await tab('main');
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('n3');
+  if (s.port !== 'kos') throw new Error('expected Kos on the way home, got ' + JSON.stringify(s));
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('n4');
+  if (s.port !== 'rhodes' || !s.home) throw new Error('expected to be home from Miletus, got ' + JSON.stringify(s));
+  await page.waitForTimeout(600); await snap('70-ch2-home');
+  for (const m of ['bank', 'korinna', 'thras', 'works']) {
+    await open(`.person[data-m="${m}"]`);
+    for (let k = 0; k < 20; k++) { const b = await page.$('#sheetCard .trade button[data-act="sell"]:not([disabled])'); if (!b) break; await b.click(); }
+    await close();
+  }
+  await open('.person[data-m="bank"]'); await snap('71-ch2-bank');
+  await page.click('#sheetCard button[data-act="repay"]');
+  await page.waitForSelector('#theater:not([hidden]) button[data-t="again"]');
+  await page.waitForTimeout(500);
+  await snap('72-ch2-summary');
+  console.log('chapter II:', JSON.stringify(await page.evaluate(() => window.__emp.state().summary)));
   console.log('errors:', errors.length ? errors.join('\n') : 'none');
   console.log('screenshots:', shots.join(', '));
   await browser.close();
