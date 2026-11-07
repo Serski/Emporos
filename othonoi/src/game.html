@@ -380,6 +380,7 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 // The rules of the week. Nothing in here touches the page, so tests/sim.js can play it on its own.
 
 const HOUR_SECS = 2.4;                 // seconds of play to an hour on the island, at normal speed
+const TRAVEL_SLOW = 2;                 // getting about (walking, a lift, the boat) takes twice as long to watch, so the walk can be seen
 const WAKE = 8, OPEN_STUDIO = 19, LAST_DAY = 7, BOAT_BACK = 18;
 const PX_KM = 270;                     // map units to a kilometre (the map is drawn after the real coastline)
 const KMH = { road: 4, path: 3.2, steep: 2, car: 24 };
@@ -1084,8 +1085,12 @@ function step(s, dt) {   // dt in island hours
   }
 }
 function tick(s, secs) {   // real seconds of play
-  let h = secs / HOUR_SECS;
-  while (h > 1e-9 && s.phase === 'day' && !s.pending && (s.busy || s.travel)) { const d = Math.min(h, 0.05); step(s, d); h -= d; }
+  let left = secs;
+  while (left > 1e-9 && s.phase === 'day' && !s.pending && (s.busy || s.travel)) {
+    const moving = s.travel || (s.busy && (s.busy.id === 'boat_aspri' || s.busy.id === 'boat_back'));
+    const k = HOUR_SECS * (moving ? TRAVEL_SLOW : 1), d = Math.min(left / k, 0.05);
+    step(s, d); left -= d * k;
+  }
 }
 function legAt(T, t) { let acc = 0; for (const l of T.legs) { if (t <= acc + l.hours + 1e-9) return l; acc += l.hours; } return T.legs[T.legs.length - 1]; }
 // Where you are along the way, in map units, for the map.
