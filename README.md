@@ -15,7 +15,7 @@ To put it online for free with GitHub Pages (public repositories only on the fre
 Antimachos the banker has lent Ariston 150 drachmas on a sea loan. Bring the ship home and he owes 195. If she sinks, he owes nothing. A round trip takes six days at sea and about fifteen minutes to play.
 
 - **The quay.** Tap a merchant, on the quay or in the picture, to buy, sell and haggle. Prices drop as you sell more of one thing, and haggling too hard makes them worse. A marker over a stall means that merchant buys something you are carrying.
-- **The hold.** The ship is a grid, seen from above, with the quay beside it (below it, for the bigger ship, so the squares stay big enough for a finger). Everything you take aboard needs squares: cargo, barley, water jars, the bolt-thrower, and the gear of anyone you hire. Drag to move, tap to turn, or turn mid-drag with a second finger. The bolt-thrower fits only in the bow. Fragile cargo breaks in rough water unless it touches something soft.
+- **The hold.** The ship is a grid, seen from above, with the quay beside it. Everything you take aboard needs squares: cargo, barley, water jars, the bolt-thrower, and the gear of anyone you hire. Drag to move, tap to turn, or turn mid-drag with a second finger. The bolt-thrower fits only in the bow. Fragile cargo breaks in rough water unless it touches something soft.
 - **The crew.** Everyone aboard eats and drinks every day. A sack of barley or a jar of water does ten people for a day. Rowing doubles what the rowers drink. Thirsty sailors row badly and fall sick.
 - **Hiring.** A Rhodian slinger in Rhodes. A Cretan archer and a doctor from Cos in Halicarnassus. Fighters shoot before pirates can board. With the doctor aboard, nobody dies of their wounds.
 - **At sea.** The clock runs from dawn to dusk. Watch the wind, row when you are becalmed, cut the rations if you must, and reach the next beach before dark. Ports and night camps stop the clock.
@@ -44,13 +44,13 @@ Autumn, 290 BC: one more voyage before the winter closes the sea. West across th
 - **New ports.** Delos, the holy island of Apollo, which grows nothing and buys everything. Piraeus, with oil, painted cups, books, Hymettus honey and Pentelic marble, city grain wardens who pay well for wheat, a tax of a fiftieth on cargo, and a thin man under a colonnade with opinions about wealth.
 - **Packing.** Nothing soft is sold in Athens, so bring sponges from Rhodes to pack the painted cups for the rough water home.
 - **Pirates.** A hemiolia may be waiting off Amorgos on the way home. The talk on the quay at Delos tells you whether it is. A Cretan archer is for hire there.
-- **A bigger ship.** Nausikrates the shipwright will build a proper merchant ship over the winter, with twice the hold of Elpis, for 600 drachmas and Elpis in part exchange. Order her at the end of the season. If you are short, Antimachos lends the rest against the new ship, if you can put 200 down.
+- **A bigger ship.** Nausikrates the shipwright will build a proper merchant ship over the winter, longer than Elpis and with a third more hold, for 600 drachmas and Elpis in part exchange. Order her at the end of the season. If you are short, Antimachos lends the rest against the new ship, if you can put 200 down.
 
 ## Chapter IV: Corcyra
 
 Spring, 289 BC, in a bigger ship. West out of the Aegean to Corinth, across the Isthmus, and up the coast to Corcyra, at the edge of the Greek world. About nine days at sea, and thirty minutes to play.
 
-- **Tyche.** The ship ordered at the end of Chapter III is ready: a 57-square hold, against Elpis's 30. On a phone her hold is longer than the screen: carry something to the top or bottom edge and it scrolls, or drag the empty deck. She sails faster than Elpis, rows at half the strength, is harder for pirates to board, and comes with two more sailors. If you could not order her in the autumn, Nausikrates will still sell her at the start of the season, or you can sail Elpis.
+- **Tyche.** The ship ordered at the end of Chapter III is ready. She is Elpis's width and two rows longer: 40 squares of hold, against Elpis's 30, with a longer quay beside her, so on a phone her squares are as big as Elpis's. She has a deck, so hired men keep their gear up there instead of in the hold. She sails faster than Elpis, rows at half the strength, is harder for pirates to board, and comes with two more sailors. If you could not order her in the autumn, Nausikrates will still sell her at the start of the season, or you can sail Elpis. A captain with a second ship needs no help text in the hold, so it is gone.
 - **New hands.** From this chapter on, men sign on over the winter to fill the places of anyone who did not come home. The dead stay dead.
 - **Corinth.** Haulers drag the ship across the Isthmus on the diolkos, the paved road between the two seas, for a fee each way. Corinth buys grain, wine and incense, sells its famous bronze, and has a pilot for hire who knows the Gulf. An old man in the sun remembers a philosopher who lived in a jar.
 - **Corcyra.** Amber from the far north, Molossian hounds from Epirus (they eat as much as a man, and you will not throw one overboard), Epirote cheese, and fir spars three squares long. The queen's steward pays well for incense and luxuries.
@@ -71,7 +71,7 @@ The history of the period is real and stays in the background: the siege of Rhod
 | III | Small coastal trader | Athens (playable) |
 | IV | Medium merchant ship | Corcyra (playable) |
 | V–VI | Medium merchant ship | Taras, Syracuse |
-| VII–IX | Large grain ship | Cyprus, Tyre, Alexandria |
+| VII–IX | Large grain ship (Tyche's hull, with a deck as a second page of cargo) | Cyprus, Tyre, Alexandria |
 
 ## Project layout
 

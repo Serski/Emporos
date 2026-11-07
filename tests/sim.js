@@ -12,7 +12,7 @@ const E = new Function(code + `
 return { newGame, begin, buy, sell, haggle, hire, autoPack, setSail, tick, setRow, campAct, sleep, needsRoute, resolveEvent,
   repay, eta, provisions, mouths, holdUsed, holdCells, sellPrice, buyPrice, merchantsAt, MERCHANTS, GOODS, OUT, dockItems,
   atRisk, stockLeft, cargoValue, sailCheck, isCargo, takeLoan, nextChapter, migrate, offer, routeFrom, CHAPTERS, fitted, freeSquares, toll,
-  takeFreight, orderShip, jettisonPlan, SHIP_PRICE, hiresAt, shipTerms, buyShip, changeHull, holdCells, feeOf };`)();
+  takeFreight, orderShip, jettisonPlan, SHIP_PRICE, hiresAt, shipTerms, buyShip, changeHull, holdCells, feeOf, dockOf, holdInShape, HULLS };`)();
 
 // Each strategy: what to carry out and home, who to hire, and what to do when things go wrong.
 const STRATEGIES = {
@@ -316,9 +316,9 @@ function autumnOn(s, st, name) {
 // Chapter IV strategies, in the new ship. Chapters I to III are played the careful, smart and smart ways first.
 // out: bought at Rhodes. sellCor/corOut: sold and bought at Corinth on the way out. corcyra: bought at Corcyra. corHome: bought at Corinth on the way home.
 const SPRING = {
-  smart: { loan: 250, buyShip: true, hires: { rhodes: ['euphron', 'lykos'], corinth: ['kallias'], corcyra: ['neoptolemos?'] }, freight: ['rc', 'ry', 'yr'],
-    out: [...n('wheat', 10), ...n('incense', 8), ...n('papyrus', 8), ...n('sponge', 2), ...n('wine', 4)], sellCor: { wheat: 10, papyrus: 3 }, corOut: [],
-    corcyra: [...n('amber', 2), ...n('hound', 2), ...n('timber', 3), ...n('cheese', 8)], sellCorHome: {}, corHome: n('bronze', 4),
+  smart: { loan: 250, buyShip: true, hires: { rhodes: ['euphron', 'lykos'], corinth: ['kallias'], corcyra: ['neoptolemos?'] }, freight: ['rc', 'ry', 'ry2', 'yr', 'yr2'],
+    out: [...n('incense', 8), ...n('wheat', 14), ...n('papyrus', 10)], sellCor: { wheat: 14, papyrus: 4 }, corOut: [],
+    corcyra: [...n('amber', 2), ...n('hound', 2), ...n('timber', 4), ...n('cheese', 12)], sellCorHome: {}, corHome: n('bronze', 4),
     survivors: 'take', omen: true, route: s => s.flags.gale4 ? 'coast' : 'open', storm: 'hold', pirates: 'fight', water: 4, barley: 4 },
 };
 const like4 = (base, o) => Object.assign({}, SPRING[base], o);
@@ -465,12 +465,30 @@ for (const name of ONLY.includes(4) ? Object.keys(SPRING) : []) {
 {
   const s = E.newGame(31337);
   s.ch = 4; s.phase = 'title'; E.changeHull(s, 'medium'); s.phase = 'port'; s.port = 'corcyra';
-  for (const [g, x, y, rot] of [['amber', 1, 5, 0], ['cheese', 0, 7, 0], ['timber', 0, 3, 1], ['hound', 1, 0, 0]]) s.items.push({ id: s.nextId++, g, where: 'dock', x, y, rot });
+  for (const [g, x, y, rot] of [['amber', 6, 1, 0], ['cheese', 3, 0, 0], ['timber', 0, 1, 0], ['hound', 5, 0, 0]]) s.items.push({ id: s.nextId++, g, where: 'dock', x, y, rot });   // where the quay was, when it ran under the ship
   const t = E.migrate(JSON.parse(JSON.stringify(s)));
   const dock = E.dockItems(t), placed = t.items.filter(i => ['amber', 'cheese', 'timber', 'hound'].includes(i.g));
-  const inReach = placed.length === 4 && placed.every(i => i.where === 'hold' || i.where === 'dock') && dock.every(i => i.x >= 0 && i.y >= 0 && i.x + (i.rot ? E.GOODS[i.g].h : E.GOODS[i.g].w) <= 7 && i.y + (i.rot ? E.GOODS[i.g].w : E.GOODS[i.g].h) <= 2);
+  const D = E.dockOf(t), inReach = placed.length === 4 && placed.every(i => i.where === 'hold' || i.where === 'dock') && dock.every(i => i.x >= 0 && i.y >= 0 && i.x + (i.rot ? E.GOODS[i.g].h : E.GOODS[i.g].w) <= D.cols && i.y + (i.rot ? E.GOODS[i.g].w : E.GOODS[i.g].h) <= D.rows);
   E.OUT.length = 0;
   console.log(inReach ? 'An old Chapter IV save with cargo on the quay loads with everything in reach: ok' : 'FAIL: cargo on the old quay should be moved somewhere reachable');
   if (!inReach) failed = true;
+}
+// A save with the first, seven-wide Tyche: loads in the new shape if all her cargo fits, otherwise keeps the old shape until next season, and loses nothing.
+for (const fill of [20, 50]) {
+  const s = E.newGame(4040 + fill);
+  s.ch = 4; s.phase = 'title'; s.hull = 'tyche7'; E.changeHull(s, 'tyche7'); s.phase = 'port'; s.port = 'corcyra';
+  const goods = ['cheese', 'amber', 'hound', 'bronze', 'papyrus', 'incense', 'wheat', 'timber'];
+  for (let k = 0; E.holdCells(s) - s.items.filter(i => i.where === 'hold').reduce((a, i) => a + E.GOODS[i.g].w * E.GOODS[i.g].h, 0) > 57 - fill && k < 200; k++) {
+    const it = { id: s.nextId++, g: goods[k % goods.length], where: 'dock', x: 0, y: 0, rot: 0 }; s.items.push(it);
+    let placed = false;
+    for (let y = 0; y < 10 && !placed; y++) for (let x = 0; x < 7 && !placed; x++) for (const rot of [0, 1]) if (!placed && (it.where = 'hold', it.x = x, it.y = y, it.rot = rot, true) && E.holdInShape(s)) placed = true;
+    if (!placed) s.items.pop();
+  }
+  s.hull = 'medium';   // what an old save says
+  const before = s.items.length, t = E.migrate(JSON.parse(JSON.stringify(s)));
+  const ok = t.items.length === before && E.holdInShape(t) && (t.hull === 'medium' || t.hull === 'tyche7');
+  E.OUT.length = 0;
+  console.log(ok ? 'An old wide-Tyche save with ' + s.items.filter(i => i.where === 'hold').length + ' things aboard loads as ' + (t.hull === 'medium' ? 'the new Tyche' : 'the old shape, for now') + ', with nothing lost: ok' : 'FAIL: an old wide-Tyche save should load without losing cargo');
+  if (!ok) failed = true;
 }
 if (failed) process.exit(1);
