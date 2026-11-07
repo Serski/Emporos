@@ -281,6 +281,9 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 .tally dd { margin: 0; text-align: right; font: 600 16px/1.4 var(--font-pixel); font-variant-numeric: tabular-nums; }
 .tally .total { padding-top: 8px; border-top: 2px solid var(--line); color: var(--bone); }
 .tally dt.total { margin-right: -16px; padding-right: 16px; }
+.voyages { margin: 18px 0 4px; padding-top: 14px; border-top: 2px solid var(--line); }
+.voyages h3 { margin: 0 0 12px; text-align: center; font: 500 13px/1.3 var(--font-pixel); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+.voyages .tally dd small { display: block; font: 400 12px/1.3 var(--font-pixel); color: var(--bone-dim); }
 .t-text p.shipnote { margin: 4px 0 12px; padding: 10px 12px; border: 2px solid var(--clay-deep); background: var(--glaze-2); font: 15px/1.5 var(--font-story); }
 .note.good { color: var(--olive); }
 
@@ -410,6 +413,9 @@ const GOODS = {
   cedar:  { war: true, name: 'Lebanon cedar', of: 'cedar', unit: 'log', units: 'logs', w: 3, h: 1, value: 40, desc: 'A cedar log from the mountains of Lebanon, straight and sweet-smelling. Shipwrights and temple builders fight over it. Three squares long.' },
   salt:   { name: 'Kition salt', of: 'salt', unit: 'sack', units: 'sacks', w: 1, h: 1, value: 3, desc: 'Salt from the lake behind Kition, where the water dries away every summer and leaves it white. Cheap, heavy, and everybody needs it.' },
   tyrian: { name: 'Tyrian purple', of: 'Tyrian purple', unit: 'bolt', units: 'bolts', w: 2, h: 1, value: 60, soft: true, desc: 'Cloth dyed twice in the purple of Tyre, the colour of kings: ten thousand sea snails for every bolt. Soft, and worth more than its weight in silver.' },
+  linen:  { name: 'Egyptian linen', of: 'linen', unit: 'bolt', units: 'bolts', w: 1, h: 1, value: 14, soft: true, desc: 'Linen from the king’s weaving sheds, so fine that you can read through it, they say, if you hold it up to the light. Soft.' },
+  ivory:  { name: 'Ivory', of: 'ivory', unit: 'tusk', units: 'tusks', w: 3, h: 1, value: 45, desc: 'An elephant’s tusk, brought down the Nile from the far south, where there are elephants. Carvers make it into everything from combs to gods. Three squares long.' },
+  monkey: { name: 'A green monkey', the: 'the monkey', of: 'monkey', unit: 'monkey', units: 'monkeys', w: 1, h: 1, value: 30, live: true, eats: 1, desc: 'A small green monkey from the south, in a wicker cage. It eats and drinks as much as a man, and steals more. It will die first if the water runs out.' },
   balsam: { name: 'Balsam', of: 'balsam', unit: 'jar', units: 'jars', w: 1, h: 1, value: 45, fragile: true, desc: 'Balm from the gardens by the river Jordan, brought to Tyre on camels: one little jar costs more than a horse, and smells better. Fragile.' },
   kit:    { name: 'Gear', of: 'gear', unit: 'bundle of gear', units: 'bundles of gear', w: 1, h: 1, value: 0, desc: 'A hired hand’s bedding and gear. They sail only if it is in the hold.' },
 };
@@ -531,6 +537,10 @@ const HIRES = {
     note: 'One of Demetrius’s soldiers in Tyre, who has decided the war is over for him. Worth two men in a fight, and he asks almost nothing, only to get away.',
     pitch: '“My king has lost Macedonia, and Ptolemy is coming for Tyre. I have fought for him for twelve years. Take me anywhere that is not here, and I will fight for you on the way.”',
     joined: 'Philippos came aboard with his shield and nothing else, and sat down where the patrol ships could not see him from the sea.' },
+  petosiris: { name: 'Petosiris', role: 'Pilot, from Alexandria', fee: 20, fight: 0.6, row: 0.6, pilot: true, kit: 'Sounding lead',
+    note: 'An Egyptian who has brought grain ships in and out of Alexandria for twenty years, and knows the one safe way past the sandbanks. The ship goes faster with him aboard.',
+    pitch: '“The coast of Egypt is so low that you are on it before you see it. I have seen it from a sandbank more times than I would like. Now I see it from the right side.”',
+    joined: 'Petosiris came aboard with a sounding lead and a little god with the head of a bird, which he tied to the stern post without asking anyone.' },
   euphron: { name: 'Euphron', role: 'Ship’s carpenter', from: 3, fee: 12, fight: 0.9, row: 0.8, carpenter: true, kit: 'Tool chest',
     note: 'Patches leaks as fast as the sea opens them. Storms do half the damage.',
     pitch: '“I built ships in the yards here for twenty years. Now I would like to see what happens to them afterwards.” He tapped the side of his head. “And I can mend anything made of wood, except this.”',
@@ -1323,8 +1333,96 @@ Object.assign(MERCHANTS, {
     yes: ['“Fine.”'], no: ['“No.”'] },
 });
 
+// ---- Chapter IX: Alexandria, the king of Egypt's new city, and the last voyage of the year ----
+Object.assign(MERCHANTS.thras.byCh, { 9: { buys: { honey: 12, hybla: 17, cheese: 12, coanwine: 7 },
+  hello: ['“Alexandria! Half the wine jars in that city are Rhodian, and the other half are pretending. Take them the real thing.”'],
+  home: ['“Back from Egypt? Did they drink it all? They always drink it all.”'] } });
+Object.assign(MERCHANTS.korinna.byCh, { 9: { buys: { linen: 24, tyrian: 60, purple: 40, cloth: 24, wool: 28, tarwool: 34, amber: 46, kyprinon: 24 },
+  hello: ['“Egyptian linen, from the king’s own weaving sheds. So fine you can see the lady through it, which is the point. Bring me all you can.”'],
+  home: ['“Linen! Hold it up to the light. Higher. Oh, yes.”'] } });
+Object.assign(MERCHANTS.aristeia.byCh, { 9: { buys: { ivory: 80, glass: 26 },
+  hello: ['“Ivory, from the elephants of the south. I know a carver who will make a goddess out of a tusk, and a lady who will pay for her.”'],
+  home: ['“A tusk! Put it there, where the light falls on it.”'] } });
+Object.assign(MERCHANTS.arsenal.byCh, { 9: { sells: { pitch: 9, bench: 14, pithos: 10, awning: 6, bolt: 35 }, buys: {},
+  hello: ['“Pitch for Egypt? The king of Egypt has a great deal of sand and no pine trees. He will pay.”'] } });
+Object.assign(MERCHANTS.stores.byCh, { 9: { sells: { barley: 2, water: 1 }, buys: { wheat: 6, salt: 6, tunny: 10, cheese: 10 },
+  hello: ['“Water, and plenty of it: two nights at sea each way, and the nights are cold now.”', '“Egyptian wheat? I will buy it. The city lays in grain for the winter, and the winter is coming.”'] } });
+Object.assign(MERCHANTS.works.byCh, { 9: { buys: { copper: 56, kingbronze: 70, bronze: 34, marble: 70, hermes: 40 },
+  hello: ['“The head goes up before the winter. The last of him. Copper, Ariston, copper: there is copper in Cyprus, if you come home that way.”'],
+  home: ['“Copper! For his face. Put it here, and stand back, and look up.”'] } });
+Object.assign(MERCHANTS.bank.byCh, { 9: { buys: { monkey: 70 }, limit: { monkey: 1 },
+  hello: ['“Alexandria. Eight hundred drachmas now, and a thousand and forty when she comes home, before the sea closes. After that I charge for waiting.”', '“And my son wants a monkey. He has a hound, and a horse, and now he wants a monkey, because in Alexandria they have monkeys. I am told they bite.”'],
+  home: ['“Welcome home. Is that a monkey? It is looking at me. Why is it looking at me?”'] } });
+MERCHANTS.agent.byCh[9] = { freight: [{ id: 'ral1', to: 'alexandria', fee: 34, worth: 110 }, { id: 'ral2', to: 'alexandria', fee: 28, worth: 100 }],
+  hello: ['“Two crates for Alexandria, for the king’s storehouses. They want everything in Alexandria, and they want it before the winter.”'] };
+MERCHANTS.shipwright.byCh[9] = { sells: { timber: 40 }, buys: { cedar: 44 },
+  hello: s => [tierOf(s.hull) >= 3 ? '“The king of Egypt is building a fleet, and has no trees. Take him fir spars. He will pay more than I charge, and I charge a great deal.”' : '“The grain ship is still on my slipway. Take her to Alexandria, where the grain is. That is what she is for.”'] };
+(MERCHANTS.teacher.byCh = MERCHANTS.teacher.byCh || {})[9] = { sells: { scrolls: 14 }, buys: {}, stock: { scrolls: 5 },
+  hello: ['“My students copy books for practice. Their spelling is terrible, and the king of Egypt’s Museum will buy them anyway. They buy anything with writing on it.”'] };
+(MERCHANTS.alexandrian.byCh = MERCHANTS.alexandrian.byCh || {})[9] = { hello: ['“You are going to my city? Look at the tower on Pharos for me, and tell me if it is finished. It was not finished when I left, and I left nine years ago.”'] };
+MERCHANTS.perfumer.byCh[9] = { buys: { kyprinon: 26, dittany: 22, balsam: 48 },
+  hello: ['“Kyprinon from Cyprus, if you come home that way. The ladies want it for the winter, when there are no roses.”'] };
+Object.assign(MERCHANTS.timo.byCh = MERCHANTS.timo.byCh || {}, { 9: { buys: { incense: 26, purple: 46, amber: 54, cloth: 28, linen: 22 },
+  hello: ['“Egyptian linen, for the goddess’s robes! She has a great many robes. She is a goddess.”'] } });
+Object.assign(MERCHANTS.onasilos.byCh = MERCHANTS.onasilos.byCh || {}, { 9: { sells: { copper: 24 }, buys: {}, stock: { copper: 2 },
+  hello: ['“Copper for the god of Rhodes again? The last two ingots of the year. After this the mines close for the winter, and so do I.”'] } });
+Object.assign(MERCHANTS.kypra.byCh = MERCHANTS.kypra.byCh || {}, { 9: { sells: { kyprinon: 9 }, buys: { papyrus: 9, cups: 11 }, stock: { kyprinon: 2 },
+  hello: ['“Kyprinon, the last of the summer’s flowers. And papyrus, from Egypt? I need it for the labels. I am always running out of labels.”'] } });
+Object.assign(MERCHANTS, {
+  storehouse: { port: 'alexandria', name: 'Herakleides', role: 'The king’s storehouses', at: 0.06,
+    look: { skin: '#c99062', hair: '#3a2618', style: 'short', beard: 1, robe: '#efe6d6', trim: '#3f6f8e', hat: 'band' },
+    sells: { wheat: 2, linen: 8, papyrus: 4 }, buys: {}, stock: { linen: 6 },
+    hello: ['“Everything in Egypt belongs to the king: the grain, the linen, the papyrus, the oil and, I think, the Nile. I sell them for him, at his prices, which are low, because he has so much.”'],
+    yes: ['“The king thanks you.”'], no: ['“The king does not haggle. I do, a little.”'] },
+  dockyard: { port: 'alexandria', name: 'Admetos', role: 'The king’s dockyards', at: 0.19,
+    look: { skin: '#b9804e', hair: '#5a4632', style: 'short', beard: 2, robe: '#5a3a22', trim: '#c9ced3' },
+    sells: {}, buys: { timber: 64, pitch: 18, cedar: 66 },
+    hello: ['“The king is building a fleet, and Egypt has no trees. Palms, yes. You cannot make a mast out of a palm. Fir, cedar, pitch: bring them, and I pay.”', '“In Tyre they would have taken this off you at sea. Here the king pays you for it. That is the difference between his enemies and his friends.”'],
+    yes: ['“Done. Bring more in the spring.”'], no: ['“The king has a great deal of silver, and I have to account for all of it.”'] },
+  museum: { port: 'alexandria', name: 'Theon', role: 'Buys books for the king’s Museum', at: 0.32,
+    look: { skin: '#c48a58', hair: '#9a9488', style: 'short', beard: 2, robe: '#efe6d6', trim: '#6a2a5a' },
+    sells: {}, buys: { scrolls: 40 },
+    hello: ['“The king wants a copy of every book in the world. We are perhaps a third of the way there. Have you any books? We pay for anything with writing on it.”', '“They keep us in the Museum like birds in a cage. They feed us, and we sing, and mostly we argue.”'],
+    yes: ['“Another one! I must find out what it is about.”'], no: ['“We are scholars. We count everything, especially money.”'] },
+  kapelos: { port: 'alexandria', name: 'Chairemon', role: 'Wine merchant', at: 0.45,
+    look: { skin: '#b07a4c', hair: '#2a1d14', style: 'curly', beard: 2, robe: '#8b3240', trim: '#efe3cc' },
+    sells: {}, buys: { wine: 22, coanwine: 12, honey: 16, cheese: 14, figs: 7, sponge: 6, hybla: 22 },
+    hello: ['“Rhodian wine! The Egyptians drink beer, which is bread you can drink, and very good for them. The Greeks of Alexandria drink Rhodian wine, and are very good for me.”'],
+    yes: ['“Fine. I will sell it as Chian.”'], no: ['“The canal brings me Egyptian wine for nothing. Nobody drinks it, but it is cheap.”'] },
+  palace: { port: 'alexandria', name: 'A steward of the palace', role: 'Buys for the king’s household', at: 0.58,
+    look: { skin: '#c99062', hair: '#1b130e', style: 'short', beard: 0, robe: '#6a2a5a', trim: '#e3b453', hat: 'band' },
+    sells: {}, buys: { tyrian: 80, purple: 44, amber: 60, scent: 18, marble: 96, kyprinon: 28, glass: 24 },
+    hello: ['“The palace buys only the best: for the king, who is old and does not care, and for the queen, who is not, and does.”'],
+    yes: ['“The household thanks you.”'], no: ['“I am buying for a king. Kings do not like to be overcharged, and I do not like to be explained to.”'] },
+  nubian: { port: 'alexandria', name: 'Harsiese', role: 'Ivory from the south, and a monkey', at: 0.71,
+    look: { skin: '#7a4a2a', hair: '#1b130e', style: 'short', beard: 0, robe: '#efe6d6', trim: '#e3b453' },
+    sells: { ivory: 30, monkey: 24 }, buys: {}, stock: { ivory: 3, monkey: 1 },
+    hello: ['“Ivory, from the elephants beyond the cataracts, a month up the river and then some. And a monkey. The monkey came down with the ivory, and will not go back.”'],
+    yes: ['“Fine. Do not let him near the figs.”'], no: ['“Elephants are large, and the river is long.”'] },
+  architect: { port: 'alexandria', name: 'The builder of the tower', role: 'Building a tower on Pharos', at: 0.84, talker: true,
+    look: { skin: '#c48a58', hair: '#d8d2c4', style: 'short', beard: 2, robe: '#9a8a6a', trim: '#5a4632' },
+    sells: {}, buys: {},
+    hello: ['A man with white dust in his beard was standing on the quay, looking out at the tower on Pharos with his head on one side, as if it had said something rude.'],
+    talk: ['“The king wants a tower on Pharos so tall that ships can see it a day out to sea, with a fire on top at night,” said the builder. “It is the only way anyone will ever find this harbour. Egypt has no hills. It barely has a coast.”',
+      '“For now there is a fire on top of the scaffolding, because the men work at night,” said the builder. “Sailors have started steering by it. I tell them not to. It moves.”',
+      '“When it is finished the king will put his name on it, carved in the stone,” said the builder. “I will carve mine underneath, and plaster over it, and paint his on the plaster. Plaster falls off. Stone does not.”',
+      '“Seven stades,” said the builder, pointing along the causeway out to Pharos. “So they call it the Seven-Stade. Alexandrians are not good at names. They named the city after Alexander, and the new god after a bull.”'],
+    yes: ['“Hm.”'], no: ['“Hm.”'] },
+  alstores: { port: 'alexandria', name: 'Tabes', role: 'Harbour stores', at: 0.95, refill: true,
+    look: { skin: '#8a5a32', hair: '#1b130e', style: 'veil', veil: '#efe6d6', beard: 0, robe: '#3f6f8e', trim: '#efe3cc' },
+    sells: { barley: 2, water: 1 }, buys: {},
+    hello: ['“Water from the canal, out of the Nile itself. It is the best water in the world, the Egyptians say, and also the muddiest.”'],
+    yes: ['“Fine.”'], no: ['“No.”'] },
+  grainoffice: { port: 'alexandria', noStall: true, name: 'Kleon', role: 'The king’s grain office',
+    look: { skin: '#c48a58', hair: '#3a2618', style: 'short', beard: 1, robe: '#efe6d6', trim: '#e3b453', hat: 'band' },
+    sells: {}, buys: {}, freight: [{ id: 'kg1', to: 'rhodes', fee: 34, worth: 70, by: 6 }, { id: 'kg2', to: 'rhodes', fee: 34, worth: 70, by: 6 }, { id: 'kg3', to: 'rhodes', fee: 34, worth: 70, by: 6 },
+      { id: 'kg4', to: 'rhodes', fee: 34, worth: 70, by: 6 }, { id: 'alr1', to: 'rhodes', fee: 30, worth: 100 }],
+    hello: ['“The king’s grain, for the grain commissioners of Rhodes, sealed with his seal: Rhodes is the king’s friend, and buys his grain for the winter. They pay when it lands, if it lands in six days. After that they buy elsewhere for the winter, and pay you half for your trouble.”'],
+    yes: ['“Fine.”'], no: ['“No.”'] },
+});
+
 const PORTS = {
-  rhodes: { name: 'Rhodes', hires: ['philon', 'euphron'], byCh: { 4: ['philon', 'euphron', 'lykos'], 5: ['philon', 'euphron', 'lykos'], 6: ['philon', 'euphron', 'lykos'], 7: ['philon', 'euphron', 'lykos'], 8: ['philon', 'euphron', 'lykos'] } },
+  rhodes: { name: 'Rhodes', hires: ['philon', 'euphron'], byCh: { 4: ['philon', 'euphron', 'lykos'], 5: ['philon', 'euphron', 'lykos'], 6: ['philon', 'euphron', 'lykos'], 7: ['philon', 'euphron', 'lykos'], 8: ['philon', 'euphron', 'lykos'], 9: ['philon', 'euphron', 'lykos', 'petosiris'] } },
   halic: { name: 'Halicarnassus', hires: ['lykos', 'kydas'] },
   kos: { name: 'Kos', hires: ['lykos', 'pythes'] },
   miletus: { name: 'Miletus', hires: ['seuthes'] },
@@ -1340,6 +1438,7 @@ const PORTS = {
   kition: { name: 'Kition', hires: ['mago'] },
   sidon: { name: 'Sidon', hires: [] },
   tyre: { name: 'Tyre', hires: ['philippos'] },
+  alexandria: { name: 'Alexandria', hires: [] },
 };
 const hiresAt = (s, port) => ((PORTS[port].byCh && PORTS[port].byCh[s.ch]) || PORTS[port].hires).filter(h => !HIRES[h].from || s.ch >= HIRES[h].from);
 const merchantsAt = (port, ch) => Object.keys(MERCHANTS).filter(id => MERCHANTS[id].port === port && (!ch || !MERCHANTS[id].from || ch >= MERCHANTS[id].from));
@@ -1388,6 +1487,7 @@ const STOPS = {
   megiste: { name: 'Megiste', where: 'The harbour of Megiste, the last Rhodian island' },
   sidon: { name: 'Sidon', port: true },
   tyre: { name: 'Tyre', port: true },
+  alexandria: { name: 'Alexandria', port: true },
 };
 // One sailing day each. Times are fractions of the daylight, 0 at dawn and 1 at dusk.
 const DAYS = {
@@ -1656,6 +1756,34 @@ const DAYS = {
   h_meg_rho: { from: 'megiste', to: 'rhodes', dist: 1.6, hot: true, wind: [[0, 'head'], [0.4, 'light']], rough: [0.3, 0.4],
     lines: [[0.03, 'From Megiste they beat straight across for Rhodes, into a short, steep sea that came at them sideways all morning.'],
       [0.8, 'Late in the day Rhodes came up out of the sea, and the god in his hill of earth, with a neck now, and the scaffolding for his head.']] },
+  i_r_mid: { from: 'rhodes', to: 'midsea', dist: 1.7, untilDark: true, open: [0.4, 9], wind: [[0, 'fair'], [0.6, 'light']],
+    lines: [[0.02, 'They sailed out past the god, who had a jaw now and the beginnings of a face, and turned south, out of the harbour and into the open sea, for Egypt.'],
+      [0.45, 'By the middle of the day Rhodes had gone down behind them. There was nothing ahead but sea, and three days of it.']] },
+  i_mid_mid: { from: 'midsea', to: 'midsea', dist: 1.7, untilDark: true, open: [0, 9], wind: [[0, 'fair'], [0.7, 'light']],
+    lines: [[0.03, 'The second day the north wind blew steadily behind them, and the grain ship ran south with the waves lifting her stern and setting it down again, like a hand on a shoulder.']],
+    events: [[0.35, 'storm9', 'gale9']] },
+  i_mid_alx: { from: 'midsea', to: 'alexandria', dist: 1.0, open: [0, 0.75], wind: [[0, 'light'], [0.3, 'fair']], anchor: 'a low shore of sand and reeds',
+    lines: [[0.03, 'The third morning was grey and warm. The sea smelled different, of mud and something sweet, and birds that were not seabirds went over, very high.']],
+    events: [[0.45, 'landfall']] },
+  i_alx_mid: { from: 'alexandria', to: 'midsea', dist: 1.4, untilDark: true, open: [0.3, 9], wind: [[0, 'light'], [0.45, 'head'], [0.75, 'light']],
+    lines: [[0.03, 'They left Alexandria at dawn, past the tower on Pharos, and stood out to sea, north, into the wind. Egypt went down behind them almost at once, because there was so little of it to go down.']] },
+  i_mid_mid2: { from: 'midsea', to: 'midsea', dist: 1.3, untilDark: true, open: [0, 9], wind: [[0, 'head'], [0.35, 'light']], lurk: 'Kasos',
+    lines: [[0.03, 'They stood on north for Rhodes, close-hauled, with the wind in their faces and the cold coming up off the sea.']],
+    events: [[0.3, 'storm9h', 'homegale9'], [0.6, 'pirates', 'pirates9']] },
+  i_mid_rho: { from: 'midsea', to: 'rhodes', dist: 1.0, open: [0, 0.5], wind: [[0, 'light'], [0.4, 'fair']],
+    lines: [[0.03, 'At dawn there were mountains on the horizon to the north: Rhodes, and the coast of Asia beyond it.'],
+      [0.75, 'Late in the day Rhodes came up out of the sea, and the god in his hill of earth, with a head on him at last.']] },
+  i_mid_pap: { from: 'midsea', to: 'paphos', dist: 1.3, open: [0, 0.5], wind: [[0, 'fair']],
+    lines: [[0.03, 'At dawn they bore away to the north-east and put the wind on the beam, and the grain ship leaned over and went, as if she had been waiting to be asked.'],
+      [0.55, 'In the afternoon there was a long grey mountain ahead with cloud on top of it: Cyprus, and the goddess’s coast.']] },
+  i_pap_mid: { from: 'paphos', to: 'midsea', dist: 1.6, untilDark: true, open: [0.45, 9], wind: [[0, 'light'], [0.3, 'fair']], lurk: 'the cape of Akamas',
+    lines: [[0.03, 'They left Paphos at first light and steered north-west, out to sea, for Lycia and home.']],
+    events: [[0.4, 'pirates', 'pirates9']] },
+  i_mid_myr: { from: 'midsea', to: 'myra', dist: 1.0, open: [0, 0.4], wind: [[0, 'fair'], [0.6, 'light']],
+    lines: [[0.03, 'At dawn the mountains of Lycia came up out of the sea, with the first snow of the year on the high tops.']] },
+  i_myr_rho: { from: 'myra', to: 'rhodes', dist: 1.5, wind: [[0, 'fair'], [0.6, 'light']],
+    lines: [[0.03, 'From Myra they ran west along the coast of Lycia with the wind on the quarter, for home, and the last day of the sailing season.'],
+      [0.75, 'Late in the day Rhodes came up out of the sea, and the god in his hill of earth, with a head on him at last.']] },
   n_tri_rho: { from: 'triopion', to: 'rhodes', dist: 1.6, hot: true, wind: [[0, 'gale'], [0.6, 'fair']], rough: [0.3, 0.55],
     lines: [[0.03, 'The north wind was blowing hard, straight for Rhodes. That was the good news.'],
       [0.72, 'Late in the day Rhodes came up out of the sea: first the hill, then the walls, then the cranes over the god.']] },
@@ -1709,6 +1837,11 @@ const ROUTES = {
   h_home2: { days: ['h_sid_mid', 'h_mid_mid2', 'h_mid_meg'], to: 'rhodes', est: 5, homeward: true, open: true, dry: 3 },
   h_coast: { days: ['h_meg_pat', 'h_pat_rho'], to: 'rhodes', homeward: true },
   h_open: { days: ['h_meg_rho'], to: 'rhodes', homeward: true },
+  i_out: { days: ['i_r_mid', 'i_mid_mid', 'i_mid_alx'], to: 'alexandria', est: 3, open: true, dry: 3 },
+  i_home1: { days: ['i_alx_mid'], to: 'rhodes', est: 3, homeward: true, open: true, dry: 3 },
+  i_open: { days: ['i_mid_mid2', 'i_mid_rho'], to: 'rhodes', homeward: true },
+  i_cyp: { days: ['i_mid_pap'], to: 'paphos', homeward: true },
+  i_home3: { days: ['i_pap_mid', 'i_mid_myr', 'i_myr_rho'], to: 'rhodes', est: 3, homeward: true, open: true, dry: 1 },
 };
 // The chapters: where each port sends you next, the way home from Cape Triopion, the sea loan, and how far the god has grown.
 const CHAPTERS = {
@@ -1743,6 +1876,10 @@ const CHAPTERS = {
     legs: { rhodes: 'h_out1', sidon: s => s.flags.reached_tyre ? 'h_home2' : 'h_out2', tyre: 'h_home1' }, fork: { at: 'megiste', route: 'h_home2' }, choices: { coast: 'h_coast', open: 'h_open' },
     loan: { take: 700, due: 910 }, pirateChance: 0.5, calmChance: 0.5, blockadeChance: 0.7, blockoutChance: 0.6,
     ratings: [[1150, 'A name in every harbour'], [800, 'A very good summer'], [450, 'A good summer'], [0, 'He broke even'], [-1e9, 'A hard summer']] },
+  9: { numeral: 'IX', name: 'Alexandria', season: 'autumn', year: 288, dest: 'alexandria', stage: [9, 10], next: null, ship: 'large', needsShip: true, daylight: 0.85,
+    legs: { rhodes: 'i_out', alexandria: 'i_home1', paphos: 'i_home3' }, fork: { at: 'midsea', route: 'i_home1' }, choices: { coast: 'i_cyp', open: 'i_open' },
+    loan: { take: 800, due: 1040 }, pirateChance: 0.45, galeChance: 0.5, homeGaleChance: 0.5,
+    ratings: [[1050, 'The first merchant of Rhodes'], [850, 'A great autumn'], [450, 'A good autumn'], [0, 'He broke even'], [-1e9, 'A hard autumn']] },
 };
 const chapter = s => CHAPTERS[s.ch];
 const routeFrom = s => { const L = chapter(s).legs[s.port]; return typeof L === 'function' ? L(s) : L; };
@@ -1923,10 +2060,11 @@ const CAMPS = {
         line: 'They bought fish from the Lycians, who were polite about the price, and firm.' },
     ] },
   myra: {
-    lines: s => ROUTES[s.voyage.route].homeward ? ['They spent the night at Andriake again, below the tombs of Myra.', 'From here Rhodes was one long day across the open sea before a strong east wind, or two easy days by way of Patara.']
+    lines: s => s.ch === 9 ? ['They spent the night at Andriake, below the tombs of Myra, with the first cold of the winter coming down off the mountains.', 'From here Rhodes was one long day west, the last day of the sailing season.']
+      : ROUTES[s.voyage.route].homeward ? ['They spent the night at Andriake again, below the tombs of Myra.', 'From here Rhodes was one long day across the open sea before a strong east wind, or two easy days by way of Patara.']
       : ['They spent the night at Andriake, the harbour of Myra. Above the town the cliffs were cut into tombs with fronts like temples, row above row, and in the evening light they looked like a city of the dead looking out to sea.',
         'Beyond Myra was the cape of swallows, then the open sea, then Cyprus.'],
-    hint: s => ROUTES[s.voyage.route].homeward ? (hasDeck(s) ? 'The straight run saves a day, but the sea is rough. Cargo on deck may go over the side.' : 'The straight run saves a day, but the sea is rough. Pack fragile cargo against something soft.')
+    hint: s => s.ch === 9 ? 'Tomorrow, one long day home to Rhodes.' : ROUTES[s.voyage.route].homeward ? (hasDeck(s) ? 'The straight run saves a day, but the sea is rough. Cargo on deck may go over the side.' : 'The straight run saves a day, but the sea is rough. Pack fragile cargo against something soft.')
       : hasDeck(s) ? 'Tomorrow, round the cape and out across the open sea to Cyprus. Gales come off that cape without warning. Think about what is on deck.' : 'Tomorrow, round the cape and out across the open sea to Cyprus. Gales come off that cape without warning.',
     actions: [
       { id: 'spring', label: 'Fill the water jars at the spring', once: true, refill: true,
@@ -1997,8 +2135,8 @@ const ARRIVE = {
   syracuse: s => ['Syracuse was the greatest city in the west: two harbours, an island called Ortygia with a spring of fresh water at the edge of the sea, and walls that ran for miles up onto the hills.',
     'The old king had died in the summer. On the quay the people were pulling down his statues with ropes, and singing while they did it, and the bronze men came down one after another, still looking stern.',
     s.flags.mutiny6 ? 'His Campanian soldiers sat about in the wine shops, with nobody to pay them and nowhere to go. Some of them were looking at the ships.' : 'His Campanian soldiers were leaving, by vote of the people, and the people watched them go.'],
-  paphos: s => s.flags.reached_kition
-    ? ['They came back into Paphos. The priestesses were still burning incense on the shore. They said it was for the goddess, and also for the smell of the fish market.']
+  paphos: s => s.ch === 9 ? ['They came into Paphos from the south, from Egypt, with the wind on the beam. The priestesses on the shore looked at the grain ship with interest, and at the linen with more.']
+    : s.flags.reached_kition ? ['They came back into Paphos. The priestesses were still burning incense on the shore. They said it was for the goddess, and also for the smell of the fish market.']
     : ['Paphos was the goddess’s city. A little way down the coast, on a hill above the sea, was her great sanctuary, where pilgrims came from everywhere to pray, and to leave her presents, and to be seen leaving them.',
       'Cyprus had had a king in every city once. Now it had one king, Ptolemy of Egypt, who lived in Alexandria and sent men to count things.'],
   kition: () => ['Kition was a Phoenician city, the oldest on Cyprus, with a harbour full of ships from Tyre and Sidon, horses’ heads carved on their bows, and a lake behind it that turned to salt every summer.',
@@ -2007,6 +2145,8 @@ const ARRIVE = {
     ? ['They came back into Sidon from the south. King Ptolemy’s officer was waiting on the quay with his tablet, and wrote down the name of the ship again, slowly, in case he had spelled it wrong the first time.']
     : ['Sidon was a city of glass furnaces and harbours under the mountains of Lebanon, so old that it is in Homer, where the Sidonians make beautiful things and sell them to everybody.',
       'Since the spring it had belonged to King Ptolemy of Egypt. His officers sat on the quay with wax tablets, writing down ships. South of the city, Tyre still held out for Demetrius.'],
+  alexandria: s => ['They came in past the rocks of Pharos, where a white tower stood half built inside its scaffolding with a fire on top, and into the Great Harbour of Alexandria.',
+    'Alexandria was forty-three years old, and already the biggest city anyone aboard had ever seen: long straight streets, the king’s palaces along the harbour, and a causeway seven stades long out to Pharos. Everything in it was new, except the Egyptians, who had been there all along.'],
   tyre: s => ['Tyre was an island city with walls straight up out of the sea, joined to the land by the road Alexander had built across the water to take it. Inside, the streets were narrow and tall, and smelled of the purple dye works, and of fish.',
     'The city still held out for Demetrius, though Demetrius had lost everything else. His soldiers kept the walls. The people of Tyre kept their heads down, and their prices up, except for purple, which nobody could get out.'],
   miletus: () => ['Miletus had four harbours, a great many temples, and streets as straight as a ruler.',
@@ -2018,7 +2158,8 @@ const ARRIVE = {
           : s.ch === 5 ? 'They came home at the end of the summer. The god had a chest now, and shoulders on the way, and the hill of earth around him was the highest place in Rhodes.'
             : s.ch === 6 ? 'They came home in the last days of the sailing season, nearly the last ship in. The god had shoulders now, and arms on the way, and the men on the hill of earth were working by lamplight.'
               : s.ch === 7 ? 'They came home in the spring sunshine, low in the water. The god had arms now, out of the hill of earth as far as the elbows, and men were building the scaffolding for his head.'
-                : 'They came home at the end of the summer, burnt brown and thin. The god had a neck now, and a jaw, and the scaffolding round his head was the highest thing anyone in Rhodes had ever seen.'],
+                : s.ch === 8 ? 'They came home at the end of the summer, burnt brown and thin. The god had a neck now, and a jaw, and the scaffolding round his head was the highest thing anyone in Rhodes had ever seen.'
+                  : 'They came home at the very end of the sailing season, with the first winter rain on the sails. The god had a head now, with a crown of rays, and men on ladders were polishing his face.'],
   banker: s => s.ch === 1 ? 'Antimachos the banker was waiting on the quay. Bankers always know when ships come in.'
     : s.loan.due ? 'Antimachos was on the quay. He looked at the cargo before he looked at Ariston.' : 'Antimachos was on the quay anyway, in case Ariston wanted to borrow something. Bankers are hopeful people.',
 };
@@ -2085,7 +2226,8 @@ function begin(s) {
           : s.ch === 5 ? 'The harbour was hot, and smelled of everything at once. Ariston went to see what Italy might want.'
             : s.ch === 6 ? 'The harbour was full of ships being hauled out for the winter. Ariston went to see what Crete and Sicily might want, before the sea closed.'
               : s.ch === 7 ? 'The harbour smelled of new paint and spring. Ariston went to see what Cyprus might want, and whether Nausikrates had finished his ship.'
-                : 'The harbour was hot, and full of talk about the war in Phoenicia. Ariston went to see what Sidon and Tyre might want, and what they might be willing to pay for it.');
+                : s.ch === 8 ? 'The harbour was hot, and full of talk about the war in Phoenicia. Ariston went to see what Sidon and Tyre might want, and what they might be willing to pay for it.'
+                  : 'The harbour was emptying for the winter, ship by ship. Ariston went to see what Alexandria might want, and what the last voyage of the year might be worth.');
 }
 
 function say(s, text, tone) {
@@ -2451,7 +2593,7 @@ function eat(s, f) {
     const beast = s.items.find(i => aboard(i) && GOODS[i.g].live);
     if (beast) {
       v.fired.beast = 1; removeItem(s, beast); s.flags.died = (s.flags.died || []).concat(beast.g);
-      say(s, 'The ' + (beast.g === 'horse' ? 'horse' : 'hound') + ' had stopped drinking, because there was nothing left to drink. After a while it lay down in the hold, and did not get up. They put it over the side, and nobody said anything for a long time.', 'bad');
+      say(s, 'The ' + GOODS[beast.g].unit + ' had stopped drinking, because there was nothing left to drink. After a while it lay down in the hold, and did not get up. They put it over the side, and nobody said anything for a long time.', 'bad');
     }
   }
   if (s.hungry && !wasH && !v.saidH) { v.saidH = 1; say(s, 'The food ran out. Nobody said anything. Everybody thought it.', 'bad'); }
@@ -2590,7 +2732,7 @@ function nightAtSea(s) {
   s.stats.nights++;
   s.phase = 'camp';
   s.camp = { stop: 'atsea', did: {}, n: {}, toward: DAYS[v.day].to, from: s.log.length };
-  say(s, 'Dark came before they reached ' + STOPS[DAYS[v.day].to].name + '. They anchored off a rocky shore and spent the night at sea. Nobody slept much.', 'bad');
+  say(s, 'Dark came before they reached ' + STOPS[DAYS[v.day].to].name + '. They anchored off ' + (DAYS[v.day].anchor || 'a rocky shore') + ' and spent the night at sea. Nobody slept much.', 'bad');
   if (chapter(s).season === 'autumn' && rnd(s) < 0.4) {   // autumn nights are cold and wet
     const c = crewOk(s).filter(x => x.id !== 'ariston');
     if (c.length) { const who = pick(s, c); who.st = 'sick'; say(s, 'The night was cold, and the rain came and went. By morning ' + who.name + ' was shivering too hard to hold an oar.', 'bad'); }
@@ -2708,6 +2850,12 @@ function portBusiness(s, port) {
       if (rnd(s) < 0.5) { gainRep(s, 'corinth', -10); say(s, 'News had come in ahead of them. Another ship had picked up four Corinthian sailors off Melos, and they had told everyone about the Rhodian ship that sailed past.', 'bad'); }
     }
   }
+  if (port === 'alexandria' && s.flags.customs == null) {
+    const duty = Math.min(s.silver, Math.round(cargoValue(s) * 0.05));
+    s.flags.customs = duty; s.silver -= duty; s.stats.spent += duty;
+    say(s, duty ? 'At the customs house on the quay the king’s men counted everything aboard and took a twentieth of its value: ' + duty + ' drachmas. Then they counted it again, to be sure.'
+      : 'At the customs house on the quay the king’s men counted everything aboard, found nothing worth taxing, and looked at Ariston with suspicion.', duty ? 'bad' : '');
+  }
   if (port === 'tyre' && s.flags.blockade === 'ran' && !s.flags.cheered) {
     s.flags.cheered = true; s.silver += 30; s.stats.earned += 30; gainRep(s, 'tyre', 10);
     say(s, 'The quartermaster of the garrison had watched the race from the walls. He came down to the quay himself, and paid Ariston thirty drachmas for the entertainment.', 'good');
@@ -2734,8 +2882,12 @@ function portBusiness(s, port) {
     }
     const it = s.items.find(i => i.id === c.item), who = MERCHANTS[c.from].name;
     if (it) {
-      removeItem(s, it); s.silver += c.fee; s.stats.earned += c.fee; gainRep(s, port, 2); s.flags.delivered = (s.flags.delivered || 0) + 1;
-      say(s, 'Ariston handed over ' + who + '’s crate, and was paid ' + c.fee + ' drachmas for carrying it.', 'good');
+      const late = !!c.by && s.dayN > c.by, fee = late ? Math.round(c.fee / 2) : c.fee;
+      removeItem(s, it); s.silver += fee; s.stats.earned += fee; gainRep(s, port, late ? 0 : 2); s.flags.delivered = (s.flags.delivered || 0) + 1;
+      if (late) s.flags.lateGrain = (s.flags.lateGrain || 0) + 1;
+      say(s, c.by ? (late ? 'The grain commissioners took ' + who + '’s sacks of grain, but they had bought elsewhere for the winter while they waited. They paid Ariston half: ' + fee + ' drachmas.'
+        : 'The grain commissioners took ' + who + '’s sacks of grain off the ship themselves, and paid Ariston ' + fee + ' drachmas, and thanked him, which they do not usually do.')
+        : 'Ariston handed over ' + who + '’s crate, and was paid ' + fee + ' drachmas for carrying it.', late ? 'bad' : 'good');
     } else {
       const pay = Math.min(s.silver, c.worth), short = c.worth - pay;
       s.silver -= pay; s.stats.spent += pay; gainRep(s, port, -5);
@@ -2754,6 +2906,7 @@ function takeFreight(s, mid, fid) {
   if (!it) return fail('There is no room on the quay or in the hold for the crate.');
   Object.assign(it, { owner: mid, to: f.to, fee: f.fee, worth: f.worth });
   s.contracts.push({ fid, from: mid, to: f.to, fee: f.fee, worth: f.worth, item: it.id, done: false });
+  if (f.by) { it.by = f.by; s.contracts[s.contracts.length - 1].by = f.by; }   // the king's grain: late, and they pay half
   say(s, 'Ariston agreed to carry a crate to ' + STOPS[f.to].name + ' for ' + m.name + '. The fee was ' + f.fee + ' drachmas, on delivery.', 'quiet');
   return { ok: true, item: it };
 }
@@ -3062,7 +3215,10 @@ function roomForJars(s) {   // how many floating amphorae would fit, if the crew
 }
 function freeSquares(s) { let n = 0; for (let y = 0; y < hullOf(s).rows; y++) for (let x = 0; x < hullOf(s).cols; x++) if (cellOpen(s, x, y) && !itemAt(s, 'hold', x, y)) n++; return n; }
 // A gale at sea: throw cargo over the side, hold on and bail, or run for shelter. lee is where you run to.
-function gale(title, text, lee) {
+function homeGale(g) {   // the second gale of a voyage: keep what happened in it apart from the first
+  return Object.assign({}, g, { resolve(s, id) { const was = s.flags.storm, lines = g.resolve(s, id); s.flags.homeStorm = s.flags.storm; s.flags.storm = was; return lines; } });
+}
+function gale(title, text, lee, away) {
   return {
     title, text,
     choices: s => {
@@ -3081,7 +3237,7 @@ function gale(title, text, lee) {
         s.flags.storm = 'ran';
         if (!lee) {
           v.prog -= 0.7; addWind(v, v.clock, 'storm'); addWind(v, v.clock + 0.2, 'light');
-          return ['They took in the sail but for a corner, and ran before the gale, back the way they had come, with the waves chasing them and Glaukos steering for his life.', 'By evening the wind dropped. They were most of a day further from Sicily than they had been in the morning.'].concat(brokeLines(s, roughSea(s, 0.25), had), washLines(washDeck(s, 0.15)));
+          return ['They took in the sail but for a corner, and ran before the gale, back the way they had come, with the waves chasing them and Glaukos steering for his life.', 'By evening the wind dropped. They were most of a day further from ' + (away || 'Sicily') + ' than they had been in the morning.'].concat(brokeLines(s, roughSea(s, 0.25), had), washLines(washDeck(s, 0.15)));
         }
         v.prog = Math.max(0, v.prog - 0.45); addWind(v, v.clock, 'light');
         return ['They ran for the lee of ' + lee + ' and lay there while the gale went by.'].concat(brokeLines(s, roughSea(s, 0.2), had), washLines(washDeck(s, 0.1)));
@@ -3100,6 +3256,77 @@ const EVENTS = {
     hasDeck(s) ? 'Euploia lay over until the sea was running along her deck, and everything lashed there strained at its ropes.' : shipName(s) + ' lay over until her rail was in the water.'], 'the Swallow Islands'),
   storm6: gale('A gale on the open sea', s => ['Around noon the wind went round to the north-east and began to blow in earnest. Within an hour the sea was white, and there was no land anywhere to run to.',
     'Glaukos said there was a wind sailors called the Euroclydon, which blew ships all the way to the sandbanks of Libya. Then he wished he had not said it. ' + shipName(s) + ' put her bow into the first big wave and came up streaming.'], null),
+  storm9: gale('A gale from Libya', s => ['On the second day the wind went round to the south-west, the wind sailors call Lips because it comes from Libya, and it blew in their faces harder and harder until the sea was white to the horizon.',
+    hasDeck(s) ? 'Euploia put her bow into the first big sea and came up streaming, and everything lashed on her deck strained at its ropes.' : shipName(s) + ' put her bow into the first big sea and came up streaming.'], null, 'Egypt'),
+  storm9h: homeGale(gale('A gale from the north', s => ['On the second day out the north wind, which had been in their faces since Egypt, began to blow in earnest. By noon it was a gale, the sea was white, and there was no land anywhere to run to.',
+    'Glaukos said this was what came of sailing in the autumn. Then he said he had said so. Nobody could remember him saying so.'], null, 'Rhodes')),
+  landfall: {
+    title: 'The coast of Egypt',
+    text: s => {
+      const p = egyptPilot(s);
+      return ['Around midday the sea changed colour, from blue to green, and then to the yellow-brown of the river. The Nile was out there somewhere ahead, pouring Egypt into the sea.',
+        'The coast of Egypt is so low that a ship is in among its sandbanks before anyone aboard has seen land. Somewhere ahead was the one safe way into Alexandria, between the rocks off Pharos and the reef.']
+        .concat(p ? [p.name + ' went up into the bow, sniffed the air, and said that he could smell the river, and that he knew exactly where they were, more or less.'] : []);
+    },
+    choices: s => {
+      const p = egyptPilot(s);
+      if (p) return [{ id: 'pilot', label: 'Let ' + p.name + ' take her in', hint: 'He has done it a thousand times, he says.' }];
+      return [
+        { id: 'lead', label: 'Heave the lead, and feel your way along the coast', hint: 'Slow, and safe. You may not find the harbour before dark, and have to anchor off the coast for the night.' },
+        { id: 'fisher', label: 'Hail a fishing boat, and pay its master to lead you in', hint: FISHER_FEE + ' dr. The fishermen know every sandbank by name.' },
+        { id: 'tower', label: 'Steer for the smoke of the tower on Pharos', hint: cap(odds(TOWER_ODDS)) + ' odds of finding the harbour mouth. Miss it, and you will be on the sandbanks.' },
+      ];
+    },
+    resolve(s, id) {
+      const v = s.voyage;
+      if (id === 'pilot') {
+        s.flags.landfall = 'pilot'; v.dist = Math.max(v.prog + 0.05, v.dist - 0.1);
+        return [egyptPilot(s).name + ' took the steering oar and brought them in along the coast like a man walking home in the dark: past a sandbank he called by name, past the reef, and between the rocks of Pharos into the harbour mouth.'];
+      }
+      if (id === 'lead') {
+        s.flags.landfall = 'lead'; v.dist += 0.4;
+        return ['They went in slowly, with a man in the bow heaving the lead and calling the depth, another watching the colour of the water, and Glaukos swearing quietly at both of them.', 'It took most of the afternoon to find the reef, and then the rocks of Pharos, and then the gap between them.'];
+      }
+      if (id === 'fisher') {
+        const fee = Math.min(s.silver, FISHER_FEE); s.silver -= fee; s.stats.spent += fee; s.flags.landfall = 'fisher'; v.dist += 0.1;
+        return ['A fishing boat came out to look at them. Its master, a thin man with no teeth, took ' + fee + ' drachmas and led them in, zigzagging between sandbanks nobody else could see, and waving whenever they were about to hit one.'];
+      }
+      if (rnd(s) < TOWER_ODDS) {
+        s.flags.landfall = 'tower'; v.dist = Math.max(v.prog + 0.05, v.dist - 0.15);
+        return ['They steered for a smudge of smoke on the horizon. It turned into a fire, and the fire into a white tower in a cage of scaffolding, standing on a rock, and the rock into the island of Pharos, with the harbour mouth beside it.', 'Glaukos said he had known it all along.'];
+      }
+      s.flags.landfall = 'aground'; s.pending = 'aground';
+      return ['They steered for a smudge of smoke on the horizon. It got bigger, and turned out to be a village burning reeds, on a sandbank, in the middle of nowhere.', 'With a long, soft, horrible noise, ' + shipName(s) + ' ran up onto the mud and stopped.'];
+    },
+  },
+  aground: {
+    title: 'On the sandbank',
+    text: s => [shipName(s) + ' was not holed. But she was not moving either, and in this sea the tide hardly rises far enough to notice.', 'A boat full of fishermen came out from the village to look at them, and to see what they would pay.'],
+    choices: s => {
+      const plan = lightenPlan(s);
+      return [
+        { id: 'throw', label: 'Throw cargo over the side until she floats', hint: plan.items.length ? 'About ' + plan.value + ' dr of cargo: ' + listOf(plan.items) + '.' : 'There is nothing heavy to throw.' },
+        { id: 'tow', label: 'Pay the fishermen to tow her off', hint: TOW_FEE + ' dr. They have done this before, and their prices show it.' },
+        { id: 'kedge', label: 'Row the anchor out in the boat, and haul her off', hint: 'Hard work, all afternoon. You will probably spend the night at anchor, and reach the harbour in the morning.' },
+      ];
+    },
+    resolve(s, id) {
+      const v = s.voyage;
+      if (id === 'throw') {
+        const plan = lightenPlan(s);
+        for (const it of plan.items) removeItem(s, it);
+        s.flags.aground = 'threw'; v.dist += 0.15;
+        return plan.items.length ? ['They threw ' + listOf(plan.items) + ' over the side, onto the mud. ' + shipName(s) + ' shivered, lifted, and slid off backwards into deep water, and the fishermen went to collect what had been thrown.']
+          : ['There was nothing heavy to throw. They pushed with the sweeps until ' + shipName(s) + ' slid off by herself, out of embarrassment.'];
+      }
+      if (id === 'tow') {
+        const fee = Math.min(s.silver, TOW_FEE); s.silver -= fee; s.stats.spent += fee; s.flags.aground = 'towed'; v.dist += 0.2;
+        return ['The fishermen took ' + fee + ' drachmas and a line from the bow, and rowed, singing, and pulled ' + shipName(s) + ' off the mud stern first, and then led her into the harbour, still singing.'];
+      }
+      s.flags.aground = 'kedged'; v.dist += 0.6; v.tired = true;
+      return ['They rowed the anchor out in the boat, dropped it in deep water, and hauled on the cable, all of them, all afternoon. Near sunset she slid off the mud, very suddenly, and everyone fell over.'];
+    },
+  },
   blockade: {
     title: 'King Ptolemy’s patrol',
     text: s => DAYS[s.voyage.day].blockade === 'out'
@@ -3380,6 +3607,17 @@ const openSea = s => { const v = s.voyage, O = v && DAYS[v.day] && DAYS[v.day].o
 const CALM_FOR = 0.4;   // how long a calm lasts, as a fraction of the daylight
 const calmWine = s => s.items.find(i => aboard(i) && i.g === 'coanwine') || s.items.find(i => aboard(i) && i.g === 'wine');
 const mercs = s => !!(s.voyage && DAYS[s.voyage.day] && DAYS[s.voyage.day].raiders === 'mercs');
+// The coast of Egypt: so low that ships find it by running onto it.
+const FISHER_FEE = 15, TOW_FEE = 40, TOWER_ODDS = 0.55;
+const egyptPilot = s => crewOk(s).find(c => c.id === 'petosiris');
+function lightenPlan(s) {   // enough heavy cargo over the side to float her off a sandbank: half what a gale would take
+  const pool = s.items.filter(i => aboard(i) && isDead(i))
+    .sort((a, b) => (b.where === 'deck') - (a.where === 'deck') || (GOODS[b.g].w * GOODS[b.g].h) - (GOODS[a.g].w * GOODS[a.g].h) || GOODS[b.g].value - GOODS[a.g].value);
+  const target = Math.ceil(holdCells(s) * 0.15), out = [];
+  let area = 0, value = 0;
+  for (const it of pool) { if (area >= target) break; out.push(it); area += GOODS[it.g].w * GOODS[it.g].h; value += GOODS[it.g].value; }
+  return { items: out, value };
+}
 // King Ptolemy's patrol off Tyre: what a soldier could use is taken going in, and a tenth of the cargo coming out.
 const warGoods = s => s.items.filter(i => aboard(i) && GOODS[i.g].war);
 const warValue = s => warGoods(s).reduce((a, i) => a + GOODS[i.g].value, 0);
@@ -3439,6 +3677,7 @@ function summarize(s) {
     friend: s.proxenos.halic ? MERCHANTS[s.proxenos.halic].name : null, friends, days: s.dayN, hermes: s.flags.hermes || null,
     toll: s.flags.toll || null, storm: s.flags.storm || null, delivered: s.flags.delivered || 0, ship: null, hull: s.hull,
     rescue: s.flags.rescue || null, homeBy: s.flags.homeBy || null, hauled: s.flags.hauled || 0, calm: s.flags.calm || null, died: s.flags.died || [], campanians: s.flags.campanians || null, blockade: s.flags.blockade || null, blockout: s.flags.blockout || null, seized: s.flags.seized || 0,
+    landfall: s.flags.landfall || null, aground: s.flags.aground || null, homeStorm: s.flags.homeStorm || null, customs: s.flags.customs || 0, lateGrain: s.flags.lateGrain || 0,
     rating: chapter(s).ratings.find(r => profit >= r[0])[1],
   };
 }
@@ -3467,6 +3706,7 @@ function nextChapter(s) {
   if (C.tollChance) s.flags['toll' + s.ch] = rnd(s) < C.tollChance;
   if (C.blockadeChance) s.flags['blockade' + s.ch] = rnd(s) < C.blockadeChance;
   if (C.blockoutChance) s.flags['blockout' + s.ch] = rnd(s) < C.blockoutChance;
+  if (C.homeGaleChance) s.flags['homegale' + s.ch] = rnd(s) < C.homeGaleChance;
   if (s.hull === 'tyche7') changeHull(s, 'medium');   // Nausikrates refits the old wide Tyche over the winter
   if (C.ship && s.shipOrdered && s.hull === 'small') { changeHull(s, C.ship); s.flags.newShip = true; }   // the ship ordered last season is ready
   if (s.ch >= 4) fillCrew(s);
@@ -3917,6 +4157,29 @@ function makeItemSprite(key) {
       P(4, 6, '#e8c070'); P(3, 5, '#fff6dc');
       P(9, 2, '#5a8a4a', 1, 5); P(8, 2, '#6aaa5a'); P(10, 4, '#6aaa5a'); P(8, 6, '#6aaa5a');   // the sprig
     }, INK);
+    case 'linen': return sprite(12, 12, P => {   // a folded bolt of Egyptian linen, white, with a blue stripe at the edge
+      P(1, 3, '#f4efe4', 10, 7); P(1, 3, '#ffffff', 10, 1); P(1, 9, '#d8cfbc', 10, 1);
+      P(1, 5, '#e4dccb', 10, 1); P(1, 7, '#e4dccb', 10, 1);   // the folds
+      P(1, 4, '#3f6f8e', 10, 1); P(10, 3, '#cfc6b4', 1, 7);
+    }, INK);
+    case 'ivory': return sprite(36, 12, P => {   // an elephant's tusk, thick at the root and curving up to a point
+      for (let x = 1; x < 34; x++) {
+        const k = x / 33, th = Math.max(1, Math.round(5 - 4 * k)), y = Math.round(4 + 2 * Math.sin(k * Math.PI * 0.9) - 3 * k * k);
+        P(x, y, '#efe3c8', 1, th); P(x, y, '#fff8e6'); if (th > 2) P(x, y + th - 1, '#c9b48c');
+      }
+      P(1, 4, '#a8946c', 1, 5);   // the root end
+    }, INK);
+    case 'monkey': return sprite(12, 12, P => {   // a little green monkey in a wicker cage
+      P(1, 1, '#9a7a4a', 10, 1); P(1, 10, '#9a7a4a', 10, 1);
+      P(4, 5, '#7a8a5a', 4, 4); P(4, 3, '#7a8a5a', 4, 2); P(5, 3, '#e8c8a8', 2, 2); P(5, 3, '#2a2018'); P(6, 3, '#2a2018');   // the monkey, looking out
+      P(8, 8, '#7a8a5a', 2, 1); P(9, 7, '#7a8a5a');   // its tail
+      for (let x = 1; x < 11; x += 2) P(x, 2, '#8a6a40', 1, 8);   // the bars
+    }, INK);
+    case 'kit_petosiris': return sprite(12, 12, P => {   // an Egyptian pilot's sounding lead, and a little god with a falcon's head, in blue-green faience
+      disc(P, 5, 7, 3.6, '#c9a878', '#e0c898', '#9a7a52'); disc(P, 5, 7, 1.6, '#6a4a2e', '#6a4a2e', '#6a4a2e');
+      P(8, 8, '#7a7e84', 2, 3); P(8, 8, '#a8aeb4', 1, 3);
+      P(9, 3, '#2aa08a', 2, 4); P(9, 1, '#2aa08a', 2, 2); P(11, 2, '#1a6a5a'); P(9, 2, '#0a3a30');   // the falcon-headed god
+    }, INK);
     case 'kit_philippos': return sprite(12, 12, P => {   // a Macedonian soldier's round bronze shield, with the star of his king on it
       disc(P, 6, 6, 5, '#b0773a', '#e0a860', '#7a4a22');
       disc(P, 6, 6, 3.4, '#a86a32', '#d09858', '#7a4a22');
@@ -3974,6 +4237,7 @@ const CREW_LOOK = {
   pyrrhias: { skin: '#d6a87c', hair: '#b8562a', style: 'curly', beard: 1, robe: '#5a4a3a', trim: '#efe3cc' },
   leon: { skin: '#b07a4c', hair: '#3a2618', style: 'short', beard: 2, robe: '#3f6f8e', trim: '#efe3cc' },
   philippos: { skin: '#c99062', hair: '#6a4a2a', style: 'short', beard: 0, robe: '#8a2a2a', trim: '#c9ced3', hat: 'band' },
+  petosiris: { skin: '#8a5a32', hair: '#1b130e', style: 'bald', beard: 0, robe: '#efe6d6', trim: '#2aa08a' },
 };
 const lookOf = id => (MERCHANTS[id] && MERCHANTS[id].look) || CREW_LOOK[id];
 const FACES = {};
@@ -4330,6 +4594,9 @@ function mini(g, x, y) {
     case 'salt': R(x, y - 2, 2, 2, '#d8cfb8'); px(x, y - 3, '#ffffff'); px(x + 1, y - 3, '#ffffff'); break;
     case 'tyrian': R(x, y - 2, 3, 2, '#5a1a4a'); px(x + 1, y - 2, '#8a3a7a'); px(x + 1, y - 1, '#e3b453'); break;
     case 'balsam': R(x, y - 2, 2, 2, '#e8dcc0'); px(x, y - 3, '#c84a3a'); px(x + 2, y - 3, '#6aaa5a'); break;
+    case 'linen': R(x, y - 2, 3, 2, '#f4efe4'); R(x, y - 2, 3, 1, '#3f6f8e'); break;
+    case 'ivory': R(x, y - 1, 4, 1, '#efe3c8'); px(x + 3, y - 2, '#efe3c8'); px(x + 4, y - 3, '#efe3c8'); break;
+    case 'monkey': R(x, y - 3, 3, 3, '#9a7a4a'); px(x + 1, y - 2, '#7a8a5a'); px(x + 1, y - 3, '#e8c8a8'); break;
   }
 }
 function stall(cx, gy, mid, t, lit) {   // a merchant behind a counter under a striped awning
@@ -4594,11 +4861,24 @@ function colossus(cx, gy, stage, t) {
     R(cx - 10, gy - 13 - top, 2, 8, '#b0773a'); R(cx - 10, gy - 13 - top, 1, 8, '#e0a860'); R(cx + 8, gy - 13 - top, 2, 8, '#7a4a22');
     px(cx - 10, gy - 5 - top, '#7a4a22'); px(cx + 9, gy - 5 - top, '#7a4a22');
   }
+  if (stage >= 10) {   // his head, with a crown of rays: the scaffolding is down, and two ladders are left for polishing
+    const hy = gy - 35 - top;
+    R(cx - 3, hy + 1, 6, 6, '#b0773a'); R(cx - 2, hy, 4, 1, '#b0773a'); R(cx - 3, hy + 1, 1, 6, '#e0a860'); R(cx + 2, hy + 1, 1, 6, '#7a4a22');
+    px(cx - 2, hy + 3, '#4a2a12'); px(cx + 1, hy + 3, '#4a2a12'); px(cx, hy + 4, '#7a4a22'); R(cx - 1, hy + 6, 2, 1, '#7a4a22');   // eyes, nose and mouth
+    for (const a of [-1.25, -0.8, -0.4, 0, 0.4, 0.8, 1.25]) pline(Math.round(cx - 0.5 + Math.sin(a) * 4), Math.round(hy + 3 - Math.cos(a) * 4), Math.round(cx - 0.5 + Math.sin(a) * 7), Math.round(hy + 3 - Math.cos(a) * 7), '#e8b04a');   // the rays of the Sun
+  }
   if (stage >= 9) {   // a neck, and the beginnings of a jaw
     R(cx - 1, gy - 25 - top, 3, 4, '#b0773a'); px(cx - 1, gy - 25 - top, '#e0a860'); px(cx - 1, gy - 24 - top, '#e0a860'); R(cx + 1, gy - 25 - top, 1, 4, '#7a4a22');
     R(cx - 3, gy - 28 - top, 6, 2, '#b0773a'); R(cx - 2, gy - 26 - top, 4, 1, '#b0773a'); R(cx - 3, gy - 28 - top, 1, 2, '#e0a860'); R(cx + 2, gy - 28 - top, 1, 2, '#7a4a22'); px(cx + 1, gy - 26 - top, '#7a4a22');
   }
   R(cx - 5, gy - 10, 4, 2, '#b0773a'); R(cx, gy - 10, 4, 2, '#b0773a');
+  if (stage >= 10) {   // finished: only ladders, and men on them with rags
+    pline(cx + 9, gy - 8, cx + 4, gy - 30 - top, '#7a5532'); pline(cx + 11, gy - 8, cx + 6, gy - 30 - top, '#7a5532');
+    for (let k = 1; k < 7; k++) { const y = gy - 8 - k * Math.round((22 + top) / 7), x = cx + 9 - Math.round(k * 5 / 7); R(x, y, 3, 1, '#7a5532'); }
+    const w = Math.floor(t * 1.2) % 2;
+    px(cx + 5 + w, gy - 27 - top, '#c48a58'); px(cx + 5 + w, gy - 26 - top, '#8a5a3a'); px(cx - 7, gy - 12 - (Math.floor(t) % 3), '#c48a58');
+    return;
+  }
   const sh = gy - 8 - top - (stage >= 9 ? 22 : stage >= 7 ? 17 : stage >= 6 ? 13 : 8);
   for (const x of [cx - 8, cx - 1, cx + 6]) R(x, sh, 1, gy - sh, '#7a5532');
   for (let y = sh + 2; y < gy - 8; y += 4) R(cx - 8, y, 15, 1, '#8a6440');
@@ -4619,7 +4899,7 @@ function mausoleum(cx, gy) {
 
 function drawRhodes(W, H, t, o) {
   const tall = H > W * 0.9, pal = dayPal(o.clock), qy = H - 15, stage = o.stage || 1, hz0 = Math.max(6, Math.round(H * (tall ? 0.5 : 0.42)));
-  const hz = stage >= 9 ? Math.max(hz0, Math.min(47, H - 40)) : hz0;   // once the god has a neck, the horizon comes down a little, so his jaw stays in the picture
+  const hz = stage >= 10 ? Math.max(hz0, Math.min(55, H - 40)) : stage >= 9 ? Math.max(hz0, Math.min(47, H - 40)) : hz0;   // once the god has a neck, the horizon comes down a little, so his jaw stays in the picture
   const hh = Math.max(19, Math.round(H * (tall ? 0.24 : 0.19))), hill = x => { const k = x / (W * 0.62); return Math.round(hz + 3 - hh * (1 - smooth(0.28, 1, k))); };
   G.drawImage(layer('rh' + W + 'x' + H + ':' + hz + ':' + Math.round(o.clock * 60), W, H, () => {
     bands(W, 0, hz + 6, pal.skyTop, pal.skyBot, 8);
@@ -5191,6 +5471,54 @@ function drawTyre(W, H, t, o) {   // an island city with walls straight up out o
   quayFloor(W, H, qy);
   stalls(W, H, 'tyre', t, o);
 }
+function drawAlexandria(W, H, t, o) {   // the Great Harbour: Pharos with its tower going up in scaffolding and a fire on top, the long causeway, a flat city of palaces and palms, and grain on the quay
+  const tall = H > W * 0.9, pal = dayPal(o.clock), hz = Math.max(6, Math.round(H * (tall ? 0.5 : 0.44))), qy = H - 15;
+  const tx = Math.round(W * 0.4), base = hz + 3, th = Math.max(16, Math.round(hz * 0.45));   // the tower stands at the east end of Pharos, by the harbour mouth
+  G.drawImage(layer('al' + W + 'x' + H + ':' + Math.round(o.clock * 60), W, H, () => {
+    bands(W, 0, hz + 6, pal.skyTop, pal.skyBot, 8);
+    sunDisc(Math.round(W * 0.9), Math.round(hz * 0.3), 4, pal.sun);
+    bands(W, hz, qy - hz, pal.seaTop, pal.seaBot, 5);
+    G.fillStyle = mix('#cdbb98', pal.far, 0.1);   // Pharos: a long low island of pale rock across the harbour
+    for (let x = 0; x < W * 0.47; x++) { const top = Math.round(hz + 3 - 2 * Math.max(0, 1 - Math.abs(x - W * 0.3) / (W * 0.25)) - fbm(x / 5, 271)); G.fillRect(x, top, 1, hz + 6 - top); }
+    R(tx - 8, base - 3, 16, 3, '#e6dcc6'); R(tx - 8, base - 3, 16, 1, '#f4efe4');   // the platform
+    R(tx - 5, base - th, 10, th - 3, '#f4efe4'); R(tx + 3, base - th, 2, th - 3, '#d6cebe');   // the first storey, square, of white stone
+    for (let y = base - th + 3; y < base - 5; y += 4) { px(tx - 2, y, '#8a8070'); px(tx + 1, y, '#8a8070'); }
+    R(tx - 3, base - th - 5, 6, 5, '#ece6d8'); R(tx + 2, base - th - 5, 1, 5, '#cfc6b4');   // the next storey, half built
+    for (const x of [tx - 7, tx + 6]) R(x, base - th - 7, 1, th + 4, '#8a6440');   // scaffolding
+    for (let y = base - th - 5; y < base - 3; y += 5) R(tx - 7, y, 14, 1, '#8a6440');
+    R(tx - 4, base - th - 8, 8, 1, '#8a6440');
+    R(0, hz + 6, Math.round(W * 0.12), 2, mix('#bfae8a', pal.far, 0.1)); R(0, hz + 6, Math.round(W * 0.12), 1, '#d8c9a8');   // the causeway, seven stades long, back to the city
+    for (let x = 2; x < W * 0.12; x += 5) px(x, hz + 7, mix('#3a4a66', pal.far, 0.2));
+    G.fillStyle = mix('#d8c9a8', pal.far, 0.12); G.fillRect(Math.round(W * 0.56), hz - 1, W, 7);   // the city on the cape: long and flat
+    for (let x = Math.round(W * 0.57), k = 0; x < W; x += 4 + Math.floor(hash(k * 5 + 7) * 3), k++) { const h = 2 + Math.floor(hash(k * 3 + 1) * 4), w = 3 + Math.floor(hash(k * 11) * 3), c = WALLS[k % WALLS.length]; R(x, hz + 1 - h, w, h, c); R(x + w - 1, hz + 1 - h, 1, h, shade(c, -0.12)); }
+    const pl = Math.round(W * 0.82);   // the king's palace on the cape, with its colonnade
+    R(pl - 10, hz - 7, 21, 8, '#f4efe4'); R(pl - 11, hz - 8, 23, 1, '#d0a050'); R(pl - 8, hz - 9, 17, 1, '#e3b453');
+    for (let x = pl - 9; x < pl + 10; x += 2) R(x, hz - 6, 1, 6, '#d6cebe');
+    for (const [f, h] of [[0.6, 9], [0.66, 7], [0.72, 10], [0.96, 8], [0.08, 7], [0.22, 6]]) {   // palms, in the city and on Pharos
+      const x = Math.round(W * f); R(x, hz + 1 - h, 1, h, '#6a4a2e');
+      for (const [dx, dy] of [[-3, 1], [-2, 0], [-1, -1], [0, -1], [1, -1], [2, 0], [3, 1]]) px(x + dx, hz + 1 - h + dy, mix('#3a6a3a', pal.far, 0.2));
+    }
+    R(Math.round(W * 0.56), hz + 5, W, 2, '#cdbb98'); for (let x = Math.round(W * 0.56); x < W; x += 3) px(x, hz + 4, '#cdbb98');
+  }), 0, 0);
+  const ft = base - th - 10, f = Math.floor(t * 8) % 3;   // the builders' fire on top of the scaffolding, and its smoke
+  R(tx - 1, ft, 3, 2, '#ff9a3a'); px(tx - (f === 1 ? 1 : 0), ft - 1, '#ffcf5a'); px(tx + (f === 2 ? 1 : 0), ft - 2, '#ffe7a0');
+  if (!reduceMotion) for (let k = 0; k < 8; k++) {
+    const ph = (t * 0.2 + k / 8) % 1, x = Math.round(tx + ph * 10 + Math.sin(k * 2.3 + t * 0.6) * 2), y = Math.round(ft - 3 - ph * 14);
+    G.fillStyle = `rgba(120,114,120,${(0.55 * (1 - ph)).toFixed(2)})`; G.fillRect(x, y, 2, 2);
+  }
+  for (let k = 0; k < 16; k++) {
+    const y = hz + 9 + Math.floor(hash(k + 370) * Math.max(1, qy - hz - 10)), x = ((hash(k + 71) * W + t * (1 + (k % 3))) % (W + 6)) - 3;
+    R(x, y, 2 + (k % 3), 1, mix(pal.seaTop, pal.wave, 0.55));
+  }
+  for (let k = 0; k < 7; k++) px(Math.round(W * 0.3) + k * 4, hz + 6 + ((k + Math.floor(t * 3)) % 3 === 0 ? 0 : 1), '#ffffff');   // the sea on the rocks of Pharos
+  for (let k = 0; k < 6; k++) R(Math.round(W * 0.62) + k * 3, qy - 3 - (k % 2), 3, 3 + (k % 2), k % 2 ? '#d8c08a' : '#c9a46a');   // the king's grain, in sacks on the quay
+  for (let k = 0; k < 3; k++) { R(Math.round(W * 0.83) + k * 3, qy - 3, 2, 3, '#9ab070'); px(Math.round(W * 0.83) + k * 3, qy - 4, '#c8d890'); }   // papyrus, in bundles
+  harbourBoats(W, hz + 13, qy - 5, t);
+  drawShip(Math.round(W * 0.3), qy - 3 + Math.round(Math.sin(t * 1.3) * 0.5), { sail: 'furled', crew: 2, t });
+  for (let k = 0; k < 2; k++) gull(((t * (5 + k * 3) + k * 70) % (W + 20)) - 10, 5 + k * 8 + Math.round(Math.sin(t * 2 + k) * 2), t, k);
+  quayFloor(W, H, qy);
+  stalls(W, H, 'alexandria', t, o);
+}
 // The quay in front: a stall for each merchant, people for hire, and passers-by. Records where to tap.
 function stalls(W, H, port, t, o) {
   const gy = H - 1, spots = [];
@@ -5403,7 +5731,7 @@ function drawAnchor(W, H, t) {
   const wy = hz + Math.round((H - hz) * 0.45);
   drawShip(Math.round(W * 0.34) - 15, wy + Math.round(Math.sin(t * 1.4) * 0.6), { sail: 'furled', crew: 2, t, lamp: true });
 }
-const PORT_SCENES = { rhodes: drawRhodes, halic: drawHalic, kos: drawKos, miletus: drawMiletus, delos: drawDelos, piraeus: drawPiraeus, corinth: drawCorinth, corcyra: drawCorcyra, croton: drawCroton, taras: drawTaras, kydonia: drawKydonia, syracuse: drawSyracuse, paphos: drawPaphos, kition: drawKition, sidon: drawSidon, tyre: drawTyre };
+const PORT_SCENES = { rhodes: drawRhodes, halic: drawHalic, kos: drawKos, miletus: drawMiletus, delos: drawDelos, piraeus: drawPiraeus, corinth: drawCorinth, corcyra: drawCorcyra, croton: drawCroton, taras: drawTaras, kydonia: drawKydonia, syracuse: drawSyracuse, paphos: drawPaphos, kition: drawKition, sidon: drawSidon, tyre: drawTyre, alexandria: drawAlexandria };
 // Size a pixel canvas so every art pixel is a whole number of screen pixels.
 function fitPixels(cv, cssW, cssH, cols) {
   const P = Math.max(2, Math.round(cssW / cols)), W = Math.max(40, Math.ceil(cssW / P)), H = Math.max(20, Math.ceil(cssH / P));
@@ -5636,6 +5964,7 @@ document.addEventListener('keydown', e => { if (HOLD.drag && (e.key === 'r' || e
 function itemInfo(it) {
   const Gd = GOODS[it.g];
   if (it.g === 'kit') { const H = HIRES[it.owner]; return `<b>${esc(H.name)}’s ${esc(H.kit.toLowerCase())}.</b> ${esc(H.name)} sails only if this is in the hold.`; }
+  if (it.g === 'freight' && it.by) return `<b>The king’s grain</b>, 2×1, in sacks sealed with his seal, for the grain commissioners of Rhodes. Deliver it by the end of day ${it.by} and you are paid ${it.fee} dr; after that, half. Lose it to pirates and you pay ${it.worth}.`;
   if (it.g === 'freight') return `<b>A sealed crate</b>, 2×1, for ${esc(MERCHANTS[it.owner].name)}. Deliver it to ${esc(STOPS[it.to].name)} and you are paid ${it.fee} dr. Lose it to pirates and you pay ${it.worth}.`;
   let t = `<b>${esc(Gd.name)}</b>, ${esc(Gd.unit)}, ${Gd.w}×${Gd.h}. ${esc(Gd.desc)}`;
   if (Gd.food || Gd.water) t += ` <span class="${it.fill < 3 ? 'bad' : 'good'}">${Math.round(it.fill * 10) / 10} of ${Gd.food || Gd.water} left.</span>`;
@@ -5657,7 +5986,7 @@ const SHORT = { wine: 'wine', figs: 'figs', sponge: 'sponges', cups: 'cups', hon
   incense: 'incense', papyrus: 'papyrus', bronze: 'bronze', amber: 'amber', hound: 'hound', cheese: 'cheese', timber: 'fir spars',
   tarwool: 'Tarentine wool', krater: 'vases', horse: 'horse', pitch: 'pitch',
   dittany: 'dittany', quince: 'quinces', kingbronze: 'the king', hybla: 'Hyblaean honey', tunny: 'salt tunny',
-  copper: 'copper', kyprinon: 'kyprinon', glass: 'glass', cedar: 'cedar', salt: 'salt', tyrian: 'Tyrian purple', balsam: 'balsam' };
+  copper: 'copper', kyprinon: 'kyprinon', glass: 'glass', cedar: 'cedar', salt: 'salt', tyrian: 'Tyrian purple', balsam: 'balsam', linen: 'linen', ivory: 'ivory', monkey: 'monkey' };
 const NUMERALS = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
 // The fork on the way home: where it is, and what the two ways are called.
 const FORK_TEXT = {
@@ -5667,6 +5996,11 @@ const FORK_TEXT = {
   myra: { coast: ['By way of Patara', 'Two easy days, with a river on the way'], open: ['Run straight for Rhodes', 'One long, rough day before a strong wind. Cargo on deck may go over the side.'] },
   amnisos: { coast: ['By way of Karpathos', 'Two days, with a beach and a spring on the way'], open: ['Run straight for Rhodes', 'One long, rough day before a strong wind. Pack fragile cargo against something soft.'] },
   megiste: { coast: ['By way of Patara', 'Two days along the coast of Lycia, close in under the cliffs, out of the worst of the wind'], open: ['Beat straight across to Rhodes', 'One long, rough day into the wind. Cargo on deck may go over the side, and fragile cargo wants something soft.'] },
+  midsea: s => {
+    const due = s.contracts.filter(c => c.by && !c.done).map(c => c.by), grain = due.length > 0, soon = grain && s.dayN + 2 <= Math.min(...due);
+    return { coast: ['Bear away for Cyprus', 'A day to Paphos with the wind on the beam, then home along Lycia: about four days in all. Copper for the god’s head is sold in Paphos.' + (grain ? ' The king’s grain will be late.' : '')],
+      open: ['Stand on for Rhodes', 'Straight home against the wind, across the open sea, in the season of gales: two days, if the wind allows.' + (grain ? (soon ? ' The king’s grain should be in time.' : ' Even so, the king’s grain will be late.') : '')] };
+  },
   zakynthos: { coast: ['Through the Gulf, to Corinth', 'Pay the haulers to cross the Isthmus, and trade in Corinth on the way home'], open: ['Round Cape Malea', 'Three days with no haulers to pay, and the wind off Malea. Pack fragile cargo soft.'] },
 };
 const INTROS = {
@@ -5750,6 +6084,13 @@ const INTROS = {
     'Rhodes called Ptolemy the Saviour, because he had sent grain during the siege, and the city had built him a shrine. Glaukos said he had eaten some of that grain, and that it had tasted of Egypt, which was to say of mud, and that he had been grateful for every mouthful.',
     'Tyre stands on an island, joined to the shore by the road Alexander built to take it. Behind its walls, people said, Demetrius’s garrison was eating fish three times a day, and would pay anything for grain, pitch or a ship’s timber.',
     '“Ptolemy’s warships are watching the sea off Tyre,” said Antimachos. “Whatever a soldier could use, they take. I am not telling you not to. I am telling you that I lend money against ships, not against the moods of kings.”'],
+  9: s => [{ year: 'Rhodes · autumn, 288 BC' },
+    'By autumn the god had a jaw, and the scaffolding round his head was the highest thing anyone in Rhodes had ever seen. Aristokles said the head would go up before the winter, if the copper came, and if the gods were patient, and if nobody asked him again.',
+    tierOf(s.hull) >= 3 ? 'Euploia had come home from Phoenicia thin and salt-white. She was a grain ship, and in two voyages she had carried copper, cedar, purple and a soldier, and not one sack of grain.'
+      : 'Nausikrates still had the grain ship on his slipway. He said that a grain ship belonged in Alexandria, where the grain was, and that so did Ariston.',
+    'Alexandria was where the grain came from: the king of Egypt’s new city, built where there had been nothing but a fishing village, because Alexander had once stood there and said there should be a city.',
+    'The way there is straight across the open sea, three days south with the north wind behind you. The way back is the trouble. In autumn the wind still blows from the north, and the gales are starting.',
+    '“The last voyage of the year,” said Antimachos. “Bring me back something I have never seen. My son says a hound and a horse are not enough. He says that in Alexandria they have monkeys.”'],
 };
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* storage may be unavailable */ } }
 function loadSaved() { try { const j = localStorage.getItem(SAVE_KEY); return j ? migrate(JSON.parse(j)) : null; } catch (e) { return null; } }
@@ -5768,6 +6109,11 @@ function portGoal() {
     return 'Sell what you brought, then buy what Rhodes will want. Pirates have been seen off Kos.';
   }
   if (S.home) return 'Sell what you brought home, then settle accounts with Antimachos.';
+  if (S.ch === 9) {
+    if (S.port === 'rhodes') return (tierOf(S.hull) < 3 ? 'Nausikrates still has the grain ship, if you can put ' + shipTerms(S).down + ' dr down. ' : '') + 'Load for Alexandria: Rhodian wine, books for the king’s Museum, and fir spars and pitch for his dockyards. It is three days across the open sea, and the autumn nights are cold. Petosiris, an Egyptian pilot, knows the way in past the sandbanks.';
+    if (S.port === 'paphos') return 'Sell what Paphos wants from Egypt, and buy copper for the god’s head: the last ingots of the year. Rhodes is three days away, by way of Myra.';
+    return 'Sell, then load for home: Egyptian linen, ivory, a monkey for the banker’s son, and the king’s grain for the grain commissioners of Rhodes, who want it by the sixth day.';
+  }
   if (S.ch === 8) {
     if (S.port === 'rhodes') return (tierOf(S.hull) < 3 ? 'Nausikrates still has the grain ship, if you can put ' + shipTerms(S).down + ' dr down. ' : '') + 'Load for Sidon and Tyre. Tyre’s garrison pays a fortune for grain, pitch and timber, if King Ptolemy’s patrol does not take them first. From Megiste it is three days across the open sea to Phoenicia, in the summer heat.';
     if (S.port === 'sidon') return S.flags.reached_tyre ? 'Sell, and buy for Rhodes: Sidonian glass for Aristeia, and cedar for Nausikrates. Home is against the summer wind: two nights at sea, then Megiste.'
@@ -5970,6 +6316,8 @@ function sailSheet() {
   if (ck.route.dry && !wW) h += `<p class="note">There is water for the ${num(ck.dry)} days on the open sea${ck.dry < ck.days ? ', and springs on the islands' : ''}. Rowers drink twice as much${chapter(S).season === 'summer' ? ', and in the heat everybody drinks more' : ''}.</p>`;
   if (wF || wW) h += `<p class="note">${wW ? 'You will run short of water. Thirsty sailors row badly and fall sick.' : 'You will run short of food. Hungry sailors row and fight badly.'} The harbour stores sell barley and water.</p>`;
   if (ck.goods.length) h += `<p class="note">Left on the quay, and sold back for half: ${esc(listOf(ck.goods))}${ck.refund ? ' (' + ck.refund + ' dr)' : ''}.</p>`;
+  if (S.ch === 9 && S.port === 'rhodes') h += '<p class="note">In Alexandria the king’s customs men take a twentieth of the value of the cargo.</p>';
+  if (S.contracts.some(c => c.by && !c.done)) h += `<p class="note">The king’s grain must be in Rhodes by the end of day ${Math.min(...S.contracts.filter(c => c.by && !c.done).map(c => c.by))}, or the commissioners pay half.</p>`;
   if (S.flags.fare) h += `<p class="note">${cap(num(S.flags.fare))} Campanian soldiers are coming with you, eating and drinking like the crew.</p>`;
   const war = chapter(S).blockadeChance && !S.flags.reached_tyre ? warGoods(S) : [];
   if (war.length) h += `<p class="note">King Ptolemy’s patrol off Tyre takes anything a soldier could use. Aboard: ${esc(listOf(war))}, about ${warValue(S)} dr worth. The garrison in Tyre pays several times that.</p>`;
@@ -6014,6 +6362,7 @@ function voyagePanel() {
   const hounds = S.items.filter(i => i.g === 'hound' && i.where === 'hold').length, horses = S.items.filter(i => i.g === 'horse' && i.where === 'hold').length, rescued = S.flags.survivors || 0;
   if (rescued || hounds) notes.push(cap([rescued ? num(rescued) + ' rescued sailors' : '', hounds ? num(hounds) + (hounds > 1 ? ' hounds' : ' hound') : ''].filter(Boolean).join(' and ')) + ' aboard, eating and drinking like the crew.');
   if (S.flags.fare) notes.push(cap(num(S.flags.fare)) + ' Campanian soldiers aboard, eating and drinking like the crew, and watching everything.');
+  if (S.items.some(i => i.g === 'monkey' && aboard(i))) notes.push('The monkey eats and drinks like a man, steals from everyone, and will die first if the water runs out.');
   if (horses) notes.push(horses > 1 ? cap(num(horses)) + ' horses aboard, each eating and drinking like two men.' : 'The horse eats and drinks like two men, and will die first if the water runs out.');
   if (D.untilDark) notes.push('Out of sight of land there is no beach to sleep on. You sail on until dark, and spend the night at sea, under sail.');
   if (S.crew.some(c => c.st !== 'ok')) notes.push(S.crew.filter(c => c.st !== 'ok').map(c => esc(c.name) + ' is ' + c.st).join('. ') + '.');
@@ -6059,7 +6408,7 @@ function campPanel() {
   const beach = dockItems(S).length;
   if (beach) h += `<p class="note">${cap(num(beach))} thing${beach > 1 ? 's are' : ' is'} on the beach. Pack ${beach > 1 ? 'them' : 'it'} into the hold, or ${beach > 1 ? 'they stay' : 'it stays'} here.</p>`;
   h += '<h2 class="sec">At dawn</h2>';
-  if (needsRoute(S)) { const F = FORK_TEXT[c.stop]; h += `<div class="stack"><button class="btn primary wide" type="button" data-act="sleep" data-route="coast">${F.coast[0]}<small>${F.coast[1]}</small></button><button class="btn wide" type="button" data-act="sleep" data-route="open">${F.open[0]}<small>${F.open[1]}</small></button></div>`; }
+  if (needsRoute(S)) { const F0 = FORK_TEXT[c.stop], F = typeof F0 === 'function' ? F0(S) : F0; h += `<div class="stack"><button class="btn primary wide" type="button" data-act="sleep" data-route="coast">${F.coast[0]}<small>${F.coast[1]}</small></button><button class="btn wide" type="button" data-act="sleep" data-route="open">${F.open[0]}<small>${F.open[1]}</small></button></div>`; }
   else h += `<button class="btn primary wide" type="button" data-act="sleep">${c.stop === 'atsea' ? 'Wait for first light' : C.afloat ? 'Stand watches until dawn' : 'Sleep, and sail at dawn'}</button>`;
   const pv = provisions(S), n = mouths(S);
   return h + `<p class="note">${cap(num(n))} aboard. Food for ${fmtDays(pv.food / n)}, water for ${fmtDays(pv.water / n)}.</p>`;
@@ -6110,9 +6459,10 @@ function ledgerPanel() {
               : S.ch === 6 ? [['Sail to Kydonia, in Crete', !!S.flags.reached_kydonia], ['Cross the open sea to Syracuse', !!S.flags.reached_syracuse], ['Come home before the sea closes', S.home]]
                 : S.ch === 7 ? [['Buy the grain ship, if you can', tierOf(S.hull) >= 3], ['Cross to Paphos, in Cyprus', !!S.flags.reached_paphos], ['Sail on to Kition', !!S.flags.reached_kition], ['Come home to Rhodes', S.home]]
                   : [].concat(tierOf(S.hull) < 3 || S.flags.boughtShip ? [['Buy the grain ship, if you can', tierOf(S.hull) >= 3]] : [],
-                    [['Cross the open sea to Sidon', !!S.flags.reached_sidon], ['Get past the patrol to Tyre', !!S.flags.reached_tyre], ['Come home to Rhodes, against the wind', S.home]]),
+                    S.ch === 8 ? [['Cross the open sea to Sidon', !!S.flags.reached_sidon], ['Get past the patrol to Tyre', !!S.flags.reached_tyre], ['Come home to Rhodes, against the wind', S.home]]
+                      : [['Cross the open sea to Alexandria', !!S.flags.reached_alexandria], ['Come home before the sea closes', S.home]]),
             [[S.loan.due ? 'Repay Antimachos ' + S.loan.due + ' dr' : 'Settle accounts with Antimachos', S.phase === 'summary']]);
-  const crates = S.contracts.filter(c => !c.done).map(c => 'one for ' + STOPS[c.to].name + ', ' + c.fee + ' dr on delivery');
+  const crates = S.contracts.filter(c => !c.done).map(c => 'one for ' + STOPS[c.to].name + ', ' + c.fee + ' dr on delivery' + (c.by ? ' by day ' + c.by : ''));
   const friends = Object.keys(S.proxenos).map(p => esc(MERCHANTS[S.proxenos[p]].name) + ' in ' + PORTS[p].name);
   let h = `<h2 class="sec" style="margin-top:2px">Chapter ${chapter(S).numeral} · ${chapter(S).name}</h2><ul class="goals">${goals.map(([t, d]) => `<li class="${d ? 'done' : ''}"><span class="box"></span><span>${esc(t)}</span></li>`).join('')}</ul>`;
   h += `<dl class="kv"><dt>Silver</dt><dd>${S.silver} dr</dd><dt>Sea loan</dt><dd>${S.loan.paid || !S.loan.due ? 'None owed' : S.loan.due + ' dr, due on return'}</dd>` +
@@ -6226,7 +6576,7 @@ function showTitle() {
   openTheater('title');
   const going = S.started && S.phase !== 'summary', C = chapter(S);
   els.tTop.innerHTML = `<div class="t-title"><h1>Emporos</h1><p>Chapter ${C.numeral} · ${C.name}</p></div>`;
-  els.tText.innerHTML = `<p class="in">${S.ch === 1 ? 'Rhodes, 290 BC. A young trader, a small ship, and a sea loan to pay back.' : S.ch === 2 ? 'Summer, 290 BC. North to Miletus, against the wind.' : S.ch === 3 ? 'Autumn, 290 BC. West across the islands to Athens, before the sea closes for the winter.' : S.ch === 4 ? 'Spring, 289 BC. A bigger ship, and a longer voyage: west out of the Aegean to Corinth and Corcyra.' : S.ch === 5 ? 'Summer, 289 BC. Two days across the open sea, out of sight of land, to Croton and Taras in Italy.' : S.ch === 6 ? 'Autumn, 289 BC. West along Crete, then three days across the open sea to Syracuse, in the season of gales.' : S.ch === 7 ? 'Spring, 288 BC. A grain ship with a second deck, and a voyage east along Lycia and across to Cyprus.' : 'Summer, 288 BC. East across the open sea to Phoenicia, where two kings are at war over Tyre.'}</p>`;
+  els.tText.innerHTML = `<p class="in">${S.ch === 1 ? 'Rhodes, 290 BC. A young trader, a small ship, and a sea loan to pay back.' : S.ch === 2 ? 'Summer, 290 BC. North to Miletus, against the wind.' : S.ch === 3 ? 'Autumn, 290 BC. West across the islands to Athens, before the sea closes for the winter.' : S.ch === 4 ? 'Spring, 289 BC. A bigger ship, and a longer voyage: west out of the Aegean to Corinth and Corcyra.' : S.ch === 5 ? 'Summer, 289 BC. Two days across the open sea, out of sight of land, to Croton and Taras in Italy.' : S.ch === 6 ? 'Autumn, 289 BC. West along Crete, then three days across the open sea to Syracuse, in the season of gales.' : S.ch === 7 ? 'Spring, 288 BC. A grain ship with a second deck, and a voyage east along Lycia and across to Cyprus.' : S.ch === 8 ? 'Summer, 288 BC. East across the open sea to Phoenicia, where two kings are at war over Tyre.' : 'Autumn, 288 BC. The last voyage: three days across the open sea to Alexandria, the king of Egypt’s new city.'}</p>`;
   els.tActions.innerHTML = going ? '<button class="btn primary" type="button" data-t="continue">Continue the voyage</button><button class="btn" type="button" data-t="new">Start again</button>'
     : `<button class="btn primary" type="button" data-t="begin">${S.ch === 1 ? 'Begin' : 'Begin Chapter ' + C.numeral}</button>${S.ch > 1 ? '<button class="btn" type="button" data-t="new">Start again</button>' : ''}`;
   els.tHint.textContent = going || S.ch > 1 ? '' : 'Best with the sound on.';
@@ -6249,6 +6599,9 @@ function showSummary() {
     : S.ch === 2 ? (m.profit >= 150 ? 'People on the quay had started to nod to Ariston before he nodded to them. He noticed, and pretended not to.' : m.profit >= 0 ? 'It had been a long summer, most of it spent rowing. Ariston decided it had been worth it, mostly.' : 'Ariston sat on the quay and watched the god’s knees being built, and wondered whether anyone ever got rich honestly. Then he went home to think about Athens.')
       : S.ch === 3 ? (m.profit >= 200 ? 'That winter, men Ariston hardly knew stopped him in the street to ask what Athens was buying. He told them. He did not tell them everything.' : m.profit >= 0 ? 'The ships were hauled up for the winter, and the harbour went quiet. Ariston had come home with more than he took. In his trade, that is the whole of the secret.' : 'The ships were hauled up for the winter. Ariston walked up the hill around the god and looked out at the empty sea, and made plans he could not yet afford.')
         : S.ch === 4 ? (m.profit >= 300 ? 'That summer, people on the quay began to talk about ' + shipName(S) + ' as if she were somebody they knew. Ariston thought that was a good sign. Glaukos thought it was not.' : m.profit >= 0 ? shipName(S) + ' came home heavier than she left, which is the whole of the trade. Ariston began to think about Italy.' : 'Ariston sat on the deck in the harbour and wondered, not for the first time, whether he owned a ship or the ship owned him.')
+          : S.ch === 9 ? (m.profit >= 900 ? 'That winter Ariston was asked to sit on the harbour council, which meant that other merchants now came to him to complain. He listened, said very little, and bought the house next to his mother’s.'
+            : m.profit >= 0 ? 'The ships were hauled up for the winter, and the harbour went quiet. Ariston climbed the hill of earth around the god, as high as they would let him, and looked out at the sea he had crossed so many times.'
+              : 'It had been a hard autumn, and the sea had taken more than it gave. But the god had his head, and Ariston had his ship, and in the spring the sea would open again. It always does.')
           : S.ch === 8 ? (m.profit >= 750 ? 'By autumn Ariston’s name was known from Megiste to Sidon. In Tyre, the quartermaster had written it on a wall. In Rhodes, Antimachos began to ask his advice, and to take it, which was more alarming.'
             : m.profit >= 0 ? shipName(S) + ' came home slowly, against the wind, with purple in her hold. Ariston watched them haul the first piece of the god’s jaw up the hill of earth, and decided he had done well enough, for a summer spent between two kings.'
               : 'Ariston had sailed between two kings and come home poorer, which is what usually happens to people who stand between kings. He went up the hill of earth around the god and looked east for a long time.')
@@ -6262,6 +6615,9 @@ function showSummary() {
   const STORM_ROW = { threw: 'Threw cargo over the side', held: 'Held on and bailed', 'held, then threw': 'Held on, then had to throw', ran: 'Ran for shelter' };
   const CAMP_ROW = { stood: 'Stood up to them, and they paid', robbed: 'They robbed us', 'paid off': 'Gave them back their fare', 'paid fare': 'Carried them, and they paid' };
   const CALM_ROW = { rowed: 'Rowed through it', waited: 'Waited in the shade', poured: 'Poured wine, and waited anyway', wind: 'Poured wine, and the wind came' };
+  const LAND_ROW = { pilot: 'Petosiris took her in', lead: 'Felt our way in with the lead', fisher: 'A fisherman led us in', tower: 'Steered for the tower, and found it', aground: 'Ran onto a sandbank' };
+  const AGROUND_ROW = { threw: 'Threw cargo to float her off', towed: 'Paid the fishermen to tow her off', kedged: 'Hauled her off with the anchor' };
+  const DIED = { horse: 'the horse', hound: 'a hound', monkey: 'the monkey' };
   const BLOCK_ROW = { searched: 'Searched, and the war goods taken', clean: 'Searched, and nothing found', bribed: 'Bribed the officer', 'bribed, then searched': 'Bribed him, and searched anyway', ran: 'Ran past them, into Tyre', caught: 'Ran, and were caught' };
   const BLOCKOUT_ROW = { paid: 'Paid the tenth', bribed: 'Bribed the officer', 'bribed, then paid': 'Bribed him, and paid the tenth anyway', ran: 'Ran past them', caught: 'Ran, were caught, and paid double' };
   els.tTop.innerHTML = '';
@@ -6274,10 +6630,16 @@ function showSummary() {
       (m.homeBy === 'open' ? row('The wind off Malea', STORM_ROW[m.storm] || 'Asleep') : '') + row('Crates delivered', m.delivered ? num(m.delivered) : 'None') : '') +
     (S.ch === 5 ? row('The calm', CALM_ROW[m.calm] || 'Never came') + row('The way home', m.homeBy === 'open' ? 'Round Cape Malea' : 'Through the Gulf, by Corinth') +
       (m.homeBy === 'open' ? row('The wind off Malea', STORM_ROW[m.storm] || 'Asleep') : '') + row('Crates delivered', m.delivered ? num(m.delivered) : 'None') +
-      ((m.died || []).length ? row('Died of thirst', m.died.map(g => g === 'horse' ? 'the horse' : 'a hound').join(', '), 'bad') : '') : '') +
+      ((m.died || []).length ? row('Died of thirst', m.died.map(g => DIED[g] || g).join(', '), 'bad') : '') : '') +
     (S.ch === 7 ? row('The ship', m.hull === 'large' ? 'Euploia, the grain ship' : 'Tyche, still') + row('The king’s toll', typeof m.toll === 'number' ? 'Paid ' + m.toll + ' dr' : T[m.toll] || 'Never asked') +
       row('The gale off the cape', STORM_ROW[m.storm] || 'Missed it') + (m.hull === 'large' ? row('Washed off the deck', m.washed ? num(m.washed) + ' thing' + (m.washed > 1 ? 's' : '') : 'Nothing', m.washed ? 'bad' : '') : '') +
       row('The way home', m.homeBy === 'open' ? 'Straight across from Myra' : 'By way of Patara') + row('Crates delivered', m.delivered ? num(m.delivered) : 'None') : '') +
+    (S.ch === 9 ? row('The ship', m.hull === 'large' ? 'Euploia, the grain ship' : 'Tyche, still') + row('The gale going out', STORM_ROW[m.storm] || 'Missed it') +
+      row('The coast of Egypt', LAND_ROW[m.landfall] || 'Never reached it') + (m.aground ? row('The sandbank', AGROUND_ROW[m.aground], 'bad') : '') + row('The king’s customs', m.customs ? m.customs + ' dr' : 'Nothing') +
+      row('The way home', m.homeBy === 'coast' ? 'By way of Cyprus' : 'Straight across from Egypt') + (m.homeBy === 'coast' ? '' : row('The gale coming home', STORM_ROW[m.homeStorm] || 'Missed it')) +
+      (m.hull === 'large' ? row('Washed off the deck', m.washed ? num(m.washed) + ' thing' + (m.washed > 1 ? 's' : '') : 'Nothing', m.washed ? 'bad' : '') : '') +
+      row('Crates delivered', m.delivered ? num(m.delivered) : 'None') + (m.lateGrain ? row('The king’s grain', 'Late, and paid half', 'bad') : '') +
+      ((m.died || []).length ? row('Died of thirst', m.died.map(g => DIED[g] || g).join(', '), 'bad') : '') : '') +
     (S.ch === 8 ? row('The ship', m.hull === 'large' ? 'Euploia, the grain ship' : 'Tyche, still') + row('The patrol, going in', BLOCK_ROW[m.blockade] || 'Never stopped us') +
       (m.seized ? row('Taken by the patrol', m.seized + ' dr of cargo', 'bad') : '') + row('The patrol, coming out', BLOCKOUT_ROW[m.blockout] || 'Never stopped us') +
       row('The calm', CALM_ROW[m.calm] || 'Never came') + (m.hull === 'large' ? row('Washed off the deck', m.washed ? num(m.washed) + ' thing' + (m.washed > 1 ? 's' : '') : 'Nothing', m.washed ? 'bad' : '') : '') +
@@ -6286,12 +6648,21 @@ function showSummary() {
       row('The way home', m.homeBy === 'open' ? 'Straight across from Crete' : 'By way of Karpathos') + row('Crates delivered', m.delivered ? num(m.delivered) : 'None') : '') +
     row('Broken on the way', m.broken ? num(m.broken) : 'Nothing') + row('Crew lost', m.lost.length ? m.lost.map(l => esc(l.name)).join(', ') : 'Nobody') +
     ((m.friends || []).length ? row('Friends', m.friends.map(f => esc(f.name) + ', ' + esc(f.port)).join('; ')) : '') +
-    `<dt class="total">Profit</dt><dd class="total">${m.profit >= 0 ? '+' : ''}${m.profit} dr</dd></dl><p>${closing}</p>${S.ch === 3 ? shipSummary(m) : ''}</div>`;
+    `<dt class="total">Profit</dt><dd class="total">${m.profit >= 0 ? '+' : ''}${m.profit} dr</dd></dl><p>${closing}</p>${S.ch === 3 ? shipSummary(m) : ''}${N ? '' : voyagesSummary(m)}</div>`;
   const T3 = S.ch === 3 && !S.shipOrdered && shipTerms(S);
   els.tActions.innerHTML = (T3 && T3.ok ? `<button class="btn primary" type="button" data-t="ship">Order the new ship<small>${T3.lent ? 'Pay ' + T3.pay + ' dr, borrow ' + T3.lent : 'Pay ' + SHIP_PRICE + ' dr'}</small></button>` : '') +
     '<button class="btn" type="button" data-t="log">Read the voyage again</button>' +
     (N ? `<button class="btn primary" type="button" data-t="nextch">Go on to Chapter ${N.numeral}</button>` : '<button class="btn" type="button" data-t="again">Start again from Chapter I</button>');
-  els.tHint.textContent = N ? 'Your silver, your ship, your crew and your good name go with you. Hired hands go home.' : 'Chapter ' + NUMERALS[S.ch + 1] + ', the voyage to ' + C.next + ', is still being built.';
+  els.tHint.textContent = N ? 'Your silver, your ship, your crew and your good name go with you. Hired hands go home.' : 'That is the end of the voyages of Ariston, son of Damon, of Rhodes.';
+}
+const listWords = a => a.length > 1 ? a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : a[0] || '';
+function voyagesSummary(m) {   // the last page: every voyage, and what came of them all
+  const all = S.history.filter(h => h && h.ch && CHAPTERS[h.ch]).concat([m]), total = all.reduce((a, h) => a + (h.profit || 0), 0);
+  const ports = Object.keys(S.proxenos).length, aboardStill = id => S.crew.some(c => c.id === id);
+  const rows = all.map(h => `<dt>${NUMERALS[h.ch]} · ${esc(CHAPTERS[h.ch].name)}</dt><dd>${h.profit >= 0 ? '+' : ''}${h.profit} dr<small>${esc(h.rating || '')}</small></dd>`).join('');
+  return `<div class="voyages"><h3>The voyages of Ariston</h3><dl class="tally">${rows}<dt class="total">${cap(num(all.length))} voyages</dt><dd class="total">${total >= 0 ? '+' : ''}${total} dr</dd></dl>` +
+    `<p>Ariston, son of Damon, had sailed out of Rhodes with a small ship, a sea loan of a hundred and fifty drachmas, and a great deal of advice. He came home from Alexandria with ${listWords([esc(shipName(S)), S.silver + ' drachmas', S.debt ? 'a debt of ' + S.debt : '', ports ? 'friends in ' + num(ports) + (ports > 1 ? ' ports' : ' port') : ''].filter(Boolean))}.</p>` +
+    `<p>In the spring they began to dig away the hill of earth from around the god, so that he could see the harbour he stood in. Ariston went to watch, with half of Rhodes.${aboardStill('glaukos') ? ' Glaukos came too, and said that next year he would retire. He said it every winter.' : ''}${aboardStill('mikkos') ? ' Mikkos, who was taller than Glaukos now, climbed one of the god’s ladders to see better, and was told to come down, and did not.' : ''}</p></div>`;
 }
 function shipSummary(m) {
   if (S.shipOrdered) return `<p class="shipnote">${m.shipLent ? `Ariston paid Nausikrates ${m.shipPaid} dr, and Antimachos lent the other ${m.shipLent}. He wants ${m.shipDue} dr back at the end of next season.` : 'Ariston paid Nausikrates six hundred drachmas in silver. The new ship will be ready in the spring.'} Elpis goes in part exchange. ${S.silver ? S.silver + ' dr left for next season’s cargo.' : 'There was nothing left over for next season’s cargo, but there would be a ship to put it in.'}</p>`;
@@ -6319,6 +6690,7 @@ function theaterAct(t, b) {
     const tip = { 1: ['quay', 'Tap a merchant on the quay, or in the picture, to trade.'], 2: ['fit', 'Damagetos at the arsenal sells fittings for the voyage north.'], 3: ['freight', 'Philonides, the shipping agent, pays you to carry crates. Find him on the quay.'],
       4: bigShip(S) ? ['tyche', 'Everything from Elpis is already in Tyche’s hold. Open the Hold to see how the crew packed it.'] : ['slipway', 'Nausikrates still has the new ship on his slipway. Find him on the quay.'],
       7: ['grainship', 'Nausikrates has finished the grain ship, with a second deck for cargo. Find him on the quay.'],
+      9: ['egypt', 'The coast of Egypt is so low that ships find it by running onto it. Petosiris, an Egyptian pilot, is for hire on the quay.'],
       8: ['patrol', 'King Ptolemy’s patrol off Tyre takes grain, pitch, timber, cedar, copper and bronze. The garrison in Tyre pays a fortune for them.'],
       6: bigShip(S) ? ['crete', 'Crete is three days away, and Syracuse three more across the open sea. In Kydonia you can hire a Cretan who knows the pirates on that coast.'] : ['slipway6', 'Elpis cannot cross the open sea. Nausikrates still has the new ship, and Antimachos will lend the whole price.'],
       5: bigShip(S) ? ['opensea', 'The last two days to Italy have no beach and no spring. Count the water jars, and think about an awning.'] : ['slipway5', 'Elpis cannot cross the open sea. Nausikrates still has the new ship, and Antimachos will lend the whole price.'] }[S.ch];
