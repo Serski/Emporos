@@ -2,7 +2,7 @@
 
 A pixel-art trading game for phones. Ariston, a young trader from Rhodes, sails out in 290 BC with a small ship, a sea loan and a crew that has to eat. *Emporos* is the Greek word for a merchant who travels by sea. It is a working title.
 
-The plan is nine chapters, each a voyage further out from Rhodes. **Chapters I to III are playable now**: Halicarnassus in the spring, Miletus in the summer, and Athens in the autumn.
+The plan is nine chapters, each a voyage further out from Rhodes. **Chapters I to IV are playable now**: Halicarnassus in the spring, Miletus in the summer, Athens in the autumn, and, in a bigger ship the next spring, Corcyra.
 
 ## Play
 
@@ -46,9 +46,21 @@ Autumn, 290 BC: one more voyage before the winter closes the sea. West across th
 - **Pirates.** A hemiolia may be waiting off Amorgos on the way home. The talk on the quay at Delos tells you whether it is. A Cretan archer is for hire there.
 - **A bigger ship.** Nausikrates the shipwright will build a proper merchant ship over the winter, with twice the hold of Elpis, for 600 drachmas and Elpis in part exchange. Order her at the end of the season. If you are short, Antimachos lends the rest against the new ship, if you can put 200 down.
 
+## Chapter IV: Corcyra
+
+Spring, 289 BC, in a bigger ship. West out of the Aegean to Corinth, across the Isthmus, and up the coast to Corcyra, at the edge of the Greek world. About nine days at sea, and thirty minutes to play.
+
+- **Tyche.** The ship ordered at the end of Chapter III is ready: a 57-square hold, against Elpis's 30. She sails faster than Elpis, rows at half the strength, is harder for pirates to board, and comes with two more sailors. If you could not order her in the autumn, Nausikrates will still sell her at the start of the season, or you can sail Elpis.
+- **New hands.** From this chapter on, men sign on over the winter to fill the places of anyone who did not come home. The dead stay dead.
+- **Corinth.** Haulers drag the ship across the Isthmus on the diolkos, the paved road between the two seas, for a fee each way. Corinth buys grain, wine and incense, sells its famous bronze, and has a pilot for hire who knows the Gulf. An old man in the sun remembers a philosopher who lived in a jar.
+- **Corcyra.** Amber from the far north, Molossian hounds from Epirus (they eat as much as a man, and you will not throw one overboard), Epirote cheese, and fir spars three squares long. The queen's steward pays well for incense and luxuries.
+- **Men in the water.** Four Corinthian sailors clinging to a wreck. Take them aboard, and feed them, or sail on. Corinth may hear about it either way.
+- **The way home.** At Ithaca, go back through the Gulf and pay the haulers again, or round Cape Malea, a day longer, where the wind is famous. The old woman in the cave on Ithaca will tell you, for an offering, whether the cape is awake this year.
+- **Illyrians.** Raiders in light boats may be waiting among the islands off Leukas. The talk on the quay at Corcyra tells you whether they are. An Epirote spearman is for hire there, and Lykos the doctor has spent the winter in Rhodes.
+
 Between chapters, your silver, any debt, the ship and everything in her, the crew, your good name in each port, and the friends you made all carry over. Hired hands go home at the end of each voyage.
 
-The history of the period is real and stays in the background: the siege of Rhodes and the bronze Sun-god being built with the money, the tomb of Mausolus above Halicarnassus, Coan wine made with seawater, Cretan archers and Cretan pirates, the summer north wind, the unfinished temple at Didyma, Miletus laid out in straight streets, the Rhodian sea law on cargo thrown overboard, the lions of Delos, the stone lion of Kea, the ship sheds of Piraeus, a king's garrison on the hill of Munichia, and Athens buying grain from anyone who brought it. Ariston and his crew are invented.
+The history of the period is real and stays in the background: the siege of Rhodes and the bronze Sun-god being built with the money, the tomb of Mausolus above Halicarnassus, Coan wine made with seawater, Cretan archers and Cretan pirates, the summer north wind, the unfinished temple at Didyma, Miletus laid out in straight streets, the Rhodian sea law on cargo thrown overboard, the lions of Delos, the stone lion of Kea, the ship sheds of Piraeus, a king's garrison on the hill of Munichia, Athens buying grain from anyone who brought it, the diolkos across the Isthmus, Diogenes in his jar at Corinth, the queen who brought Corcyra to her second husband as a dowry, Illyrian lemboi, and the sailors' saying about Cape Malea. Ariston and his crew are invented.
 
 ## The nine voyages
 
@@ -57,7 +69,8 @@ The history of the period is real and stays in the background: the siege of Rhod
 | I | Small coastal trader | Halicarnassus (playable) |
 | II | Small coastal trader | Miletus (playable) |
 | III | Small coastal trader | Athens (playable) |
-| IV–VI | Medium merchant ship | Corcyra, Taras, Syracuse |
+| IV | Medium merchant ship | Corcyra (playable) |
+| V–VI | Medium merchant ship | Taras, Syracuse |
 | VII–IX | Large grain ship | Cyprus, Tyre, Alexandria |
 
 ## Project layout
@@ -65,8 +78,8 @@ The history of the period is real and stays in the background: the siege of Rhod
 - `src/game.html` is the whole game: HTML, CSS and JavaScript in one file. It is a page fragment, with no `<html>` or `<body>` tags, so it can be published as a claude.ai artifact as it is.
 - `index.html` is the same game wrapped as a standalone page. It is generated, so don't edit it by hand.
 - `tools/build.mjs` creates `index.html` from `src/game.html`.
-- `tests/sim.js` plays Chapters I, II and III in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
-- `tests/play.js` plays all three chapters in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
+- `tests/sim.js` plays Chapters I to IV in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
+- `tests/play.js` plays all four chapters in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
 
 Inside `src/game.html`, the rules sit between `// ===== ENGINE START =====` and `// ===== ENGINE END =====` and never touch the page. That is what lets `tests/sim.js` run them on their own. All the art and sound is drawn and synthesized in code.
 
@@ -78,13 +91,13 @@ After editing `src/game.html`, regenerate the standalone page:
 node tools/build.mjs
 ```
 
-Check the balance (takes a few seconds):
+Check the balance (takes a few minutes; add a games count and a chapter, such as `node tests/sim.js src/game.html 100 4`, to check one chapter quickly):
 
 ```bash
 node tests/sim.js
 ```
 
-Play all three chapters in a headless browser (takes three or four minutes):
+Play all four chapters in a headless browser (takes about six minutes):
 
 ```bash
 npm install

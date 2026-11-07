@@ -1,17 +1,18 @@
-// Balance check: plays Chapters I, II and III in turn, with simple bots that follow different strategies, over many seeds,
+// Balance check: plays Chapters I to IV in turn, with simple bots that follow different strategies, over many seeds,
 // and reports what each one earns. Reads the rules straight out of the game file. No dependencies.
-// Usage: node tests/sim.js [path/to/game.html] [games per strategy]
+// Usage: node tests/sim.js [path/to/game.html] [games per strategy] [chapters, e.g. 4 or 1,2]
 const fs = require('fs');
 const path = require('path');
 const file = process.argv[2] || path.join(__dirname, '..', 'src', 'game.html');
 const GAMES = +process.argv[3] || 200;
+const ONLY = process.argv[4] ? process.argv[4].split(',').map(Number) : [1, 2, 3, 4];   // which chapters to report
 const html = fs.readFileSync(file, 'utf8');
 const code = html.split('// ===== ENGINE START =====')[1].split('// ===== ENGINE END =====')[0];
 const E = new Function(code + `
 return { newGame, begin, buy, sell, haggle, hire, autoPack, setSail, tick, setRow, campAct, sleep, needsRoute, resolveEvent,
   repay, eta, provisions, mouths, holdUsed, holdCells, sellPrice, buyPrice, merchantsAt, MERCHANTS, GOODS, OUT, dockItems,
   atRisk, stockLeft, cargoValue, sailCheck, isCargo, takeLoan, nextChapter, migrate, offer, routeFrom, CHAPTERS, fitted, freeSquares, toll,
-  takeFreight, orderShip, jettisonPlan, SHIP_PRICE, hiresAt, shipTerms };`)();
+  takeFreight, orderShip, jettisonPlan, SHIP_PRICE, hiresAt, shipTerms, buyShip, changeHull, holdCells, feeOf };`)();
 
 // Each strategy: what to carry out and home, who to hire, and what to do when things go wrong.
 const STRATEGIES = {
@@ -74,7 +75,7 @@ function sellAll(s) {
     if (!E.sell(s, m, it.g).ok) tried.add(it.g);
   }
 }
-const STORES = { rhodes: 'stores', halic: 'hstores', kos: 'kstores', miletus: 'mstores', delos: 'dstores', piraeus: 'pstores' };
+const STORES = { rhodes: 'stores', halic: 'hstores', kos: 'kstores', miletus: 'mstores', delos: 'dstores', piraeus: 'pstores', corinth: 'kostores', corcyra: 'cstores' };
 function provision(s, st) {
   for (let k = 0; k < st.water; k++) E.buy(s, STORES[s.port], 'water');
   for (let k = 0; k < st.barley; k++) E.buy(s, STORES[s.port], 'barley');
@@ -86,7 +87,7 @@ function voyage(s, st, notes) {
     if (s.pending) {
       const id = s.pending;
       let c = id === 'squall' ? (st.squall === 'auto' ? (E.atRisk(s).length ? 'shelter' : 'ride') : st.squall) : id === 'warship' ? st.warship : id === 'flotsam' ? st.flotsam
-        : id === 'storm3' ? (typeof st.storm === 'function' ? st.storm(s) : st.storm) : st.pirates;
+        : id === 'storm3' || id === 'malea' ? (typeof st.storm === 'function' ? st.storm(s) : st.storm) : id === 'survivors' ? (st.survivors || 'take') : st.pirates;
       if (id === 'caught') c = st.pirates === 'run' ? 'pay' : st.pirates;
       if (id === 'warship' && c === 'gift' && !s.items.some(i => i.where === 'hold' && (i.g === 'wine' || i.g === 'coanwine'))) c = 'pay';
       E.resolveEvent(s, c);
@@ -100,8 +101,10 @@ function voyage(s, st, notes) {
       if (stop === 'loryma') E.campAct(s, 'spring');
       if (stop === 'didyma') { E.campAct(s, 'spring'); if (st.oracle) E.campAct(s, 'oracle'); }
       if (stop === 'nisyros' || stop === 'kea') E.campAct(s, 'spring');
-      if (stop === 'astypalaia') { E.campAct(s, 'spring'); if (st.fish !== false) E.campAct(s, 'fish'); }
-      E.sleep(s, E.needsRoute(s) ? st.route : undefined);
+      if (stop === 'astypalaia' || stop === 'melos' || stop === 'pylos') { E.campAct(s, 'spring'); if (st.fish !== false) E.campAct(s, 'fish'); }
+      if (stop === 'ithaca') { E.campAct(s, 'spring'); if (st.omen) E.campAct(s, 'cave'); }
+      if (stop === 'kythera') E.campAct(s, 'spring');
+      E.sleep(s, E.needsRoute(s) ? (typeof st.route === 'function' ? st.route(s) : st.route) : undefined);
       continue;
     }
     E.setRow(s, E.eta(s, false) > 0.97);
@@ -244,7 +247,7 @@ function sellSome(s, want) {   // sell up to want[g] of each good here, to the b
   }
 }
 function hireHere(s, list) {
-  for (const h of list || []) { if (h.endsWith('?') && !s.flags.pirates3) continue; if (E.hire(s, h.replace('?', '')).ok) E.autoPack(s); }
+  for (const h of list || []) { if (h.endsWith('?') && !s.flags['pirates' + s.ch]) continue; if (E.hire(s, h.replace('?', '')).ok) E.autoPack(s); }
 }
 function freightHere(s, st) {
   for (const id of E.merchantsAt(s.port, s.ch)) for (const f of E.offer(s, id).freight) if (st.freight.includes(f.id)) { E.takeFreight(s, id, f.id); E.autoPack(s); }
@@ -262,10 +265,13 @@ function provisionTo(s, water, barley) {   // top up to so many full jars and sa
   E.autoPack(s);
 }
 function autumn(name, seed) {
-  const st = AUTUMN[name], s = E.newGame(seed), notes = [];
+  const s = E.newGame(seed);
   playChapterOne(s); E.nextChapter(s);
   summerOn(s, SUMMER.smart, [], 'smart'); E.nextChapter(s);
-  const start = s.silver, startDebt = s.loan.due;
+  return autumnOn(s, AUTUMN[name], name);
+}
+function autumnOn(s, st, name) {
+  const notes = [], start = s.silver, startDebt = s.loan.due;
   E.begin(s);
   if (st.loan === true || (typeof st.loan === 'number' && s.silver < st.loan)) E.takeLoan(s);
   hireHere(s, st.hires.rhodes);
@@ -301,15 +307,84 @@ function autumn(name, seed) {
   if (s.port !== 'rhodes' || !s.home) throw new Error(name + ' did not get home in autumn: ' + s.phase + ' ' + s.port);
   sellAll(s);
   E.repay(s);
-  const end = s.silver, T = E.shipTerms(s), ship = E.orderShip(s).ok ? (T.lent ? 'borrowed' : 'paid') : 'not ordered';
+  const end = s.silver, T = E.shipTerms(s), ship = !st.noShip && E.orderShip(s).ok ? (T.lent ? 'borrowed' : 'paid') : 'not ordered';
   E.OUT.length = 0;
   if (!Number.isFinite(s.silver) || s.silver < 0) throw new Error('bad silver ' + s.silver);
   return { sum: s.summary, start, startDebt, ship, outCargo, homeCargo, notes, hungry: s.stats.hungry, thirsty: s.stats.thirsty, nights: s.stats.nights, end };
 }
 
+// Chapter IV strategies, in the new ship. Chapters I to III are played the careful, smart and smart ways first.
+// out: bought at Rhodes. sellCor/corOut: sold and bought at Corinth on the way out. corcyra: bought at Corcyra. corHome: bought at Corinth on the way home.
+const SPRING = {
+  smart: { loan: 250, buyShip: true, hires: { rhodes: ['euphron', 'lykos'], corinth: ['kallias'], corcyra: ['neoptolemos?'] }, freight: ['rc', 'ry', 'yr'],
+    out: [...n('wheat', 10), ...n('incense', 8), ...n('papyrus', 8), ...n('sponge', 2), ...n('wine', 4)], sellCor: { wheat: 10, papyrus: 3 }, corOut: [],
+    corcyra: [...n('amber', 2), ...n('hound', 2), ...n('timber', 3), ...n('cheese', 8)], sellCorHome: {}, corHome: n('bronze', 4),
+    survivors: 'take', omen: true, route: s => s.flags.gale4 ? 'coast' : 'open', storm: 'hold', pirates: 'fight', water: 4, barley: 4 },
+};
+const like4 = (base, o) => Object.assign({}, SPRING[base], o);
+Object.assign(SPRING, {
+  gulf: like4('smart', { route: 'coast', omen: false }),
+  malea: like4('smart', { route: 'open', omen: false, corOut: n('bronze', 4), corHome: [] }),
+  heartless: like4('smart', { survivors: 'leave' }),
+  nopilot: like4('smart', { hires: { rhodes: ['euphron', 'lykos'], corcyra: ['neoptolemos?'] }, survivors: 'leave' }),
+  nodoctor: like4('smart', { hires: { rhodes: ['euphron'], corinth: ['kallias'], corcyra: ['neoptolemos?'] } }),
+  greedy: { loan: true, buyShip: true, hires: {}, freight: [], out: [...n('wheat', 14), ...n('incense', 8), ...n('papyrus', 10), ...n('wine', 8)], sellCor: { wheat: 10 }, corOut: n('bronze', 4),
+    corcyra: [...n('amber', 2), ...n('hound', 2), ...n('timber', 3), ...n('cheese', 14)], sellCorHome: {}, corHome: [],
+    survivors: 'leave', route: 'open', storm: 'hold', pirates: 'pay', water: 3, barley: 3 },
+  bare: { loan: false, buyShip: true, hires: {}, freight: ['ry'], out: [...n('wheat', 8), ...n('incense', 4)], sellCor: { wheat: 8 }, corOut: [],
+    corcyra: [...n('amber', 1), ...n('cheese', 6)], sellCorHome: {}, corHome: [], survivors: 'take', route: 'coast', storm: 'run', pirates: 'run', water: 4, barley: 4 },
+  elpis: like4('smart', { noShip: true, buyShip: false, out: [...n('wheat', 6), ...n('incense', 6), ...n('papyrus', 4), ...n('sponge', 1)], corOut: n('bronze', 2),
+    corcyra: [...n('amber', 2), ...n('hound', 1), ...n('cheese', 4)], water: 3, barley: 3 }),
+  latebuyer: like4('smart', { noShip: true, buyShip: true }),
+});
+function spring4(name, seed) {
+  const st = SPRING[name], s = E.newGame(seed);
+  playChapterOne(s); E.nextChapter(s);
+  summerOn(s, SUMMER.smart, [], 'smart'); E.nextChapter(s);
+  autumnOn(s, Object.assign({}, AUTUMN.smart, { noShip: !!st.noShip }), 'smart'); E.nextChapter(s);
+  return springOn(s, st, name);
+}
+function springOn(s, st, name) {
+  const notes = [], start = s.silver, startDebt = s.loan.due, ordered = s.hull === 'medium';
+  E.begin(s);
+  if (st.buyShip && s.hull === 'small') E.buyShip(s);
+  const hull = s.hull;
+  if (st.loan === true || (typeof st.loan === 'number' && s.silver < st.loan)) E.takeLoan(s);
+  hireHere(s, st.hires.rhodes);
+  for (const id of ['thras', 'stores', 'alexandrian']) E.haggle(s, id);
+  provisionTo(s, st.water, st.barley);
+  freightHere(s, st);
+  buyList(s, st.out);
+  const outCargo = s.items.filter(i => E.isCargo(i) || i.g === 'freight').length;
+  E.setSail(s); voyage(s, st, notes);
+  if (s.port !== 'corinth') throw new Error(name + ' did not reach Corinth: ' + s.phase + ' ' + s.port + ' ' + s.pending);
+  sellSome(s, st.sellCor);
+  hireHere(s, st.hires.corinth);
+  provisionTo(s, st.water, st.barley);
+  if (!s.visit.tries.smith) E.haggle(s, 'smith');
+  buyList(s, st.corOut);
+  E.setSail(s); voyage(s, st, notes);
+  if (s.port !== 'corcyra') throw new Error(name + ' did not reach Corcyra: ' + s.phase + ' ' + s.port);
+  sellAll(s);
+  hireHere(s, st.hires.corcyra);
+  provisionTo(s, st.water, st.barley);
+  for (const id of ['bato', 'admetos', 'kraton']) if (!s.visit.tries[id]) E.haggle(s, id);
+  freightHere(s, st);
+  buyList(s, st.corcyra);
+  const homeCargo = s.items.filter(i => E.isCargo(i) || i.g === 'freight').length;
+  E.setSail(s); voyage(s, st, notes);
+  if (s.port === 'corinth') { sellSome(s, st.sellCorHome); provisionTo(s, st.water, st.barley); buyList(s, st.corHome); E.setSail(s); voyage(s, st, notes); }
+  if (s.port !== 'rhodes' || !s.home) throw new Error(name + ' did not get home in spring: ' + s.phase + ' ' + s.port);
+  sellAll(s);
+  E.repay(s);
+  E.OUT.length = 0;
+  if (!Number.isFinite(s.silver) || s.silver < 0) throw new Error('bad silver ' + s.silver);
+  return { sum: s.summary, start, startDebt, ordered, hull, outCargo, homeCargo, notes, hungry: s.stats.hungry, thirsty: s.stats.thirsty, nights: s.stats.nights, end: s.silver, debt: s.debt };
+}
+
 const pct = (n, d) => Math.round(100 * n / d) + '%';
 let failed = false;
-for (const name of Object.keys(STRATEGIES)) {
+for (const name of ONLY.includes(1) ? Object.keys(STRATEGIES) : []) {
   const rs = [];
   for (let k = 0; k < GAMES; k++) rs.push(play(name, 1000 + k * 7919));
   const profits = rs.map(r => r.sum.profit).sort((a, b) => a - b);
@@ -326,7 +401,7 @@ for (const name of Object.keys(STRATEGIES)) {
   if (name === 'careful' && mean <= 40) { console.log('FAIL: careful play should clear a decent profit'); failed = true; }
 }
 console.log('-- Chapter II, after a careful Chapter I --');
-for (const name of Object.keys(SUMMER)) {
+for (const name of ONLY.includes(2) ? Object.keys(SUMMER) : []) {
   const rs = [];
   for (let k = 0; k < GAMES; k++) rs.push(summer(name, 5000 + k * 7919));
   const profits = rs.map(r => r.sum.profit).sort((a, b) => a - b), mean = Math.round(profits.reduce((a, b) => a + b, 0) / rs.length);
@@ -339,7 +414,7 @@ for (const name of Object.keys(SUMMER)) {
   if (name === 'smart' && mean <= 120) { console.log('FAIL: a summer played well should clear a good profit'); failed = true; }
 }
 console.log('-- Chapter III, after a careful Chapter I and a smart Chapter II --');
-for (const name of Object.keys(AUTUMN)) {
+for (const name of ONLY.includes(3) ? Object.keys(AUTUMN) : []) {
   const rs = [];
   for (let k = 0; k < GAMES; k++) rs.push(autumn(name, 9000 + k * 7919));
   const profits = rs.map(r => r.sum.profit).sort((a, b) => a - b), mean = Math.round(profits.reduce((a, b) => a + b, 0) / rs.length);
@@ -351,6 +426,19 @@ for (const name of Object.keys(AUTUMN)) {
   console.log(`          ratings ${count(r => r.sum.rating)}`);
   if (name === 'smart' && mean <= 150) { console.log('FAIL: an autumn played well should clear a good profit'); failed = true; }
 }
+console.log('-- Chapter IV, after careful, smart and smart: the new ship --');
+for (const name of ONLY.includes(4) ? Object.keys(SPRING) : []) {
+  const rs = [];
+  for (let k = 0; k < GAMES; k++) rs.push(spring4(name, 13000 + k * 7919));
+  const profits = rs.map(r => r.sum.profit).sort((a, b) => a - b), mean = Math.round(profits.reduce((a, b) => a + b, 0) / rs.length);
+  const count = fn => { const o = {}; for (const r of rs) { const v = fn(r); o[v] = (o[v] || 0) + 1; } return Object.keys(o).map(k => k + ' ' + pct(o[k], rs.length)).join(', '); };
+  const avg = fn => (rs.reduce((a, r) => a + fn(r), 0) / rs.length);
+  console.log(`${name.padEnd(9)} profit mean ${String(mean).padStart(4)}  min ${String(profits[0]).padStart(4)}  median ${String(profits[rs.length >> 1]).padStart(4)}  max ${String(profits[rs.length - 1]).padStart(4)}` +
+    `  | started with ${Math.round(avg(r => r.start))} dr (owing ${Math.round(avg(r => r.startDebt))})  ended with ${Math.round(avg(r => r.end))} (owing ${Math.round(avg(r => r.debt))})  cargo out/home ${avg(r => r.outCargo).toFixed(1)}/${avg(r => r.homeCargo).toFixed(1)}  days ${avg(r => r.sum.days).toFixed(1)}  nights at sea ${avg(r => r.nights).toFixed(2)}  hungry ${avg(r => r.hungry).toFixed(2)}d thirsty ${avg(r => r.thirsty).toFixed(2)}d`);
+  console.log(`          ship ${count(r => r.hull)}  | home by ${count(r => r.sum.homeBy || '?')}  | gale ${count(r => r.sum.storm || 'none')}  | pirates ${count(r => r.sum.pirates)}  | rescue ${count(r => r.sum.rescue || 'none')}  | crates ${avg(r => r.sum.delivered).toFixed(2)}  lost ${avg(r => r.sum.lost.length).toFixed(2)}/game  broken ${avg(r => r.sum.broken).toFixed(2)}/game  in debt ${pct(rs.filter(r => r.sum.debt > 0).length, rs.length)}`);
+  console.log(`          ratings ${count(r => r.sum.rating)}`);
+  if (name === 'smart' && mean <= 200) { console.log('FAIL: a spring played well in the new ship should clear a good profit'); failed = true; }
+}
 // A save from before Chapter III existed (no crates, no ship order) must still go on to Chapter III.
 {
   const s = E.newGame(4242);
@@ -361,6 +449,16 @@ for (const name of Object.keys(AUTUMN)) {
   const ok = t && E.nextChapter(t).ok && t.ch === 3 && Array.isArray(t.contracts) && t.shipOrdered === false;
   E.OUT.length = 0;
   console.log(ok ? 'An old Chapter II save goes on to Chapter III: ok' : 'FAIL: an old Chapter II save should go on to Chapter III');
+  if (!ok) failed = true;
+}
+// A game that ordered the ship at the end of Chapter III, saved and reloaded, starts Chapter IV in Tyche with a full crew.
+{
+  let s = null;
+  for (const seed of [9000, 777, 13000]) { s = E.newGame(seed); playChapterOne(s); E.nextChapter(s); summerOn(s, SUMMER.smart, [], 'smart'); E.nextChapter(s); autumnOn(s, AUTUMN.smart, 'smart'); if (s.shipOrdered) break; }
+  const t = E.migrate(JSON.parse(JSON.stringify(s)));
+  const ordered = t.shipOrdered, ok = t && E.nextChapter(t).ok && t.ch === 4 && (!ordered || (t.hull === 'medium' && t.crew.length >= 8 && t.items.every(i => i.where === 'hold' || i.where === 'dock')));
+  E.OUT.length = 0;
+  console.log(ok ? 'A finished Chapter III goes on to Chapter IV' + (ordered ? ' in Tyche, with ' + t.crew.length + ' hands' : ' in Elpis') + ': ok' : 'FAIL: a finished Chapter III should go on to Chapter IV');
   if (!ok) failed = true;
 }
 if (failed) process.exit(1);
