@@ -303,7 +303,10 @@ fs.mkdirSync(out, { recursive: true });
   if (s.port === 'corinth') { await page.waitForTimeout(500); await snap('140-corinth-home'); await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]'); s = await voyage('d4'); }
   if (s.port !== 'rhodes' || !s.home) throw new Error('expected to be home from Corcyra, got ' + JSON.stringify(s));
   await page.waitForTimeout(600); await snap('150-ch4-home');
+  const spars = () => page.evaluate(() => window.__emp.fns.countGood(window.__emp.state(), 'timber'));
+  const spars4 = await spars();
   for (const m of ['korinna', 'bank', 'shipwright', 'thras', 'works']) await sellHere(m);
+  if (spars4 && await spars()) throw new Error('Nausikrates should buy the fir spars brought home from Corcyra: ' + spars4 + ' aboard, ' + await spars() + ' left');
   await tab('ledger'); await snap('151-ch4-ledger'); await tab('crew'); await snap('152-ch4-crew'); await tab('main');
   await open('.person[data-m="bank"]'); await page.click('#sheetCard button[data-act="repay"]');
   await page.waitForSelector('#theater:not([hidden]) button[data-t="nextch"]');
@@ -505,6 +508,7 @@ fs.mkdirSync(out, { recursive: true });
   await buyN('stores', 'water', 4); await buyN('stores', 'barley', 4);
   await buyN('alexandrian', 'incense', 6); await buyN('alexandrian', 'papyrus', 4); await buyN('thras', 'wine', 2);
   await buyN('arsenal', 'pitch', 3); await buyN('stores', 'wheat', 2);   // a little of what a soldier could use, to meet the patrol with
+  { const before = await spars(); await buyN('shipwright', 'timber', 1); if (await spars() !== before + 1) throw new Error('Nausikrates should sell fir spars in Chapter VIII'); }
   await tab('hold'); { const b = await page.$('button[data-act="autopack"]:not([disabled])'); if (b) await b.click(); } await snap('302-ch8-hold');
   await tab('main');
   await open('button[data-act="sail"]'); await snap('303-ch8-sail-check');
