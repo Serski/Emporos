@@ -1,4 +1,4 @@
-// Plays Chapters I to VII in a phone-sized browser through the real buttons, fast-forwarded,
+// Plays Chapters I to VIII in a phone-sized browser through the real buttons, fast-forwarded,
 // and saves screenshots of the key moments. Needs Playwright.
 // Usage: node tests/play.js [path/to/index.html] [screenshot folder]
 const { chromium } = require('playwright');
@@ -88,7 +88,7 @@ fs.mkdirSync(out, { recursive: true });
         const risk = await page.evaluate(() => window.__emp.fns.atRisk(window.__emp.state()).length);
         const talk = sheet === 'pirates' && await page.$('#sheetCard button[data-c="talk"]');
         const pick = sheet === 'squall' ? (risk ? 'shelter' : 'ride') : sheet === 'flotsam' ? 'haul' : sheet === 'warship' ? 'argue' : sheet === 'storm3' || sheet === 'malea' || sheet === 'storm6' || sheet === 'storm7' ? 'hold' : sheet === 'survivors' ? 'take'
-          : sheet === 'becalmed' ? 'row' : sheet === 'campanians' ? 'stand' : talk ? 'talk' : 'fight';
+          : sheet === 'becalmed' ? 'row' : sheet === 'campanians' ? 'stand' : sheet === 'blockade' ? (await page.$('#sheetCard button[data-c="search"]') ? 'search' : 'pay') : talk ? 'talk' : 'fight';
         await snap(label + '-event-' + sheet);
         await page.click(`#sheetCard button[data-c="${pick}"]`);
         continue;
@@ -482,12 +482,69 @@ fs.mkdirSync(out, { recursive: true });
   for (const m of ['works', 'korinna', 'aristeia', 'shipwright', 'stores', 'perfumer', 'thras']) await sellHere(m);
   await tab('ledger'); await snap('291-ch7-ledger'); await tab('crew'); await snap('292-ch7-crew'); await tab('main');
   await open('.person[data-m="bank"]'); await page.click('#sheetCard button[data-act="repay"]');
-  await page.waitForSelector('#theater:not([hidden]) button[data-t="again"]');
+  await page.waitForSelector('#theater:not([hidden]) button[data-t="nextch"]');
   await page.waitForTimeout(500);
   await snap('293-ch7-summary');
-  const hint = await page.textContent('#tHint');
-  if (!/Chapter VIII,/.test(hint)) throw new Error('summary hint should point at Chapter VIII: ' + hint);
   console.log('chapter VII:', JSON.stringify(await page.evaluate(() => window.__emp.state().summary)));
+
+  // ---- Chapter VIII: across the open sea to Sidon and Tyre, past King Ptolemy's patrol ----
+  const refill = async m => { await open(`.person[data-m="${m}"]`); const b = await page.$('#sheetCard button[data-act="refill"]:not([disabled])'); if (b) await b.click(); await close(); };
+  await page.click('button[data-t="nextch"]');
+  await page.waitForTimeout(300);
+  await snap('300-ch8-intro');
+  for (let i = 0; i < 14; i++) { const b = await page.$('button[data-t="next"]'); if (!b) break; await b.click(); }
+  await page.click('button[data-t="harbour"]');
+  await page.waitForTimeout(700);
+  await snap('301-ch8-rhodes');
+  if (await page.evaluate(() => window.__emp.state().hull) !== 'large') { await open('.person[data-m="shipwright"]'); const b = await page.$('#sheetCard button[data-act="buyship"]:not([disabled])'); if (b) await b.click(); await close(); }
+  console.log('ship in Chapter VIII:', await page.evaluate(() => window.__emp.state().hull));
+  if (await page.evaluate(() => window.__emp.state().silver) < 400) { await open('.person[data-m="bank"]'); const b = await page.$('#sheetCard button[data-act="loan"]'); if (b) await b.click(); await close(); }
+  await hireIf('lykos');
+  await open('.person[data-m="agent"]'); for (const f of ['rsi1', 'rty']) { const b = await page.$(`#sheetCard button[data-act="freight"][data-f="${f}"]`); if (b) await b.click(); } await close();
+  await buyN('stores', 'water', 4); await buyN('stores', 'barley', 4);
+  await buyN('alexandrian', 'incense', 6); await buyN('alexandrian', 'papyrus', 4); await buyN('thras', 'wine', 2);
+  await buyN('arsenal', 'pitch', 3); await buyN('stores', 'wheat', 2);   // a little of what a soldier could use, to meet the patrol with
+  await tab('hold'); { const b = await page.$('button[data-act="autopack"]:not([disabled])'); if (b) await b.click(); } await snap('302-ch8-hold');
+  await tab('main');
+  await open('button[data-act="sail"]'); await snap('303-ch8-sail-check');
+  if (!/King Ptolemy’s patrol off Tyre/.test(await page.textContent('#sheetCard'))) throw new Error('the sail sheet should warn about the patrol off Tyre');
+  await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('h1');
+  if (s.port !== 'sidon') throw new Error('expected Sidon, got ' + JSON.stringify(s));
+  await page.waitForTimeout(600); await snap('310-sidon');
+  await sellHere('sidonian');
+  await open('.person[data-m="officer"]'); await page.click('#sheetCard button[data-act="talk"]'); await snap('311-officer'); await close();
+  await refill('sistores');
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('h2');
+  if (s.port !== 'tyre') throw new Error('expected Tyre, got ' + JSON.stringify(s));
+  await page.waitForTimeout(600); await snap('320-tyre');
+  await sellHere('quartermaster'); await sellHere('ozbaal');
+  await open('.person[data-m="melqart"]'); await page.click('#sheetCard button[data-act="talk"]'); await snap('321-melqart'); await close();
+  await hireIf('philippos', '322-philippos');
+  await buyN('murex', 'tyrian', 2); await buyN('balsamseller', 'balsam', 2);
+  await refill('tystores');
+  await tab('hold'); { const b = await page.$('button[data-act="autopack"]:not([disabled])'); if (b) await b.click(); } await snap('323-ch8-hold-tyre'); await tab('main');
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('h3');
+  if (s.port !== 'sidon') throw new Error('expected Sidon on the way home, got ' + JSON.stringify(s));
+  await buyN('abdalonymos', 'glass', 2); await buyN('hiram', 'cedar', 1);
+  await crate('siagent', 'sir1');
+  await refill('sistores');
+  await tab('hold'); { const b = await page.$('button[data-act="autopack"]:not([disabled])'); if (b) await b.click(); } await snap('330-ch8-hold-home'); await tab('main');
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('h4');
+  if (s.port !== 'rhodes' || !s.home) throw new Error('expected to be home from Phoenicia, got ' + JSON.stringify(s));
+  await page.waitForTimeout(600); await snap('340-ch8-home');
+  for (const m of ['korinna', 'aristeia', 'bank', 'perfumer', 'shipwright', 'works', 'stores', 'thras']) await sellHere(m);
+  await tab('ledger'); await snap('341-ch8-ledger'); await tab('crew'); await snap('342-ch8-crew'); await tab('main');
+  await open('.person[data-m="bank"]'); await page.click('#sheetCard button[data-act="repay"]');
+  await page.waitForSelector('#theater:not([hidden]) button[data-t="again"]');
+  await page.waitForTimeout(500);
+  await snap('343-ch8-summary');
+  const hint = await page.textContent('#tHint');
+  if (!/Chapter IX,/.test(hint)) throw new Error('summary hint should point at Chapter IX: ' + hint);
+  console.log('chapter VIII:', JSON.stringify(await page.evaluate(() => window.__emp.state().summary)));
   console.log('errors:', errors.length ? errors.join('\n') : 'none');
   console.log('screenshots:', shots.join(', '));
   await browser.close();
