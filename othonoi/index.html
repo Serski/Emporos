@@ -15,19 +15,21 @@
 :root {
   /* Layout, as in Emporos: a pixel-art window onto the island fills the top of the screen, and the artist's notebook sits below it,
      with tabs pinned to the bottom on phones. Wide screens put the two side by side.
-     One look: the colour of the sea at night, whitewash, roof-tile terracotta, and Ionian turquoise. */
+     One look: the sea at night, whitewash, and the turquoise of the water under the cliffs at Aspri Ammos. */
   --glaze: #0f151b;
   --glaze-2: #17202a;
   --glaze-3: #212c37;
   --line: #34424f;
   --line-soft: #25303b;
-  --clay: #e07b4f;
-  --clay-hi: #f4a27a;
-  --clay-deep: #a14e2e;
-  --on-clay: #1c0f07;
+  --sea: #4cc3bd;
+  --sea-hi: #93e2da;
+  --sea-deep: #23827f;
+  --on-sea: #052322;
+  --ionian: #27497a;
+  --warn: #f2a6ae;
   --bone: #f3ead6;
   --bone-dim: #b3ab99;
-  --aegean: #62c6d9;
+  --sky: #82b8e6;
   --olive: #b6c66c;
   --wine: #ee7383;
   --gold: #eac05a;
@@ -79,7 +81,7 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 .purse .unit { font-size: 14px; font-weight: 500; color: var(--bone-dim); align-self: flex-end; padding-bottom: 2px; }
 .purse b { transition: color 0.3s; }
 .purse.up b { color: var(--olive); }
-.purse.down b { color: var(--clay-hi); }
+.purse.down b { color: var(--warn); }
 .hud-where { font: 500 12px/1.2 var(--font-pixel); color: var(--bone); letter-spacing: 0.04em; text-transform: uppercase; text-shadow: 1px 1px 0 var(--glaze); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .spacer { flex: 1; }
 .icon-btn {
@@ -91,7 +93,7 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 .chip { font: 500 12px/1.2 var(--font-pixel); padding: 4px 7px; background: var(--scrim); border: 1px solid var(--line-soft); font-variant-numeric: tabular-nums; }
 .chip.bad { color: var(--wine); border-color: var(--wine); }
 .chip.good { color: var(--olive); }
-.chip.water { color: var(--aegean); }
+.chip.water { color: var(--sky); }
 .chip.food { color: var(--gold); }
 .hotspots { position: absolute; inset: 0; z-index: 2; }
 .hotspot { position: absolute; padding: 0; border: 0; background: transparent; cursor: pointer; }
@@ -112,7 +114,7 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 .strip { margin-top: 6px; max-width: 38em; pointer-events: auto; cursor: pointer; }
 .strip p { margin: 0; font: 15px/1.42 var(--font-story); min-height: 2.84em; text-shadow: 1px 1px 0 var(--glaze), 0 0 6px var(--glaze); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .strip p.in { animation: lineIn 0.5s ease-out; }
-.strip p.bad { color: var(--clay-hi); }
+.strip p.bad { color: var(--warn); }
 .strip p.good { color: var(--olive); }
 @keyframes lineIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
 #app.mapview .strip { display: none; }
@@ -129,12 +131,12 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 .sub { margin: 5px 0 0; font: 500 13px/1.3 var(--font-pixel); color: var(--bone-dim); letter-spacing: 0.06em; text-transform: uppercase; }
 .sec {
   margin: 24px 0 10px; display: flex; align-items: center; gap: 10px;
-  font: 600 13px/1 var(--font-pixel); letter-spacing: 0.14em; text-transform: uppercase; color: var(--clay);
+  font: 600 13px/1 var(--font-pixel); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sea);
 }
 .sec::after { content: ""; flex: 1; height: 2px; background: var(--line-soft); }
-.goal { margin: 12px 0; padding: 10px 12px; border-left: 4px solid var(--clay); background: var(--glaze-2); font-size: 15px; }
+.goal { margin: 12px 0; padding: 10px 12px; border-left: 4px solid var(--sea); background: var(--glaze-2); font-size: 15px; }
 .goal.warn { border-left-color: var(--wine); }
-.goal.calm { border-left-color: var(--aegean); }
+.goal.calm { border-left-color: var(--sky); }
 .note { margin: 8px 0; font-size: 14px; color: var(--bone-dim); }
 .btn {
   min-height: 44px; padding: 10px 14px; cursor: pointer; text-align: center;
@@ -143,8 +145,8 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
   box-shadow: inset -2px -3px 0 rgba(0, 0, 0, 0.35), inset 2px 2px 0 rgba(255, 240, 220, 0.07);
 }
 .btn:active { box-shadow: inset 2px 3px 0 rgba(0, 0, 0, 0.35); }
-.btn.primary { background: var(--clay); border-color: var(--clay-deep); color: var(--on-clay); font-weight: 700; }
-.btn.sea { background: #1d4a5c; border-color: #2c6f86; color: var(--bone); }
+.btn.primary { background: var(--sea); border-color: var(--sea-deep); color: var(--on-sea); font-weight: 700; }
+.btn.alt { background: var(--ionian); border-color: #3a64a0; color: var(--bone); }
 .btn.wide { width: 100%; }
 .btn:disabled { opacity: 0.45; cursor: default; }
 .btn small { display: block; margin-top: 3px; font: 400 12px/1.25 var(--font-pixel); opacity: 0.85; }
@@ -159,13 +161,13 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 .act .ai img { width: 30px; height: 30px; }
 .act .an { font: 600 15px/1.2 var(--font-pixel); }
 .act .ad { grid-column: 2; font: 400 12px/1.3 var(--font-pixel); color: var(--bone-dim); }
-.btn.primary .ad { color: #3a1d0e; }
+.btn.primary .ad { color: #0b3d3b; }
 .act .am { grid-row: span 2; grid-column: 3; font: 600 13px/1.25 var(--font-pixel); color: var(--gold); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.btn.primary .am { color: var(--on-clay); }
+.btn.primary .am { color: var(--on-sea); }
 .act .am small { display: block; font-weight: 400; color: var(--bone-dim); margin: 0; }
-.btn.primary .am small { color: #3a1d0e; }
+.btn.primary .am small { color: #0b3d3b; }
 .act.why { opacity: 0.74; }
-.act.why .ad { color: var(--clay-hi); }
+.act.why .ad { color: var(--warn); }
 .act .ai svg { width: 22px; height: 22px; shape-rendering: crispEdges; }
 .thing svg { width: 18px; height: 18px; shape-rendering: crispEdges; }
 
@@ -205,24 +207,24 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 .thing img { width: 24px; height: 24px; }
 .thing b { color: var(--gold); font-weight: 600; }
 .thing.off { opacity: 0.38; }
-.verse { margin: 0 0 10px; padding: 8px 12px; border-left: 3px solid var(--aegean); font-style: italic; font-size: 15px; }
+.verse { margin: 0 0 10px; padding: 8px 12px; border-left: 3px solid var(--sky); font-style: italic; font-size: 15px; }
 .meters { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 6px 0 10px; font: 500 13px/1.3 var(--font-pixel); color: var(--bone-dim); font-variant-numeric: tabular-nums; }
 .meters b { color: var(--bone); font-weight: 600; }
 .bar { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 10px; align-items: center; margin: 10px 0; }
 .bar > span { font: 500 12px/1 var(--font-pixel); text-transform: uppercase; letter-spacing: 0.08em; color: var(--bone-dim); }
 .track { position: relative; height: 14px; background: var(--glaze-3); border: 2px solid var(--line-soft); }
-.track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--aegean); }
+.track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--sky); }
 .track.sun i { background: var(--gold); }
 .ctrl { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 10px; align-items: center; margin: 10px 0; }
 .ctrl > span { font: 500 12px/1.2 var(--font-pixel); text-transform: uppercase; letter-spacing: 0.08em; color: var(--bone-dim); }
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 2px solid var(--line); }
 .seg button { min-height: 44px; padding: 6px 8px; border: 0; border-left: 2px solid var(--line); background: var(--glaze-2); color: var(--bone-dim); font: 500 14px/1.1 var(--font-pixel); cursor: pointer; }
 .seg button:first-child { border-left: 0; }
-.seg button[aria-pressed="true"] { background: var(--clay); color: var(--on-clay); font-weight: 700; }
+.seg button[aria-pressed="true"] { background: var(--sea); color: var(--on-sea); font-weight: 700; }
 .log { list-style: none; margin: 0; padding: 0; }
 .log li { padding: 8px 0; border-bottom: 1px solid var(--line-soft); font-size: 15px; }
-.log .when { display: block; margin-bottom: 2px; font: 500 11px/1.2 var(--font-pixel); color: var(--clay); text-transform: uppercase; letter-spacing: 0.1em; }
-.log li.bad { color: var(--clay-hi); }
+.log .when { display: block; margin-bottom: 2px; font: 500 11px/1.2 var(--font-pixel); color: var(--sea); text-transform: uppercase; letter-spacing: 0.1em; }
+.log li.bad { color: var(--warn); }
 .log li.good { color: var(--olive); }
 .log li.chap { padding: 14px 0 6px; font: 600 13px/1.2 var(--font-pixel); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); border-bottom: 2px solid var(--line); }
 .facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
@@ -240,14 +242,14 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
   font: 500 12px/1 var(--font-pixel); letter-spacing: 0.07em; text-transform: uppercase;
 }
 .tabs svg { width: 22px; height: 22px; shape-rendering: crispEdges; }
-.tabs button[aria-selected="true"] { color: var(--bone); border-top-color: var(--clay); background: var(--glaze); }
+.tabs button[aria-selected="true"] { color: var(--bone); border-top-color: var(--sea); background: var(--glaze); }
 .tabs .dot { position: absolute; top: 9px; left: calc(50% + 11px); width: 8px; height: 8px; background: var(--gold); }
 
 /* ---------- sheets: places, people, choices ---------- */
 #sheet { position: fixed; inset: 0; z-index: 20; display: grid; align-items: end; background: rgba(5, 8, 11, 0.62); }
 .sheet-card {
   width: 100%; max-width: 640px; margin: 0 auto; max-height: 88%; overflow-y: auto; overscroll-behavior: contain;
-  background: var(--glaze); border-top: 3px solid var(--clay);
+  background: var(--glaze); border-top: 3px solid var(--sea);
   padding-top: 18px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   animation: sheetIn 0.22s ease-out;
@@ -258,9 +260,9 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 .sheet-head h2 { margin: 0; font: 700 22px/1.05 var(--font-pixel); }
 .sheet-head p { margin: 4px 0 0; font: 400 13px/1.25 var(--font-pixel); color: var(--bone-dim); }
 .quote { margin: 14px 0 4px; font-style: italic; }
-.reply { min-height: 1.5em; margin: 8px 0; color: var(--clay-hi); }
+.reply { min-height: 1.5em; margin: 8px 0; color: var(--warn); }
 .reply.good { color: var(--olive); }
-.ev-title { margin: 0 0 10px; font: 700 23px/1.1 var(--font-pixel); color: var(--clay-hi); }
+.ev-title { margin: 0 0 10px; font: 700 23px/1.1 var(--font-pixel); color: var(--sea-hi); }
 .ev-text p { margin: 0 0 10px; }
 .ev-text p.out { color: var(--bone); }
 .ev-text p.aside { color: var(--bone-dim); font-size: 15px; padding-left: 12px; border-left: 3px solid var(--gold); }
@@ -281,13 +283,13 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 .t-bottom {
   position: relative; padding-top: 18px; padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  border-top: 3px solid var(--clay); background: var(--glaze); max-height: 64vh; overflow-y: auto;
+  border-top: 3px solid var(--sea); background: var(--glaze); max-height: 64vh; overflow-y: auto;
 }
 .t-text { max-width: 34em; margin: 0 auto; min-height: 5.2em; }
 .t-text p { margin: 0 0 12px; font: 17px/1.55 var(--font-story); }
 .t-text p.in { animation: lineIn 0.6s ease-out; }
 .t-text .year { font: 600 15px/1.3 var(--font-pixel); letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
-.t-text .lyric { font-style: italic; color: var(--aegean); }
+.t-text .lyric { font-style: italic; color: var(--sea-hi); }
 .t-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 34em; margin: 6px auto 0; }
 .t-actions .btn { flex: 1 1 200px; }
 .t-actions .btn.choice { flex-basis: 100%; }
@@ -297,14 +299,24 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 .tally { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 16px; margin: 0 0 14px; font-size: 15px; }
 .tally dt { color: var(--bone-dim); }
 .tally dd { margin: 0; text-align: right; font: 600 16px/1.4 var(--font-pixel); font-variant-numeric: tabular-nums; }
-.t-text p.shipnote { margin: 4px 0 12px; padding: 10px 12px; border: 2px solid var(--clay-deep); background: var(--glaze-2); font: 15px/1.5 var(--font-story); }
-.played { display: flex; justify-content: center; gap: 8px; margin: 0 0 10px; font: 500 12px/1 var(--font-pixel); color: var(--bone-dim); letter-spacing: 0.08em; text-transform: uppercase; }
-.played b { color: var(--olive); font-weight: 600; }
+.t-text p.shipnote { margin: 4px 0 12px; padding: 10px 12px; border: 2px solid var(--sea-deep); background: var(--glaze-2); font: 15px/1.5 var(--font-story); }
+.t-top.at-top { place-content: start center; padding-top: max(26px, env(safe-area-inset-top, 0px)); }
+.t-title .eyebrow { margin: 0 0 12px; font: 600 12px/1.2 var(--font-pixel); letter-spacing: 0.22em; text-transform: uppercase; color: var(--sea-hi); }
+.t-title .coords { color: var(--bone); font-size: 13px; letter-spacing: 0.1em; text-transform: none; }
+.t-chapters { list-style: none; margin: 2px 0 4px; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.t-chapters li { display: grid; gap: 3px; align-content: start; min-width: 0; padding: 9px 10px; border: 2px solid var(--line); background: var(--glaze-2); font: 500 13px/1.2 var(--font-pixel); }
+.t-chapters b { font-weight: 700; color: var(--sea); letter-spacing: 0.08em; }
+.t-chapters i { font-style: normal; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--olive); }
+.t-chapters li.done { border-color: var(--sea-deep); }
+.t-dots { display: flex; justify-content: center; gap: 6px; margin: 0 0 14px; }
+.t-dots i { width: 8px; height: 8px; background: var(--line); }
+.t-dots i.past { background: var(--sea-deep); }
+.t-dots i.on { background: var(--sea); }
 
 .toast {
   position: fixed; z-index: 40; left: 50%; top: calc(58px + env(safe-area-inset-top, 0px)); transform: translateX(-50%);
   width: max-content; max-width: min(92vw, 420px); padding: 10px 14px; pointer-events: none;
-  background: var(--glaze-3); border: 2px solid var(--clay-deep); font: 500 14px/1.3 var(--font-pixel); opacity: 0; transition: opacity 0.2s;
+  background: var(--glaze-3); border: 2px solid var(--sea-deep); font: 500 14px/1.3 var(--font-pixel); opacity: 0; transition: opacity 0.2s;
 }
 .toast.on { opacity: 1; }
 .floater {
@@ -322,7 +334,7 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
   .tabs { grid-column: 2; grid-row: 2; border-left: 2px solid var(--line); }
   #app.mapview .strip { display: block; }
   #sheet { align-items: center; }
-  .sheet-card { max-width: 560px; max-height: 84%; border: 2px solid var(--line); border-top: 3px solid var(--clay); }
+  .sheet-card { max-width: 560px; max-height: 84%; border: 2px solid var(--line); border-top: 3px solid var(--sea); }
   .maplabel { font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1522,8 +1534,8 @@ function pxIcon(name) {
   return `<svg viewBox="0 0 ${w} ${rows.length}" fill="currentColor" aria-hidden="true">${r}</svg>`;
 }
 const ICON_TINT = { eat: '#eac05a', coffee: '#d9a466', food: '#b6c66c', hat: '#e6c47c', postcard: '#62c6d9', swim: '#62c6d9', look: '#f3ead6', boat: '#62c6d9', net: '#b3ab99', record: '#ee7383',
-  bed: '#a7b6e8', cook: '#eac05a', nap: '#a7b6e8', think: '#eac05a', sketch: '#f3ead6', verse: '#62c6d9', guitar: '#d9a466', walk: '#b6c66c', talk: '#f4a27a', tile: '#e07b4f', wood: '#d6c6a4',
-  stone: '#e8e4da', sun: '#eac05a', jar: '#f3ead6', echo: '#62c6d9', light: '#f6f0c0', site: '#e07b4f', build: '#e07b4f', gift: '#eac05a', car: '#7ea6c6' };
+  bed: '#a7b6e8', cook: '#eac05a', nap: '#a7b6e8', think: '#eac05a', sketch: '#f3ead6', verse: '#62c6d9', guitar: '#d9a466', walk: '#b6c66c', talk: '#f3ead6', tile: '#e07b4f', wood: '#d6c6a4',
+  stone: '#e8e4da', sun: '#eac05a', jar: '#f3ead6', echo: '#62c6d9', light: '#f6f0c0', site: '#93e2da', build: '#93e2da', gift: '#eac05a', car: '#7ea6c6' };
 // A euro coin, two metals.
 const COIN = sprite(11, 11, P => {
   for (let y = 0; y < 11; y++) for (let x = 0; x < 11; x++) { const d = Math.hypot(x - 5, y - 5); if (d <= 5.2) P(x, y, d > 3.6 ? (x + y < 9 ? '#f0d77a' : '#b8962e') : (x + y < 9 ? '#eef1f4' : '#9aa1a8')); }
@@ -2252,12 +2264,19 @@ function drawMap(W, H, t, o) {
   const [hx, hy] = mapXY(f, 760, 840);
   for (let k = 0; k < 30; k += 2) { const x = hx + k * 1.4, y = hy + k * 0.9; if (y < H) px(x, y, night ? '#3a4a7a' : '#6ab8d8'); }
   if (o.ferry) { const k = clamp((o.hour - 10) / 1.5, 0, 1), fx = hx + (1 - k) * 40, fy = hy + (1 - k) * 26; R(fx - 2, fy - 1, 5, 2, '#f4f2ec'); px(fx, fy - 2, '#d04a3a'); }
+  if (o.arrival != null) {   // the title: the morning boat from Corfu, coming in to Ammos from the south-east
+    const ex = W - 1, ey = H - 1, n = Math.max(Math.abs(ex - hx), Math.abs(ey - hy), 1);
+    for (let k = 0; k <= n; k += 3) px(Math.round(hx + (ex - hx) * k / n), Math.round(hy + (ey - hy) * k / n), '#6ab8d8');
+    const a = clamp(o.arrival, 0, 1), e = 1 - (1 - a) * (1 - a), fx = Math.round(ex + (hx - ex) * e), fy = Math.round(ey + (hy - ey) * e), dx = (ex - hx) / n, dy = (ey - hy) / n;
+    if (a < 1) for (let k = 2; k < 9; k++) px(Math.round(fx + dx * k * 1.6), Math.round(fy + dy * k * 1.6), k < 5 ? '#ffffff' : '#bfe6ee');   // the wake
+    R(fx - 3, fy - 1, 6, 2, '#f4f2ec'); R(fx - 3, fy + 1, 6, 1, '#2c5a8e'); px(fx, fy - 2, '#d04a3a');
+  }
   if (!reduceMotion) for (let k = 0; k < 2; k++) { const a = t * 0.05 + k * 3, [bx, by] = mapXY(f, 900 + Math.cos(a) * 260, 940 + Math.sin(a) * 40); if (bx > 0 && bx < W && by < H) { px(bx, by, '#f4f0e6'); px(bx + 1, by, '#c8483a'); } }
   // the lighthouse at night: once every ten seconds
   if (night) { const [lx, ly] = mapXY(f, PLACES.kastri.x, PLACES.kastri.y); if ((o.realT || t) % 10 < 0.6) for (let k = -5; k <= 5; k++) { px(lx + k, ly - 5, Math.abs(k) < 3 ? '#ffffff' : '#fff2c0'); if (Math.abs(k) < 3) px(lx, ly - 5 + k, '#fff8d8'); } }
   // the trip in hand: the way there, dotted
   const trip = o.travel || o.preview;
-  if (trip && trip.legs) for (const l of trip.legs) for (let s2 = 1; s2 < l.pts.length; s2++) { const [x0, y0] = mapXY(f, ...l.pts[s2 - 1]), [x1, y1] = mapXY(f, ...l.pts[s2]), n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1); for (let k = 0; k <= n; k += 2) px(Math.round(x0 + (x1 - x0) * k / n), Math.round(y0 + (y1 - y0) * k / n), l.car ? '#7ea6c6' : '#e07b4f'); }
+  if (trip && trip.legs) for (const l of trip.legs) for (let s2 = 1; s2 < l.pts.length; s2++) { const [x0, y0] = mapXY(f, ...l.pts[s2 - 1]), [x1, y1] = mapXY(f, ...l.pts[s2]), n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1); for (let k = 0; k <= n; k += 2) px(Math.round(x0 + (x1 - x0) * k / n), Math.round(y0 + (y1 - y0) * k / n), l.car ? '#7ea6c6' : '#eac05a'); }
   const spots = [];
   for (const id of PLACE_ORDER) {
     const P = PLACES[id], [x, y] = mapXY(f, P.x, P.y);
@@ -2456,7 +2475,7 @@ function tipOnce(key, msg) { if (UI.tips[key] || (S.said && S.said['tip:' + key]
 function actBtn(a) {
   const ready = !a.why, prim = a.primary && ready;
   return `<button class="btn act${prim ? ' primary' : ''}${ready ? '' : ' why'}" type="button" data-act="do" data-id="${a.id}"${ready ? '' : ' aria-disabled="true"'}>` +
-    `<span class="ai" style="color:${prim ? 'var(--on-clay)' : ICON_TINT[a.icon] || 'var(--bone)'}">${pxIcon(a.icon || 'look')}</span><span class="an">${esc(a.label)}</span>` +
+    `<span class="ai" style="color:${prim ? 'var(--on-sea)' : ICON_TINT[a.icon] || 'var(--bone)'}">${pxIcon(a.icon || 'look')}</span><span class="an">${esc(a.label)}</span>` +
     `<span class="ad">${esc(a.why || a.sub)}</span><span class="am">${a.hours ? fmtH(a.hours) : ''}${a.eur ? `<small>${a.eur} €</small>` : ''}</span></button>`;
 }
 function dCard() {
@@ -2537,7 +2556,7 @@ function placeSheet(id) {
       const late = S.clock + walk.hours > 24;
       h += `<button class="btn primary wide" type="button" data-act="go" data-place="${id}" data-mode="walk">Walk there<small>${fmtH(walk.hours)}, ${walk.km.toFixed(1)} km${walk.energy ? ', about ' + walk.energy + ' energy' : ''}. You would get there at ${hourLabel(S.clock + walk.hours)}${late ? ', very late' : ''}.</small></button>`;
       const car = canLift(S) ? tripInfo(S, id, 'car') : null;
-      if (car && car.ok && car.hours < walk.hours - 0.15) h += `<button class="btn sea wide" type="button" data-act="go" data-place="${id}" data-mode="car">Ask Dionysis for a lift<small>${fmtH(car.hours)}, waiting for him included${car.walkKm > 0.05 ? ', and ' + car.walkKm.toFixed(1) + ' km on foot where the road stops' : ''}. One lift a day.</small></button>`;
+      if (car && car.ok && car.hours < walk.hours - 0.15) h += `<button class="btn alt wide" type="button" data-act="go" data-place="${id}" data-mode="car">Ask Dionysis for a lift<small>${fmtH(car.hours)}, waiting for him included${car.walkKm > 0.05 ? ', and ' + car.walkKm.toFixed(1) + ' km on foot where the road stops' : ''}. One lift a day.</small></button>`;
       else if (S.day > 1 && !canLift(S) && !PLACES[S.place].boat) h += '<p class="note">Dionysis has given you a lift today already.</p>';
     } else h += `<p class="note">${esc(walk.why)}</p>`;
   }
@@ -2731,18 +2750,19 @@ const INTRO_LINES = [
   'A man in glasses was waiting on the quay at Ammos. He pushed them up his nose and said, “You must be the artist. I’m Dionysis. I’m going to show you the island.”',
   '“So,” he said, as you walked along the harbour. “What are you going to make?”',
 ];
-function openTheater(mode) { TH.mode = mode; els.theater.hidden = false; }
+function openTheater(mode) { TH.mode = mode; els.theater.hidden = false; els.tTop.className = 't-top'; }
 function closeTheater() { TH.mode = null; els.theater.hidden = true; }
-function playedLine() {
+function chapterList() {
   const P = S.played || {};
-  if (!Object.keys(P).length) return '';
-  return '<div class="played">' + CH_ORDER.map(k => P[k] ? `<b>${CHAPTERS[k].numeral} ✓</b>` : `<span>${CHAPTERS[k].numeral}</span>`).join('') + '</div>';
+  return '<ul class="t-chapters" aria-label="The three chapters">' + [['inst', 'An installation'], ['song', 'A song'], ['beach', 'The beach']]
+    .map(([k, l]) => `<li${P[k] ? ' class="done"' : ''}><b>${CHAPTERS[k].numeral}</b><span>${esc(l)}</span>${P[k] ? '<i>Played</i>' : ''}</li>`).join('') + '</ul>';
 }
 function showTitle() {
   openTheater('title');
   const going = S.phase === 'day' || S.phase === 'night';
-  els.tTop.innerHTML = '<div class="t-title"><h1>Othonoi</h1><p>A residency at Kalogerou</p></div>';
-  els.tText.innerHTML = `${playedLine()}<p class="in">One week on the westernmost island in Greece, in an old stone house among olive trees. Make an installation, write a song, or go to the beach.</p>`;
+  els.tTop.className = 't-top at-top';
+  els.tTop.innerHTML = '<div class="t-title"><p class="eyebrow">Kalogerou · artist residency</p><h1>Othonoi</h1><p class="coords">Οθωνοί · 39°51′ N, 19°24′ E</p></div>';
+  els.tText.innerHTML = `<p class="in">One week on the westernmost inhabited island in Greece, in an old stone house among olive trees. Three ways to spend it:</p>${chapterList()}`;
   els.tActions.innerHTML = going ? `<button class="btn primary" type="button" data-t="continue">Back to the island<small>${esc(CHAPTERS[S.ch].name)} · ${dayName(S)}</small></button><button class="btn" type="button" data-t="new">Start a new week</button>`
     : `<button class="btn primary" type="button" data-t="begin">${Object.keys(S.played || {}).length ? 'Go back to Othonoi' : 'Begin'}</button>`;
   els.tHint.textContent = 'Best with the sound on.';
@@ -2757,7 +2777,8 @@ function introStep() {
     els.tHint.textContent = '';
     return;
   }
-  els.tText.innerHTML = typeof L === 'object' ? `<p class="year in">${esc(L.year)}</p>` : `<p class="in">${esc(L)}</p>`;
+  const dots = '<div class="t-dots" aria-hidden="true">' + TH.lines.map((_, i) => `<i${i === TH.i ? ' class="on"' : i < TH.i ? ' class="past"' : ''}></i>`).join('') + '</div>';
+  els.tText.innerHTML = dots + (typeof L === 'object' ? `<p class="year in">${esc(L.year)}</p>` : `<p class="in">${esc(L)}</p>`);
   if (last) {
     const P = S.played || {};
     els.tActions.innerHTML = [['inst', 'An installation', 'Out in the landscape, made of the island.'], ['song', 'A song', 'About the island, made of its sounds.'], ['beach', 'Honestly? The beach', 'Swim, eat, sleep, repeat.']]
@@ -2771,7 +2792,7 @@ function beginWeek(ch, skip) {
   UI.queue = []; UI.lastKey = placeKey(); UI.tab = 'here'; UI.mounted = ''; UI.moneyShown = null; UI.newFact = false; UI.bannerT = 0; els.banner.classList.remove('on');
   els.stripText.textContent = skip ? S.log[S.log.length - 1].text : 'Dionysis was waiting for you on the quay at Ammos.';
   closeTheater(); setTab('here'); renderPanel(); updateTabs(); updateHUD(); save();
-  setTimeout(() => { if (S.phase === 'day' && S.day === 1 && S.tour === 0) tipOnce('tour', 'Dionysis is showing you round. Tap the orange button to go with him.'); }, 900);
+  setTimeout(() => { if (S.phase === 'day' && S.day === 1 && S.tour === 0) tipOnce('tour', 'Dionysis is showing you round. Tap the bright button at the top to go with him.'); }, 900);
 }
 function showFinale() {
   openTheater('finale'); TH.lines = S.finale.lines; TH.i = 0; els.tTop.innerHTML = ''; Snd.arrive(); finaleStep();
@@ -2944,9 +2965,14 @@ function drawMain(t, dt) {
   (PLACE_SCENES[S.place] || drawHouse)(fit.W, fit.H, t, sceneOpts(t));
 }
 function drawTheater(t) {
-  const view = els.tcanvas.parentElement, fit = fitPixels(els.tcanvas, view.clientWidth, view.clientHeight, 150);
+  const view = els.tcanvas.parentElement, title = TH.mode === 'title', fit = fitPixels(els.tcanvas, view.clientWidth, view.clientHeight, title && view.clientWidth > view.clientHeight * 1.25 ? 210 : 150);
   G = els.tcanvas.getContext('2d'); G.imageSmoothingEnabled = false;
   R(0, 0, fit.W, fit.H, '#10152c');
+  if (title) {   // the island from above, in the morning, with the boat from Corfu coming in
+    const tt = els.tTop.querySelector('.t-title'), top = tt ? Math.ceil((tt.getBoundingClientRect().bottom - view.getBoundingClientRect().top) / fit.P) + 2 : 0;
+    drawMap(fit.W, fit.H, t, { hour: 7.5, place: null, top, arrival: reduceMotion ? 1 : (t / 14) % 1.3, realT: t });
+    return;
+  }
   if (TH.mode === 'finale' || TH.mode === 'song' || TH.mode === 'summary') {
     const v = S.phase === 'summary' || S.phase === 'finale' ? venue(S) : 'kalogerou';
     (PLACE_SCENES[v] || drawHouse)(fit.W, fit.H, t, { hour: TH.mode === 'summary' ? 21.6 : 19.9, pose: TH.mode === 'song' ? 'guitar' : 'stand', crowd: true, inst: instView(), dion: true, realT: t });
