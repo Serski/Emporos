@@ -54,7 +54,7 @@ ul.notes li { margin: 4px 0; }
 
   <h2>A merchant up close</h2>
   <figure>
-    <div class="frame" id="stallBox"><canvas id="stall" width="320" height="180" role="img" aria-label="Thrasyllos the wine merchant behind his counter, under a striped awning, with amphorae on the racks behind him."></canvas>
+    <div class="frame" id="stallBox"><canvas id="stall" width="320" height="180" role="img" aria-label="Thrasyllos the wine merchant standing behind a plain wooden counter, under a linen awning, with the harbour behind him."></canvas>
       <div class="say"><b>Thrasyllos · Wine merchant</b><span>“Halicarnassus has Knidian wine, Coan wine and wine of its own. It still buys mine. Think about that.”</span></div>
     </div>
     <figcaption>What tapping a merchant could open: the trader across the counter, with the goods in front of them.</figcaption>
@@ -536,7 +536,8 @@ function traderSprite(L, blink) {
     for (let j = 9; j <= 17; j++) p(-5 + Math.round((j - 9) * 0.9), j, rbS);   // the himation's edge, over one shoulder
     p(-1, 8, tr); p(0, 8, tr); p(1, 8, tr); p(0, 9, tr); p(-2, 8, dk(tr, 0.2));
     for (let j = 12; j <= 17; j += 2) p(1, j, rbS);
-    p(-6, 17, skS); p(-5, 17, sk); p(5, 17, sk); p(6, 17, skL);   // hands on the counter
+    for (let j = 13; j <= 17; j++) { p(-6, j, skS); p(-5, j, sk); p(5, j, sk); p(6, j, skL); }   // bare arms hanging down
+    for (const i of [-6, -5, 5, 6]) p(i, 12, tr);
     // head
     for (let j = 0; j <= 6; j++) for (let i = -3; i <= 3; i++) {
       if ((j === 0 || j === 6) && Math.abs(i) === 3) continue;
@@ -837,6 +838,15 @@ function viewOut() {   // the harbour, bright, beyond the back of the stall
     const hb = Math.round(86 - (2 + 7 * fbm(x / 30, 21)));
     for (let y = hb; y < 86; y++) P(x, y, y - hb > 3 && bay(x, y) < 0.5 ? '#c4d6e0' : '#acc2d4');
   }
+  for (let x = 0; x < 132; x++) {   // the town on its hill, pale with distance
+    const hb = Math.round(64 + 20 * smooth(30, 132, x) + 2 * fbm(x / 9, 22));
+    for (let y = hb; y < 86; y++) P(x, y, vnoise2(x / 4, y / 3, 23) > 0.62 ? '#cfc2a2' : bay(x, y) < 0.3 ? '#d2c6a8' : '#dcd0b2');
+  }
+  for (let k = 0; k < 34; k++) {
+    const x = Math.floor(hash(k * 5.3) * 128), top = Math.round(64 + 20 * smooth(30, 132, x) + 2 * fbm(x / 9, 22)), y = top + 2 + Math.floor(hash(k * 2.9) * Math.max(1, 84 - top - 4));
+    R(x, y, 4, 2, '#f2ecdc'); R(x + 4, y, 1, 2, '#e4dcc8'); R(x, y - 1, 5, 1, '#d8a48a');
+  }
+  R(14, 60, 14, 4, '#f0eadc'); for (let i = 0; i < 14; i += 2) P(14 + i, 61, '#d4cab6'); R(13, 59, 16, 1, '#e8c8b0'); R(15, 58, 12, 1, '#efe6d6');
   R(0, 86, CW, 1, '#d6ecf0');
   for (let x = 196; x < CW; x++) { R(x, 92, 1, 2, '#e6dcc4'); R(x, 94, 1, 3, '#cbbc9c'); }
   R(212, 74, 8, 18, '#d8cbb0'); R(218, 74, 3, 18, '#eee4d0'); for (let i = 0; i < 11; i += 3) R(212 + i, 72, 2, 2, '#d8cbb0'); R(215, 79, 1, 3, '#8a7a6a');
@@ -844,50 +854,28 @@ function viewOut() {   // the harbour, bright, beyond the back of the stall
   const r = rng(31);
   for (let k = 0; k < 70; k++) { const y = 88 + Math.floor(r() * 40), x = Math.floor(r() * CW); R(x, y, 2 + Math.floor(r() * (2 + (y - 88) / 5)), 1, dk('#57a2ca', 0.12)); }
 }
-function rackAmphora(x, yb, c, h) {   // a tall amphora standing in the rack, 9 wide
-  const r = [lt(c, 0.3), lt(c, 0.12), c, dk(c, 0.2), dk(c, 0.38), dk(c, 0.55)];
-  const ws = [3, 3, 3, 3, 5, 7, 8, 9, 9, 9, 9, 8, 8, 7, 7, 6, 5, 4, 3, 2, 2, 1].slice(0, h || 22);
-  vessel(x + 4.5, yb - ws.length, ws, r);
-  for (let j = 1; j < 5; j++) { P(x + 1, yb - ws.length + j, r[4]); P(x + 7, yb - ws.length + j, r[3]); }
-  P(x + 2, yb - ws.length + 1, r[4]); P(x + 6, yb - ws.length + 1, r[3]);
-  R(x + 3, yb - ws.length - 1, 3, 1, r[1]);
-  P(x + 3, yb - ws.length + 9, dk(c, 0.3)); P(x + 4, yb - ws.length + 9, dk(c, 0.3));   // a stamp on the shoulder
-}
-function racks() {   // shelves in the shade of the awning, full of jars
-  for (const [x0, x1] of [[18, 112], [208, 302]]) {
-    R(x0, 30, x1 - x0, CT - 30, '#3a2620');
-    for (let y = 30; y < CT; y++) for (let x = x0; x < x1; x++) if ((x + y * 3) % 7 === 0 && h2(x, y) < 0.5) P(x, y, '#44302a');
-    for (const sy of [68, 104]) {
-      for (let k = 0; k < 10; k++) { const ax = x0 + 3 + k * 9; if (ax + 9 > x1) break; rackAmphora(ax, sy, k % 3 === 1 ? '#a8603a' : k % 3 === 2 ? '#b86e40' : '#9a5634', 22); }
-      R(x0, sy, x1 - x0, 3, SHADE_WOOD[1]); R(x0, sy, x1 - x0, 1, SHADE_WOOD[0]); R(x0, sy + 3, x1 - x0, 1, SHADE_WOOD[4]);
-    }
-    for (const px_ of [x0, x1 - 3]) { R(px_, 30, 3, CT - 30, SHADE_WOOD[2]); R(px_ + 2, 30, 1, CT - 30, SHADE_WOOD[1]); R(px_, 30, 1, CT - 30, SHADE_WOOD[4]); }
+function plainAwning() {   // undyed linen with the sun coming through it, two seams, a plain hem, and the beam
+  for (let y = 0; y < 22; y++) for (let x = 0; x < CW; x++) {
+    const k = y / 22, u = (x - 160) / (1 + k * 0.6), seam = Math.abs(((u + 432) % 96) - 48) < 0.6;
+    const lit = clamp(0.18 + (x / CW) * 0.55 - k * 0.22 + Math.sin(u * 0.07) * 0.05, 0, 1);
+    let c = rampAt(['#8a7458', '#a89070', '#c4ac86', '#dcc69e', '#eedcb6'], lit, x, y, 0.5);
+    if (seam) c = dk(c, 0.16);
+    P(x, y, c);
   }
-  G.globalAlpha = 0.35; R(18, 30, 94, 12, SHADOW); R(208, 30, 94, 12, SHADOW); G.globalAlpha = 1;
-}
-function awningAbove() {   // the underside of the awning, with the sun coming through it, the beam and the fringe
-  for (let y = 0; y < 26; y++) for (let x = 0; x < CW; x++) {
-    const k = y / 26, u = (x - 160) / (1 + k * 0.5), band = Math.floor((u + 400) / 22) % 2;
-    const lit = clamp(0.25 + (x / CW) * 0.5 - k * 0.3, 0, 1);
-    P(x, y, band ? rampAt(['#5a1828', '#78243a', '#962e44', '#b03c50'], lit, x, y, 0.5) : rampAt(['#a88c68', '#c8ae84', '#e2cca0', '#f4e4bc'], lit, x, y, 0.5));
-  }
-  for (let x = 0; x < CW; x++) { const u = (x - 160) / 1.5, band = Math.floor((u + 400) / 22) % 2; }
-  R(0, 24, CW, 5, SHADE_WOOD[2]); R(0, 24, CW, 1, SHADE_WOOD[0]); R(0, 28, CW, 1, SHADE_WOOD[4]);
-  for (let x = 0; x < CW; x++) if (x % 9 === 0) P(x, 26, SHADE_WOOD[4]);
-  for (let x = 0; x < CW; x += 4) { const band = Math.floor((x + 6) / 16) % 2, c = band ? '#8b3240' : '#ead7ae'; R(x, 29, 4, 3, c); R(x + 1, 32, 2, 2, c); P(x + 1, 34, dk(c, 0.2)); P(x, 29, lt(c, 0.2)); P(x + 3, 30, dk(c, 0.25)); }
-  G.globalAlpha = 0.25; R(0, 29, CW, 1, SHADOW); G.globalAlpha = 1;
+  R(0, 22, CW, 3, '#cdb68e'); R(0, 22, CW, 1, '#e6d2aa'); R(0, 24, CW, 1, '#a08866');
+  R(0, 25, CW, 4, SHADE_WOOD[2]); R(0, 25, CW, 1, SHADE_WOOD[0]); R(0, 28, CW, 1, SHADE_WOOD[4]);
+  G.globalAlpha = 0.25; R(0, 29, CW, 2, SHADOW); G.globalAlpha = 1;
 }
 function posts() {
   for (const x of [4, 302]) {
     R(x, 0, 14, CH, SHADE_WOOD[2]); R(x, 0, 2, CH, SHADE_WOOD[4]); R(x + 11, 0, 3, CH, SHADE_WOOD[0]); R(x + 13, 0, 1, CH, '#c8a070');
     for (let y = 0; y < CH; y += 1) { const n = vnoise2(x / 2, y / 9, 4); if (n > 0.7) P(x + 4 + Math.floor(n * 5), y, SHADE_WOOD[3]); if (n < 0.2) P(x + 3 + Math.floor(n * 20), y, SHADE_WOOD[1]); }
-    for (let k = 0; k < 4; k++) { R(x - 1, 36 + k * 3, 16, 2, '#c8ae78'); R(x - 1, 36 + k * 3, 16, 1, '#e2cc96'); P(x + 13, 37 + k * 3, '#8a7048'); }
   }
 }
-// The trader himself: a lit head with a full beard, a wine-red chiton, a cloak over one shoulder, hands on the counter.
+// The trader himself: a lit head with a full beard, a wine-red chiton, a cloak over one shoulder, arms down at his sides.
 function thrasyllos(blink, talk) {
   const cx = 160, cy = 57, Lx = 0.62, Ly = -0.4, Lz = 0.68;
-  const inBody = (u, y) => { const v = y - 79; if (v < 0) return false; const half = v < 12 ? 16 + v * 2.1 : Math.min(41, 41 - (v - 12) * 0.02); return Math.abs(u + 0.5) <= half; };
+  const inBody = (u, y) => { const v = y - 79; if (v < 0) return false; return Math.abs(u + 0.5) <= (v < 12 ? 16 + v * 2.1 : 30); };   // shoulders, then the chest between the arms
   // chest and shoulders, with folds falling from the neck
   for (let y = 79; y < CT; y++) for (let x = 110; x < 211; x++) {
     const u = x - cx, v = y - 79;
@@ -896,6 +884,7 @@ function thrasyllos(blink, talk) {
     let c = rampAt(WINE.slice(0, 6), 1 - clamp(l, 0, 1), x, y, 0.45);
     if (Math.sin(u * 0.36 + v * 0.03 * Math.sign(u)) < -0.92 && v > 8) c = WINE[5];   // the deepest creases
     if (u > 14 && v < 14 && v > 2 && (u - 14) < (14 - v) * 1.6) c = rampAt(WINE.slice(0, 3), 0.3 + v / 30, x, y, 0.5);   // sun on the right shoulder
+    if (v >= 12 && Math.abs(u + 0.5) >= 27) c = dk(c, 0.22);   // in the shadow of the arms
     P(x, y, c);
   }
   // the cloak, over his left shoulder and across the chest
@@ -909,30 +898,21 @@ function thrasyllos(blink, talk) {
     if (d < 0.5) c = '#2e140e';
     P(x, y, c);
   }
-  // arms: sleeves to the elbow, then forearms coming in to the hands
+  // arms hanging straight down: short sleeves, then bare arms, the hands out of sight behind the counter
   for (const s of [-1, 1]) {
-    for (let y = 92; y < CT; y++) {
-      const k = smooth(104, 124, y), ac = cx + s * (35 - k * 6), w = y < 112 ? 12 : 10;
-      for (let i = 0; i < w; i++) {
-        const x = Math.round(ac - w / 2 + i), l = (i + 0.5) / w * 0.8 + (s > 0 ? 0.2 : -0.05);
-        const sleeve = y < 110 + (i % 3 === 0 ? 1 : 0);
-        P(x, y, sleeve ? rampAt(WINE.slice(0, 6), 1 - clamp(l, 0, 1), x, y, 0.5) : rampAt(SKIN.slice(1, 6), 1 - clamp(l, 0, 1), x, y, 0.5));
+    for (let au = 30; au <= 41; au++) {
+      const x = cx + s * au - (s < 0 ? 1 : 0), yTop = Math.max(86, Math.round(79 + (au - 16) / 2.1));
+      for (let y = yTop; y < CT; y++) {
+        const sleeve = y < 104, outer = y > 117 ? 38 : 39;
+        if (!sleeve && (au < 31 || au > outer)) continue;
+        const i = s > 0 ? au - 30 : 41 - au, w = sleeve ? 12 : outer - 30, l = (s > 0 ? 0.32 : 0.04) + (i + 0.5) / w * (s > 0 ? 0.68 : 0.52);
+        let c = sleeve ? rampAt(WINE.slice(0, 6), 1 - clamp(l, 0, 1), x, y, 0.5) : rampAt(SKIN.slice(1, 6), 1 - clamp(l - (y - 104) * 0.006, 0, 1), x, y, 0.5);
+        if (y === 103) c = (x % 3 === 0) ? '#b89a6a' : '#ead7ae';   // the sleeve's border
+        if (!sleeve && y === 117 && i < 3) c = SKIN[5];   // the crease of the elbow
+        P(x, y, c);
       }
-      const inner = s > 0 ? Math.round(ac - w / 2) - 1 : Math.round(ac + w / 2);
-      P(inner, y, WINE[6]); P(inner + (s > 0 ? -1 : 1), y, WINE[4]);
     }
-    for (let x = 0; x < 12; x++) P(Math.round(cx + s * (35 - 6 * smooth(104, 124, 110)) - 6 + x), 110, '#ead7ae');   // the sleeve's border
-    const hx = cx + s * 30 - 7;   // the hand, flat on the wood
-    for (let j = 0; j < 7; j++) for (let i = 0; i < 15; i++) {
-      if ((j === 0 && (i < 2 || i > 12)) || (j === 6 && (i === 0 || i === 14))) continue;
-      const l = (s > 0 ? 0.25 + i / 18 : 0.05 + i / 22) - j * 0.04;
-      let c = l > 0.62 ? SKIN[1] : l > 0.34 ? SKIN[2] : SKIN[3];
-      if (j >= 3 && (i % 3 === 2) && i > 1 && i < 13) c = SKIN[4];
-      if (j === 2 && i % 3 === 0 && i > 1 && i < 13) c = lt(c, 0.25);   // knuckles
-      P(hx + i, CT - 7 + j, c);
-    }
-    R(hx + 1, CT - 1, 13, 1, SKIN[4]);
-    const ring = s > 0 ? hx + 11 : hx + 3; P(ring, CT - 4, '#f2c860'); P(ring, CT - 3, '#b88a30');   // a gold ring
+    for (let y = 91; y < CT; y++) P(cx + s * 30 - (s < 0 ? 1 : 0), y, WINE[6]);   // where the arm meets the body
   }
   for (let x = cx - 10; x <= cx + 10; x++) { const y = 80 + Math.round(Math.abs(x - cx) * -0.2 + 2); P(x, y, '#ead7ae'); P(x, y + 1, '#a8885a'); }   // the neckline
   R(cx - 8, 70, 16, 11, SKIN[4]); R(cx + 3, 70, 5, 11, SKIN[3]); R(cx - 8, 70, 3, 11, SKIN[5]);   // the neck, in the beard's shadow
@@ -1001,7 +981,7 @@ function rimLight(c, col, fromX) {
   }
   img.data.set(o); g.putImageData(img, 0, 0);
 }
-function counter() {
+function counter() {   // a plain counter: a thick top board, and planks across the front
   for (let y = CT; y < CT + 8; y++) for (let x = 0; x < CW; x++) {
     const k = y - CT, grain = vnoise2(x / 14, y * 1.7, 2);
     let c = k === 0 ? '#f0c890' : k >= 6 ? '#7a5232' : grain > 0.62 ? '#b88a58' : grain < 0.3 ? '#cfa06c' : '#c4945e';
@@ -1009,18 +989,15 @@ function counter() {
     P(x, y, c);
   }
   for (let y = CT + 8; y < CH; y++) for (let x = 0; x < CW; x++) {
-    const k = y - CT - 8, fold = Math.sin(x * 0.21) * 0.5 + Math.sin(x * 0.05) * 0.3, l = 0.5 + fold * 0.3 + (x / CW - 0.5) * 0.4 - k * 0.006;
-    let c = rampAt(WINE.slice(1, 7), 1 - clamp(l, 0, 1), x, y, 0.5);
-    if (k === 0) c = '#3a1020';
-    if (k >= 5 && k < 14) {   // a key-pattern border woven into the cloth
-      const m = ['########', '.......#', '#####..#', '#...#..#', '#.#.#..#', '#.###..#', '#......#', '########', '........'][k - 5], ch = m[((x % 8) + 8) % 8];
-      c = ch === '#' ? (x / CW > 0.6 ? '#f4e4c0' : '#d8c09a') : dk(c, 0.15);
-    }
+    const k = y - CT - 8, row = Math.floor(k / 11), ky = k % 11, grain = vnoise2(x / 18 + row * 7, ky / 1.3, 6);
+    let c = ky === 0 ? SHADE_WOOD[5] : ky === 1 ? SHADE_WOOD[1] : grain > 0.66 ? SHADE_WOOD[3] : grain < 0.28 ? SHADE_WOOD[1] : SHADE_WOOD[2];
+    if (x > CW * 0.62 && ky > 1) c = lt(c, 0.07);
+    if (k < 3) c = dk(c, 0.3);
     P(x, y, c);
   }
+  for (let row = 0; row < 4; row++) for (const nx of [26, 292]) { const y = CT + 8 + row * 11 + 5; P(nx, y, '#2a1a12'); P(nx + 1, y - 1, '#c8a070'); }
 }
-function goodsFront() {
-  // two big jars in a stand on the left
+function goodsFront() {   // two jars in a stand, the tasting cup, and a little silver
   for (const [x, c] of [[34, '#c8723e'], [56, '#b8683a']]) {
     const r = [lt(c, 0.42), lt(c, 0.2), c, dk(c, 0.18), dk(c, 0.36), dk(c, 0.55)];
     const ws = [5, 5, 4, 4, 4, 5, 9, 13, 15, 16, 17, 17, 17, 17, 16, 16, 15, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 3, 2];
@@ -1028,32 +1005,12 @@ function goodsFront() {
     for (let j = 1; j < 7; j++) { P(x + 2, CT - ws.length + j - 1, r[4]); P(x + 15, CT - ws.length + j - 1, r[2]); }
     P(x + 3, CT - ws.length - 1, r[4]); P(x + 14, CT - ws.length - 1, r[3]); P(x + 3, CT - ws.length + 5, r[4]); P(x + 14, CT - ws.length + 5, r[2]);
     R(x + 6, CT - ws.length - 2, 6, 1, r[0]);
-    R(x + 6, CT - ws.length + 9, 5, 2, dk(c, 0.3)); P(x + 7, CT - ws.length + 9, lt(c, 0.1));   // the maker's stamp on the handle
   }
   R(30, CT - 6, 48, 3, SHADE_WOOD[1]); R(30, CT - 6, 48, 1, SHADE_WOOD[0]); R(31, CT - 3, 2, 3, SHADE_WOOD[2]); R(75, CT - 3, 2, 3, SHADE_WOOD[2]);
-  // a jug with a trefoil mouth
-  { const c = TERRA[2]; vessel(96, CT - 20, [5, 6, 4, 3, 3, 5, 8, 10, 11, 11, 11, 11, 10, 10, 9, 8, 7, 6, 6, 7], TERRA); R(92, CT - 15, 8, 2, GLAZE[2]); R(91, CT - 9, 10, 1, GLAZE[2]); P(98, CT - 15, GLAZE[0]); for (let j = 0; j < 8; j++) P(101 + (j > 1 && j < 6 ? 1 : 0), CT - 19 + j, TERRA[3]); void c; }
-  // the tasting cup, in front of him
   { const y = CT - 6; R(150, y, 21, 2, GLAZE[2]); R(151, y + 2, 19, 1, GLAZE[3]); R(153, y + 3, 15, 1, GLAZE[3]); R(158, y + 4, 5, 2, GLAZE[2]); R(156, y + 6, 9, 1, GLAZE[3]); R(150, y, 21, 1, GLAZE[1]); R(164, y, 5, 1, GLAZE[0]); R(152, y + 1, 17, 1, '#5a1a24'); P(166, y + 1, '#8a3a40');
     for (const hx of [146, 174]) { P(hx, y - 2, GLAZE[2]); P(hx + (hx < 150 ? 1 : -1), y - 3, GLAZE[1]); P(hx, y - 1, GLAZE[2]); P(hx + (hx < 150 ? 2 : -2), y, GLAZE[2]); P(hx + (hx < 150 ? 1 : -1), y - 1, GLAZE[3]); } }
-  // black cups, stacked
-  for (let k = 0; k < 3; k++) { const y = CT - 4 - k * 4, x = 212 + k; R(x, y, 18, 2, GLAZE[2]); R(x + 2, y + 2, 14, 1, GLAZE[3]); R(x + 7, y + 3, 4, 1, GLAZE[3]); R(x, y, 18, 1, GLAZE[1]); R(x + 12, y, 4, 1, GLAZE[0]); P(x + 1, y + 1, '#b8603a'); }
-  // a wax tablet with his prices scratched in it
-  { const x = 240, y = CT - 3; R(x, y - 12, 26, 15, SHADE_WOOD[0]); R(x + 2, y - 10, 22, 11, '#3a2a1e'); R(x, y - 12, 26, 1, '#dcb07a'); R(x + 25, y - 12, 1, 15, '#c89a66');
-    for (const [lx, ly, n] of [[x + 4, y - 8, 4], [x + 4, y - 5, 6], [x + 4, y - 2, 3]]) { for (let i = 0; i < n; i++) P(lx + i * 2, ly, '#a08868'); P(lx + n * 2 + 2, ly, '#c8b088'); P(lx + n * 2 + 3, ly - 1, '#c8b088'); }
-    line(x + 26, y - 6, x + 31, y - 14, '#c8b088'); P(x + 31, y - 15, '#eee0c0'); }
-  // a little pile of silver
-  for (const [x, n] of [[276, 3], [280, 5], [284, 2]]) for (let k = 0; k < n; k++) { R(x, CT - 1 - k, 4, 1, k % 2 ? '#b8bec4' : '#e2e6e9'); P(x + 3, CT - 1 - k, '#ffffff'); }
-  P(289, CT - 1, '#cfd4d8'); P(290, CT - 1, '#f4f6f8');
-}
-function hanging(t) {   // a wineskin and a bunch of dried grapes, hanging from the beam, turning a little in the air
-  const sw = Math.round(Math.sin(t * 0.9) * 1);
-  line(70, 29, 70 + sw, 37, '#6a5040');   // a goatskin of wine, tied at the neck
-  R(69 + sw, 37, 3, 2, '#5a3a26'); R(68 + sw, 39, 5, 1, '#c8ae78');
-  blob(63 + sw, 40, 15, 13, '#7a5636', 3);
-  P(64 + sw, 51, '#4a2e1e'); P(63 + sw, 52, '#4a2e1e'); P(76 + sw, 51, '#5a3a26'); P(77 + sw, 52, '#5a3a26');
-  line(250, 29, 250 - sw, 36, '#6a5040');
-  for (let k = 0; k < 13; k++) { const gx = 250 - sw + [0, -2, 2, -3, 1, 3, -1, -2, 2, 0, -1, 1, 0][k], gy = 37 + [0, 1, 1, 3, 3, 3, 5, 6, 6, 8, 9, 9, 11][k]; P(gx, gy, '#5a2a40'); P(gx + 1, gy, '#7a3a58'); P(gx, gy + 1, '#3a1a2a'); P(gx + 1, gy - 1, '#9a5a78'); }
+  for (const [x, n] of [[258, 3], [262, 5], [266, 2]]) for (let k = 0; k < n; k++) { R(x, CT - 1 - k, 4, 1, k % 2 ? '#b8bec4' : '#e2e6e9'); P(x + 3, CT - 1 - k, '#ffffff'); }
+  P(271, CT - 1, '#cfd4d8'); P(272, CT - 1, '#f4f6f8');
 }
 function vignette() {   // darken the edges a little, the way a booth is darker than the street
   for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
@@ -1061,11 +1018,10 @@ function vignette() {   // darken the edges a little, the way a booth is darker 
     if (d > 0.7 && (d - 0.7) * 1.2 > bay(x, y)) P(x, y, 'rgba(30,14,20,0.28)');
   }
 }
-const ST = { bg: null, racks: null, fg: null, man: [] };
+const ST = { bg: null, fg: null, man: [] };
 function buildStall() {
   ST.bg = paint(canvasOf(CW, CH), viewOut);
-  ST.racks = paint(canvasOf(CW, CH), racks);
-  ST.fg = paint(canvasOf(CW, CH), () => { counter(); goodsFront(); posts(); awningAbove(); vignette(); });
+  ST.fg = paint(canvasOf(CW, CH), () => { counter(); goodsFront(); posts(); plainAwning(); vignette(); });
   for (const [b, tk] of [[0, 0], [1, 0], [0, 1]]) { const m = spr(CW, CH, () => thrasyllos(b, tk)); rimLight(m, '#ffe0a8', 160); selout(m, 0.62); ST.man.push(m); }
 }
 buildStall();
@@ -1074,10 +1030,8 @@ function drawStall(g, t) {
   g.drawImage(ST.bg, 0, 0);
   for (let k = 0; k < 40; k++) { const y = 88 + Math.floor(hash(k * 1.7) * 38), x = Math.round(((hash(k * 3.1) * CW - t * (1 + (y - 88) / 14)) % CW + CW) % CW); if (Math.sin(t * 1.4 + k) > -0.3) R(x, y, 2 + ((y - 88) >> 3), 1, '#d8eef4'); }
   for (let k = 0; k < 2; k++) { const span = CW + 20, x = Math.round(((t * (7 + k * 4) + k * 150) % span) - 10), y = 40 + k * 12 + Math.round(Math.sin(t * 1.5 + k) * 2); g.drawImage(GULLS[Math.floor(t * 4 + k) % 3], x, y); }
-  g.drawImage(ST.racks, 0, 0);
   const blink = (Math.floor(t * 10) % 41) === 0, talk = Math.floor(t * 5) % 9 < 3 && (t % 12) < 5, breathe = Math.sin(t * 1.3) > 0.85 ? -1 : 0;
   g.drawImage(ST.man[blink ? 1 : talk ? 2 : 0], 0, breathe);
-  hanging(t);
   g.drawImage(ST.fg, 0, 0);
 }
 </script>
