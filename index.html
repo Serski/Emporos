@@ -6172,7 +6172,7 @@ function personCard(id) {
   const buys = Object.keys(o.buys).filter(g => sellPrice(S, id, g) > 0).map(g => SHORT[g] + ' <b>' + sellPrice(S, id, g) + '</b>').join(', ');
   const crates = o.freight.map(f => STOPS[f.to].name + ' <b>' + f.fee + '</b>').join(', ');
   const fare = m.fare && !S.contracts.some(c => c.fid === m.fare.id);
-  const line = m.talker ? 'Will talk to you for nothing' : m.bank ? ['Sea loans', buys && 'Buys ' + buys].filter(Boolean).join(' · ') : m.shipyard ? 'Builds ships · a bigger one for <b>' + shipTerms(S).price + '</b>'
+  const line = m.talker ? 'Will talk to you for nothing' : m.bank ? ['Sea loans', buys && 'Buys ' + buys].filter(Boolean).join(' · ') : m.shipyard ? ['Builds ships' + ((chapter(S).ship ? tierOf(S.hull) < tierOf(chapter(S).ship) : !S.shipOrdered) ? ' · a bigger one for <b>' + shipTerms(S).price + '</b>' : ''), sells && 'Sells ' + sells, buys && 'Buys ' + buys].filter(Boolean).join(' · ')
     : m.fare ? cap(num(m.fare.n)) + ' soldiers want passage to ' + STOPS[m.fare.to].name + ': <b>' + m.fare.fee * m.fare.n + '</b> when they land'
     : crates ? 'Pays to carry crates: ' + crates : [sells && 'Sells ' + sells, buys && 'Buys ' + buys].filter(Boolean).join(' · ');
   const open = o.freight.filter(f => !S.contracts.some(c => c.fid === f.id)).length;
@@ -6219,7 +6219,7 @@ function merchantSheet(id) {
     return h + `<div class="stack"><button class="btn wide" type="button" data-act="talk">${n ? 'Ask him something else' : 'Ask him something'}</button>${closeBtn()}</div>`;
   }
   if (m.bank) return h + bankBody() + buysRows(id, o) + `<p class="reply good" aria-live="polite">${UI.reply ? esc(UI.reply.text) : ''}</p>` + closeBtn();
-  if (m.shipyard) return h + shipBody() + closeBtn();
+  if (m.shipyard) h += shipBody();   // the ship first, then what he buys and sells, like any other merchant
   if (m.fare) h += fareRows(id);
   if (o.freight.length) h += freightRows(id, o);
   const sells = Object.keys(o.sells);
@@ -6273,8 +6273,7 @@ function shipBody() {
     return kv([['The ship', what], ['Price', T.price + ' dr, and ' + esc(shipName(S)) + ' in part exchange'],
       ['If you are short', T.ok ? (T.lent ? 'You pay ' + T.pay + ' dr now. Antimachos lends the other ' + T.lent + ', and wants ' + T.due + ' back when you come home.' : 'You can pay for her in silver.') : 'He wants at least ' + T.down + ' dr down. You have ' + S.silver + '.']]) +
       (large ? '<p class="note">Cargo on deck takes the weather: in rough water or a gale the sea may wash some of it over the side. Keep what matters below.</p>' : '') +
-      (here ? `<button class="btn primary wide" type="button" data-act="buyship"${T.ok ? '' : ' disabled'}>${large ? 'Buy the grain ship' : 'Buy the new ship'}<small>${T.ok ? (T.lent ? 'Pay ' + T.pay + ' dr, borrow ' + T.lent : 'Pay ' + T.price + ' dr') : 'You need ' + T.down + ' dr'}</small></button>` : '') +
-      `<p class="reply good" aria-live="polite">${UI.reply ? esc(UI.reply.text) : ''}</p>`;
+      (here ? `<button class="btn primary wide" type="button" data-act="buyship"${T.ok ? '' : ' disabled'}>${large ? 'Buy the grain ship' : 'Buy the new ship'}<small>${T.ok ? (T.lent ? 'Pay ' + T.pay + ' dr, borrow ' + T.lent : 'Pay ' + T.price + ' dr') : 'You need ' + T.down + ' dr'}</small></button>` : '');
   }
   return kv([['Price', SHIP_PRICE + ' dr, and Elpis in part exchange'], ['When', 'He builds over the winter. Order her at the end of the season, when you have settled with Antimachos.'],
     ['If you are short', 'Antimachos will lend the rest against the new ship, if you can put ' + SHIP_DOWN + ' dr down.']]) +
