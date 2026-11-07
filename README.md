@@ -79,6 +79,7 @@ The history of the period is real and stays in the background: the siege of Rhod
 - `index.html` is the same game wrapped as a standalone page. It is generated, so don't edit it by hand.
 - `tools/build.mjs` creates `index.html` from `src/game.html`.
 - `tests/sim.js` plays Chapters I to IV in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
+- `samples/rhodes-detailed.html` is an art sample, not part of the game: the harbour at Rhodes and a merchant close up, drawn at 320 × 180 art pixels with shading ramps, coloured outlines and dithering. Open it in a browser. `samples/before-after.png` puts it beside the harbour as the game draws it now.
 - `tests/play.js` plays all four chapters in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
 
 Inside `src/game.html`, the rules sit between `// ===== ENGINE START =====` and `// ===== ENGINE END =====` and never touch the page. That is what lets `tests/sim.js` run them on their own. All the art and sound is drawn and synthesized in code.
