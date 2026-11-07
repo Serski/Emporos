@@ -2,7 +2,7 @@
 
 A pixel-art trading game for phones. Ariston, a young trader from Rhodes, sails out in 290 BC with a small ship, a sea loan and a crew that has to eat. *Emporos* is the Greek word for a merchant who travels by sea. It is a working title.
 
-The plan is nine chapters, each a voyage further out from Rhodes. **Chapters I to VII are playable now**: Halicarnassus in the spring, Miletus in the summer, Athens in the autumn; in a bigger ship the next year, Corcyra in the spring, Taras in Italy in the summer, and Syracuse in Sicily in the autumn; and, the year after, in a grain ship with a second deck, Cyprus.
+The plan is nine chapters, each a voyage further out from Rhodes. **Chapters I to VIII are playable now**: Halicarnassus in the spring, Miletus in the summer, Athens in the autumn; in a bigger ship the next year, Corcyra in the spring, Taras in Italy in the summer, and Syracuse in Sicily in the autumn; and, the year after, in a grain ship with a second deck, Cyprus in the spring and Tyre in the summer.
 
 ## Play
 
@@ -95,9 +95,21 @@ Spring, 288 BC, in a grain ship. East along the coast of Lycia, round the cape o
 - **Kition.** A Phoenician city with a pink salt lake full of flamingos and ships with horses' heads on their bows. Sidonian glass, Lebanon cedar for the shipwright, salt, a merchant who buys everything, Mago the Phoenician pilot, and an old captain who has sailed past the Pillars of Herakles.
 - **The way home.** At Myra, go by way of Patara, or run straight for Rhodes before a strong wind, which is quicker and hard on whatever is on deck.
 
+## Chapter VIII: Tyre
+
+Summer, 288 BC, in the grain ship. King Ptolemy of Egypt has sent his fleet up the coast of Phoenicia to take the cities Demetrius still holds. Sidon has opened its gates to him; Tyre, on its island, has shut them. East to Megiste, the last Rhodian island, then three days across the open sea to Sidon, one day south to Tyre, and home against the summer wind. About eleven days at sea, and forty minutes to play.
+
+- **What a soldier could use.** The garrison in Tyre pays several times the price for grain, pitch, fir spars, cedar, copper and bronze. King Ptolemy's patrol, off the coast between Sidon and Tyre, takes all of it. The sail check and each thing's description say what aboard counts.
+- **The patrol, going in.** Let them search the ship and lose the war goods, send the officer a present and hope he does not look (he usually does not), or crowd on sail and run for Tyre. A big, light ship in a fair wind gets away more often. If they catch you, they take the war goods and a fine, and Rhodes hears of it. If you get through, the garrison cheers you in.
+- **The patrol, coming out.** Ships leaving Tyre pay the king a tenth of their cargo: pay it, bribe the officer instead, or run for it and pay double if they catch you.
+- **The open sea in summer.** Two nights under sail each way, in the heat. Megiste has a cistern; there is no water after it. A calm may come in the middle of the crossing.
+- **Sidon.** The king of Egypt's city now, with his eagle over the gate and an officer on the quay writing down the names of ships. Glass furnaces under the mountains of Lebanon, cedar coming down from them, and a merchant who buys what Cyprus and Greece send east.
+- **Tyre.** An island city with walls straight up out of the sea, joined to the shore by the road Alexander built to take it. Tyrian purple, dyed twice, and balsam from the gardens by the Jordan, which nobody can get out of the city any more. The quartermaster of the garrison, a merchant tired of fish, a priest of Melqart at the temple with two pillars, and Philippos, a Macedonian soldier who has decided his war is over.
+- **The way home.** Against the wind, with pirates off the capes of Cyprus. At Megiste, go by way of Patara, close under the cliffs, or beat straight across to Rhodes on rough water.
+
 Between chapters, your silver, any debt, the ship and everything in her, the crew, your good name in each port, and the friends you made all carry over. Hired hands go home at the end of each voyage.
 
-The history of the period is real and stays in the background: the siege of Rhodes and the bronze Sun-god being built with the money, the tomb of Mausolus above Halicarnassus, Coan wine made with seawater, Cretan archers and Cretan pirates, the summer north wind, the unfinished temple at Didyma, Miletus laid out in straight streets, the Rhodian sea law on cargo thrown overboard, the lions of Delos, the stone lion of Kea, the ship sheds of Piraeus, a king's garrison on the hill of Munichia, Athens buying grain from anyone who brought it, the diolkos across the Isthmus, Diogenes in his jar at Corinth, the queen who brought Corcyra to her second husband as a dowry, Illyrian lemboi, the sailors' saying about Cape Malea, the pitch springs of Zakynthos, the wrestlers of Croton and the temple of Hera on its cape, the Pythagoreans and their beans, Archytas of Taras and his wooden dove, the Tarentine cavalry, the boy on a dolphin on the coins of Taras, the mercenaries of the king of Syracuse, the Halieia, the festival of the Sun in Rhodes, Amnisos and the ruined palace at Knossos, the archers of Kydonia and its quinces, Cretan dittany, the saying that all Cretans are liars, Talos the bronze man, the death of Agathocles and the pulling down of his statues, his Campanian soldiers, the spring of Arethusa, the gilded shield on the temple of Athena, and Damocles' sword, Demetrius losing Macedonia, Ptolemy the Saviour, the oracle of Apollo at Patara, the rock tombs of Lycia, the cape of swallows, the copper of Cyprus cast like ox hides, the cone of Aphrodite at Paphos, Pygmalion, kyprinon, the salt lake of Kition, Sidonian glass, Lebanon cedar, Phoenician horse-headed ships, Gadir and the Phoenician letters. Ariston and his crew are invented.
+The history of the period is real and stays in the background: the siege of Rhodes and the bronze Sun-god being built with the money, the tomb of Mausolus above Halicarnassus, Coan wine made with seawater, Cretan archers and Cretan pirates, the summer north wind, the unfinished temple at Didyma, Miletus laid out in straight streets, the Rhodian sea law on cargo thrown overboard, the lions of Delos, the stone lion of Kea, the ship sheds of Piraeus, a king's garrison on the hill of Munichia, Athens buying grain from anyone who brought it, the diolkos across the Isthmus, Diogenes in his jar at Corinth, the queen who brought Corcyra to her second husband as a dowry, Illyrian lemboi, the sailors' saying about Cape Malea, the pitch springs of Zakynthos, the wrestlers of Croton and the temple of Hera on its cape, the Pythagoreans and their beans, Archytas of Taras and his wooden dove, the Tarentine cavalry, the boy on a dolphin on the coins of Taras, the mercenaries of the king of Syracuse, the Halieia, the festival of the Sun in Rhodes, Amnisos and the ruined palace at Knossos, the archers of Kydonia and its quinces, Cretan dittany, the saying that all Cretans are liars, Talos the bronze man, the death of Agathocles and the pulling down of his statues, his Campanian soldiers, the spring of Arethusa, the gilded shield on the temple of Athena, and Damocles' sword, Demetrius losing Macedonia, Ptolemy the Saviour, the oracle of Apollo at Patara, the rock tombs of Lycia, the cape of swallows, the copper of Cyprus cast like ox hides, the cone of Aphrodite at Paphos, Pygmalion, kyprinon, the salt lake of Kition, Sidonian glass, Lebanon cedar, Phoenician horse-headed ships, Gadir and the Phoenician letters, Megiste, Ptolemy's fleet in Phoenicia, Sidon going over to him, Alexander's mole at Tyre, the temple of Melqart and its pillars of gold and emerald, Tyrian purple and the murex, balsam from the Jordan, and Carthage, the daughter of Tyre. Ariston and his crew are invented.
 
 ## The nine voyages
 
@@ -110,15 +122,16 @@ The history of the period is real and stays in the background: the siege of Rhod
 | V | Medium merchant ship | Taras (playable) |
 | VI | Medium merchant ship | Syracuse (playable) |
 | VII | Large grain ship (Tyche's hull, with a deck as a second page of cargo) | Cyprus (playable) |
-| VIII–IX | Large grain ship | Tyre, Alexandria |
+| VIII | Large grain ship | Tyre (playable) |
+| IX | Large grain ship | Alexandria |
 
 ## Project layout
 
 - `src/game.html` is the whole game: HTML, CSS and JavaScript in one file. It is a page fragment, with no `<html>` or `<body>` tags, so it can be published as a claude.ai artifact as it is.
 - `index.html` is the same game wrapped as a standalone page. It is generated, so don't edit it by hand.
 - `tools/build.mjs` creates `index.html` from `src/game.html`.
-- `tests/sim.js` plays Chapters I to VII in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
-- `tests/play.js` plays all seven chapters in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
+- `tests/sim.js` plays Chapters I to VIII in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
+- `tests/play.js` plays all eight chapters in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
 
 Inside `src/game.html`, the rules sit between `// ===== ENGINE START =====` and `// ===== ENGINE END =====` and never touch the page. That is what lets `tests/sim.js` run them on their own. All the art and sound is drawn and synthesized in code.
 
@@ -136,7 +149,7 @@ Check the balance (takes a few minutes; add a games count and a chapter, such as
 node tests/sim.js
 ```
 
-Play all seven chapters in a headless browser (takes about twelve minutes):
+Play all eight chapters in a headless browser (takes about fourteen minutes):
 
 ```bash
 npm install
