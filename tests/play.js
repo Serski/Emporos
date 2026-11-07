@@ -1,4 +1,4 @@
-// Plays Chapter I and then Chapter II in a phone-sized browser through the real buttons, fast-forwarded,
+// Plays Chapters I, II and III in a phone-sized browser through the real buttons, fast-forwarded,
 // and saves screenshots of the key moments. Needs Playwright.
 // Usage: node tests/play.js [path/to/index.html] [screenshot folder]
 const { chromium } = require('playwright');
@@ -60,7 +60,7 @@ fs.mkdirSync(out, { recursive: true });
       if (sheet === 'outcome') { if (!seen.has(label + 'out')) { seen.add(label + 'out'); await snap(label + '-outcome'); } await page.click('#sheetCard button[data-act="continue"]'); continue; }
       if (sheet) {
         const risk = await page.evaluate(() => window.__emp.fns.atRisk(window.__emp.state()).length);
-        const pick = sheet === 'squall' ? (risk ? 'shelter' : 'ride') : sheet === 'flotsam' ? 'haul' : sheet === 'warship' ? 'argue' : 'fight';
+        const pick = sheet === 'squall' ? (risk ? 'shelter' : 'ride') : sheet === 'flotsam' ? 'haul' : sheet === 'warship' ? 'argue' : sheet === 'storm3' ? 'hold' : 'fight';
         await snap(label + '-event-' + sheet);
         await page.click(`#sheetCard button[data-c="${pick}"]`);
         continue;
@@ -77,14 +77,10 @@ fs.mkdirSync(out, { recursive: true });
         await page.waitForTimeout(150);
         continue;
       }
-      if (s.phase === 'sea') {
-        const late = await page.evaluate(() => { const S = window.__emp.state(); return window.__emp.fns.eta(S, false) > 0.97; });
-        const rowing = await page.evaluate(() => window.__emp.state().voyage.row);
-        if (late !== rowing) { const b = await page.$(`#panel button[data-act="row"][data-v="${late ? 1 : 0}"]`); if (b) await b.click(); }
-        if (!seen.has(label + 'sea' + s.day)) {
-          const clock = await page.evaluate(() => window.__emp.state().voyage.clock);
-          if (clock > 0.3) { seen.add(label + 'sea' + s.day); await snap(label + '-sea-day' + s.day); }
-        }
+      if (s.phase === 'sea') {   // read and act in one step: at this speed the ship can reach port in between
+        const r = await page.evaluate(() => { const S = window.__emp.state(); return S.phase === 'sea' && S.voyage ? { late: window.__emp.fns.eta(S, false) > 0.97, rowing: S.voyage.row, clock: S.voyage.clock } : null; });
+        if (r && r.late !== r.rowing) await page.click(`#panel button[data-act="row"][data-v="${r.late ? 1 : 0}"]`, { timeout: 1500 }).catch(() => {});
+        if (r && r.clock > 0.3 && !seen.has(label + 'sea' + s.day)) { seen.add(label + 'sea' + s.day); await snap(label + '-sea-day' + s.day); }
       }
       await page.waitForTimeout(80);
     }
@@ -174,10 +170,67 @@ fs.mkdirSync(out, { recursive: true });
   }
   await open('.person[data-m="bank"]'); await snap('71-ch2-bank');
   await page.click('#sheetCard button[data-act="repay"]');
-  await page.waitForSelector('#theater:not([hidden]) button[data-t="again"]');
+  await page.waitForSelector('#theater:not([hidden]) button[data-t="nextch"]');
   await page.waitForTimeout(500);
   await snap('72-ch2-summary');
   console.log('chapter II:', JSON.stringify(await page.evaluate(() => window.__emp.state().summary)));
+
+  // ---- Chapter III: west across the islands to Athens, in the autumn ----
+  const sellHere = async m => {
+    await open(`.person[data-m="${m}"]`);
+    const h = await page.$('#sheetCard button[data-act="haggle"]:not([disabled])'); if (h) await h.click();
+    for (let k = 0; k < 20; k++) { const b = await page.$('#sheetCard .trade button[data-act="sell"]:not([disabled])'); if (!b) break; await b.click(); }
+    await close();
+  };
+  const sellN = async (m, g, n) => { await open(`.person[data-m="${m}"]`); for (let k = 0; k < n; k++) { const b = await page.$(`#sheetCard button[data-act="sell"][data-g="${g}"]:not([disabled])`); if (!b) break; await b.click(); } await close(); };
+  const crate = async (m, f) => { await open(`.person[data-m="${m}"]`); await page.click(`#sheetCard button[data-act="freight"][data-f="${f}"]`); await close(); };
+  await page.click('button[data-t="nextch"]');
+  await page.waitForTimeout(300);
+  await snap('80-ch3-intro');
+  for (let i = 0; i < 12; i++) { const b = await page.$('button[data-t="next"]'); if (!b) break; await b.click(); }
+  await page.click('button[data-t="harbour"]');
+  await page.waitForTimeout(700);
+  await snap('81-ch3-rhodes');
+  await open('.person[data-hire="euphron"]'); await snap('82-ch3-carpenter'); await page.click('#sheetCard button[data-act="hire"]'); await close();
+  await open('.person[data-m="agent"]'); await page.click('#sheetCard button[data-act="freight"][data-f="rd"]'); await page.click('#sheetCard button[data-act="freight"][data-f="rp"]'); await snap('83-ch3-agent'); await close();
+  await buyN('stores', 'wheat', 8); await buyN('korinna', 'sponge', 2); await buyN('thras', 'wine', 2);
+  await tab('hold'); await page.click('button[data-act="autopack"]'); await snap('84-ch3-hold'); await tab('main');
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('a1');
+  if (s.port !== 'delos') throw new Error('expected Delos, got ' + JSON.stringify(s));
+  await page.waitForTimeout(600); await snap('90-delos');
+  await sellN('telesilla', 'wine', 2); await buyN('dstores', 'barley', 2);
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('a2');
+  if (s.port !== 'piraeus') throw new Error('expected Piraeus, got ' + JSON.stringify(s));
+  await page.waitForTimeout(600); await snap('91-piraeus');
+  await sellHere('warden'); await sellHere('kephis');
+  await open('.person[data-m="zeno"]'); await page.click('#sheetCard button[data-act="talk"]'); await snap('92-zeno'); await close();
+  await open('.person[data-hire="seuthes"]'); await snap('93-seuthes-again'); await close();
+  await buyN('nikanor', 'scrolls', 3); await buyN('philinna', 'vase', 3); await buyN('melitta', 'hymhoney', 2); await buyN('timarchos', 'marble', 1);
+  await crate('pagent', 'pr'); await buyN('pstores', 'barley', 2);
+  await tab('hold'); await page.click('button[data-act="autopack"]'); await snap('94-ch3-hold-home'); await tab('main');
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('a3');
+  if (s.port !== 'delos') throw new Error('expected Delos on the way home, got ' + JSON.stringify(s));
+  await open('.person[data-hire="kydas"]'); await page.click('#sheetCard button[data-act="hire"]'); await close();
+  await buyN('dstores', 'barley', 2);
+  await tab('hold'); await page.click('button[data-act="autopack"]'); await tab('main');
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('a4');
+  if (s.port !== 'rhodes' || !s.home) throw new Error('expected to be home from Athens, got ' + JSON.stringify(s));
+  await page.waitForTimeout(600); await snap('100-ch3-home');
+  for (const m of ['works', 'teacher', 'korinna', 'thras']) await sellHere(m);
+  await tab('ledger'); await snap('101-ch3-ledger'); await tab('main');
+  await open('.person[data-m="bank"]'); await page.click('#sheetCard button[data-act="repay"]');
+  await page.waitForSelector('#theater:not([hidden]) button[data-t="again"]');
+  await page.waitForTimeout(500);
+  await snap('102-ch3-summary');
+  const shipBtn = await page.$('button[data-t="ship"]');
+  if (shipBtn) { await shipBtn.click(); await page.waitForTimeout(400); await snap('103-ch3-ship'); }
+  const hint = await page.textContent('#tHint');
+  if (!/Chapter IV/.test(hint)) throw new Error('summary hint should point at Chapter IV: ' + hint);
+  console.log('chapter III:', JSON.stringify(await page.evaluate(() => window.__emp.state().summary)), 'ship ordered:', await page.evaluate(() => window.__emp.state().shipOrdered));
   console.log('errors:', errors.length ? errors.join('\n') : 'none');
   console.log('screenshots:', shots.join(', '));
   await browser.close();

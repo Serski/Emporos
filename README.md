@@ -2,7 +2,7 @@
 
 A pixel-art trading game for phones. Ariston, a young trader from Rhodes, sails out in 290 BC with a small ship, a sea loan and a crew that has to eat. *Emporos* is the Greek word for a merchant who travels by sea. It is a working title.
 
-The plan is nine chapters, each a voyage further out from Rhodes. **Chapters I and II are playable now**: Halicarnassus in the spring, and Miletus in the summer.
+The plan is nine chapters, each a voyage further out from Rhodes. **Chapters I to III are playable now**: Halicarnassus in the spring, Miletus in the summer, and Athens in the autumn.
 
 ## Play
 
@@ -34,9 +34,21 @@ Summer, 290 BC. Miletus is north, and in summer the wind blows from the north ev
 - **On the way.** Jars from a wreck, if you have room for them. A king’s warship that wants a toll: pay it, argue that Rhodes pays no king, or send the officer a jar of wine. The oracle at Didyma will answer one question about the voyage, and it is worth listening to.
 - **Money.** Antimachos offers another sea loan, which you can take or refuse. His wife wants a Milesian couch, and he will pay well for one.
 
+## Chapter III: Athens
+
+Autumn, 290 BC: one more voyage before the winter closes the sea. West across the islands to Delos, then on to Piraeus, the harbour of Athens, and home the same way. About nine days at sea, and twenty-five minutes to play.
+
+- **Short days.** In autumn the day runs out sooner, and a night at sea is cold. Men fall sick from it, and the ship goes slower.
+- **Freight.** Philonides, a shipping agent in Rhodes, pays you to carry sealed crates: one for Delos and one for Piraeus. In Piraeus another agent has one for Rhodes. Each takes two squares, and you are paid on delivery. If pirates take a crate, you pay what it was worth.
+- **The gale.** The open crossing from Astypalaia to Delos is the season of gales, and one always comes. Throw the heaviest cargo over the side, hold on and bail, or run for the lee of Amorgos and lose most of the day. A ship's carpenter, for hire in Rhodes, keeps her together. By the law of Rhodes, cargo thrown over to save a ship is a loss shared by everyone with goods aboard, so with freight in the hold the owners pay you back a share.
+- **New ports.** Delos, the holy island of Apollo, which grows nothing and buys everything. Piraeus, with oil, painted cups, books, Hymettus honey and Pentelic marble, city grain wardens who pay well for wheat, a tax of a fiftieth on cargo, and a thin man under a colonnade with opinions about wealth.
+- **Packing.** Nothing soft is sold in Athens, so bring sponges from Rhodes to pack the painted cups for the rough water home.
+- **Pirates.** A hemiolia may be waiting off Amorgos on the way home. The talk on the quay at Delos tells you whether it is. A Cretan archer is for hire there.
+- **A bigger ship.** Nausikrates the shipwright will build a proper merchant ship over the winter, with twice the hold of Elpis, for 600 drachmas and Elpis in part exchange. Order her at the end of the season. If you are short, Antimachos lends the rest against the new ship, if you can put 200 down.
+
 Between chapters, your silver, any debt, the ship and everything in her, the crew, your good name in each port, and the friends you made all carry over. Hired hands go home at the end of each voyage.
 
-The history of the period is real and stays in the background: the siege of Rhodes and the bronze Sun-god being built with the money, the tomb of Mausolus above Halicarnassus, Coan wine made with seawater, Cretan archers and Cretan pirates, the summer north wind, the unfinished temple at Didyma, and Miletus laid out in straight streets. Ariston and his crew are invented.
+The history of the period is real and stays in the background: the siege of Rhodes and the bronze Sun-god being built with the money, the tomb of Mausolus above Halicarnassus, Coan wine made with seawater, Cretan archers and Cretan pirates, the summer north wind, the unfinished temple at Didyma, Miletus laid out in straight streets, the Rhodian sea law on cargo thrown overboard, the lions of Delos, the stone lion of Kea, the ship sheds of Piraeus, a king's garrison on the hill of Munichia, and Athens buying grain from anyone who brought it. Ariston and his crew are invented.
 
 ## The nine voyages
 
@@ -44,7 +56,7 @@ The history of the period is real and stays in the background: the siege of Rhod
 | --- | --- | --- |
 | I | Small coastal trader | Halicarnassus (playable) |
 | II | Small coastal trader | Miletus (playable) |
-| III | Small coastal trader | Athens |
+| III | Small coastal trader | Athens (playable) |
 | IV–VI | Medium merchant ship | Corcyra, Taras, Syracuse |
 | VII–IX | Large grain ship | Cyprus, Tyre, Alexandria |
 
@@ -53,8 +65,8 @@ The history of the period is real and stays in the background: the siege of Rhod
 - `src/game.html` is the whole game: HTML, CSS and JavaScript in one file. It is a page fragment, with no `<html>` or `<body>` tags, so it can be published as a claude.ai artifact as it is.
 - `index.html` is the same game wrapped as a standalone page. It is generated, so don't edit it by hand.
 - `tools/build.mjs` creates `index.html` from `src/game.html`.
-- `tests/sim.js` plays Chapter I, then Chapter II, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
-- `tests/play.js` plays both chapters in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
+- `tests/sim.js` plays Chapters I, II and III in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
+- `tests/play.js` plays all three chapters in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
 
 Inside `src/game.html`, the rules sit between `// ===== ENGINE START =====` and `// ===== ENGINE END =====` and never touch the page. That is what lets `tests/sim.js` run them on their own. All the art and sound is drawn and synthesized in code.
 
@@ -72,7 +84,7 @@ Check the balance (takes a few seconds):
 node tests/sim.js
 ```
 
-Play both chapters in a headless browser (takes two or three minutes):
+Play all three chapters in a headless browser (takes three or four minutes):
 
 ```bash
 npm install
