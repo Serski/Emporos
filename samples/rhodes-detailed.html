@@ -419,6 +419,7 @@ function paintCity(rand) {
   }
   wallRun(0, 212, SHORE - 8, SHORE);
   for (const tx of [14, 62, 118, 168]) towerAt(tx, SHORE - 18, SHORE);
+  for (const tx of [62, 168]) { const gx = tx + 5, gy = SHORE - 21; P(gx, gy - 4, '#c48a58'); P(gx, gy - 5, '#5a4a3a'); R(gx, gy - 3, 1, 3, '#a8452e'); P(gx + 1, gy - 3, '#c8623a'); line(gx + 2, gy - 8, gx + 2, gy, '#6a6a72'); P(gx + 2, gy - 9, '#cfd4d8'); }   // a guard on the tower, with his spear
   R(92, SHORE - 7, 6, 7, '#3a2c2c'); R(91, SHORE - 8, 8, 1, STONE[0]); P(92, SHORE - 7, STONE[3]); P(97, SHORE - 7, STONE[3]);   // the harbour gate
   for (let x = 0; x <= 212; x++) waterTop[x] = SHORE;
 }
@@ -571,7 +572,7 @@ function traderSprite(L, blink) {
       if (L.beard > 1) { p(-3, 4, hrD); p(3, 4, hr); p(-3, 5, hrD); p(3, 5, hrL); p(-1, 5, hr); p(1, 5, hr); p(0, 5, dk(sk, 0.55)); p(-1, 7, hrD); p(0, 7, hr); p(1, 7, hrL); p(-2, 7, hrD); p(2, 7, hr); p(0, 8, hrD); }
     }
     if (L.hat === 'pilos') { const f = '#a07a4a'; for (let i = -3; i <= 3; i++) p(i, -1, i > 1 ? '#c09a66' : f); for (let i = -2; i <= 2; i++) p(i, -2, i > 0 ? '#c09a66' : f); p(-1, -3, f); p(0, -3, f); p(1, -3, '#c09a66'); p(0, -4, f); p(-3, 0, dk(f, 0.3)); p(3, 0, f); }
-  }, 0.62);
+  }, 0.7);
 }
 const TRADERS = {};
 for (const id in LOOKS) TRADERS[id] = [traderSprite(LOOKS[id], false), traderSprite(LOOKS[id], true)];
@@ -593,12 +594,14 @@ function walkerSprite(L, f, carry) {
       for (let k = 0; k < 9; k++) { const x = cx + 5 - k, y = gy - 22 + Math.round(k * 0.45); R(x, y, 1, k > 1 && k < 7 ? 3 : 2, k < 3 ? '#e09a60' : k < 6 ? '#c8783e' : '#a85e32'); }
       P(cx + 5, gy - 23, '#8a4a2a');
     }
+    if (carry === 'sack') { R(cx - 1, gy - 24, 7, 5, '#c9a46a'); R(cx + 5, gy - 24, 1, 5, '#e0c088'); R(cx - 1, gy - 20, 7, 1, '#9a7a48'); P(cx + 1, gy - 25, '#8a6a3a'); P(cx + 2, gy - 25, '#8a6a3a'); for (let i = 0; i < 7; i += 3) P(cx + i - 1, gy - 22, '#b08a52'); }
     if (carry === 'basket') { R(cx - 3, gy - 23, 8, 3, '#b08a52'); for (let i = 0; i < 8; i += 2) P(cx - 3 + i, gy - 22, '#8a6638'); R(cx - 2, gy - 24, 6, 1, '#6e3a52'); P(cx + 1, gy - 25, '#5a8a3a'); P(cx, gy - 24, '#9a5a72'); R(cx - 3, gy - 20, 1, 1, sk); }
   }, 0.6);
 }
 const WALKERS = [
   { L: { skin: '#a8703f', hair: '#1b130e', robe: '#8a7a64' }, carry: 'amphora', v: 6, x0: 0, dir: 1 },
   { L: { skin: '#c99062', hair: '#2a1d14', robe: '#3f6f8e', veil: '#efe3cc' }, carry: 'basket', v: 4.5, x0: 160, dir: -1 },
+  { L: { skin: '#b07a4c', hair: '#2a1d14', robe: '#5a4a3a' }, carry: 'sack', v: 5.2, x0: 210, dir: 1 },
 ];
 for (const w of WALKERS) { w.f = [0, 1, 2, 3].map(f => walkerSprite(w.L, f, w.carry)); w.fl = w.f.map(flipX); }
 
@@ -678,7 +681,7 @@ function stallBack(cx, L) {   // the posts and the striped awning, drawn behind 
       }
     }
     for (let i = -15; i <= 15; i += 2) { const band = Math.floor((i + 40) / 4) % 2; P(o + i, gy - 29, dk(band ? L.robe : CREAM, 0.18)); }
-  }, 0.55);
+  }, 0.66);
   return s;
 }
 function stallFront(cx, L, kind) {   // the counter and its goods, drawn in front of the trader
@@ -696,7 +699,7 @@ function stallFront(cx, L, kind) {   // the counter and its goods, drawn in fron
       P(o + i, y + j, c);
     }
     goodsOn(kind, o, y);
-  }, 0.55);
+  }, 0.66);
 }
 function quayLayer() {   // paving, the coping along the edge, bollards, and things waiting to be loaded
   return spr(W, H, () => {
@@ -723,6 +726,11 @@ function quayLayer() {   // paving, the coping along the edge, bollards, and thi
       }
       y += rh;
     });
+    for (const [px, py, pw] of [[52, 171, 11], [217, 174, 10], [134, 177, 9]]) for (let i = 0; i < pw; i++) for (let j = 0; j < 3; j++) {   // puddles, holding the sky
+      if ((j === 0 || j === 2) && (i < 2 || i > pw - 3)) continue;
+      P(px + i, py + j, j === 0 ? '#c6dcea' : (i + j) % 4 === 0 ? '#eef6fa' : '#a8c8e0');
+    }
+    G.globalAlpha = 0.3; for (const bx of [96, 222]) R(bx - 1, QY + 2, 7, 1, SHADOW); R(133, QY + 2, 14, 1, SHADOW); R(174, QY, 14, 1, SHADOW); G.globalAlpha = 1;
     for (const bx of [96, 222]) { R(bx, QY - 4, 4, 6, STONE[3]); R(bx + 3, QY - 4, 1, 6, STONE[1]); R(bx, QY - 5, 4, 1, STONE[1]); R(bx - 1, QY - 2, 6, 1, '#b8a070'); R(bx - 1, QY - 1, 6, 1, '#8a7048'); }
     // a coil of rope, an amphora stack, crates, fish baskets and drying nets, at the back of the quay
     for (let k = 0; k < 3; k++) { R(52 + k, QY + 1 - k, 11 - k * 2, 1, k % 2 ? '#a8905a' : '#c8b07a'); } R(54, QY + 2, 7, 1, '#8a7048'); P(57, QY - 1, '#6a5434');
@@ -777,6 +785,8 @@ function drawHarbour(g, t) {
   for (const w of WAVES) { const x = Math.round(((w.x - t * w.v + Math.sin(t * 0.9 + w.ph) * 1.5) % W + W) % W); if (w.y > waterTop[x] + 1 && (Math.sin(t * 1.3 + w.ph) > -0.5)) R(x, w.y, w.len, 1, w.c); }
   // smoke from the furnace, the crane's swinging block, and the men on the scaffold
   for (let k = 0; k < 9; k++) { const a = ((t * 0.3 + k / 9) % 1), sx = 202 + Math.round(a * 12 + Math.sin(t + k) * 1.5), sy = 82 - Math.round(a * 30), r = 1 + Math.round(a * 3); for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + 0.5 && bay(sx + i, sy + j) < 1.05 - a * 0.85) P(sx + i, sy + j, i - j > r * 0.4 ? '#e8e4de' : j > r * 0.3 ? '#a8a09a' : '#c8c2bc'); }
+  R(259, 70, 1, 8, WOOD[3]); for (let i = 0; i < 7; i++) for (let j = 0; j < 3; j++) { const dy = Math.round(Math.sin(t * 4 - i * 0.9) * (i / 7) * 1.2); P(258 - i, 70 + j + dy, j === 0 ? '#d0683e' : j === 1 ? '#f2e6cf' : '#a8452e'); }   // the flag on the mole tower
+  for (let k = 0; k < 4; k++) { const a = t * 1.4 + k * Math.PI / 2; P(250 + Math.round(Math.cos(a) * 3), 95 + Math.round(Math.sin(a) * 3), WOOD[4]); }   // the treadwheel, turning
   { const sw = Math.round(Math.sin(t * 0.8) * 1.2), bx = 224 + sw; line(224, 49, bx, 58, '#3a2a22'); R(bx - 2, 58, 5, 3, MARBLE[1]); R(bx - 2, 60, 5, 1, MARBLE[3]); R(bx + 2, 58, 1, 3, MARBLE[0]); }
   for (let k = 0; k < 3; k++) { const wx = 211 + ((Math.floor(t * 0.7 + k * 1.7) * 5 + k * 11) % 30), wy = [61, 66, 61][k]; R(wx, wy - 3, 2, 3, k === 1 ? '#c8623a' : '#7a6a54'); P(wx, wy - 4, '#c48a58'); P(wx + 1, wy - 4, '#b07a4c'); }
   // fishing boats, then Elpis and her reflection
@@ -796,6 +806,7 @@ function drawHarbour(g, t) {
   g.globalAlpha = 1;
   g.drawImage(S.c, sx, sy);
   for (let x = sx + S.x0; x <= sx + S.x1 + 2; x += 1) if ((x + Math.floor(t * 4)) % 5 === 0) P(x, WL + 1, '#cdeaf2');
+  for (let i = 0; i < 9; i++) { const y = sy + 2 + Math.round(Math.sin(t * 5 - i * 0.8) * (i / 9) * 1.3 + i * 0.12); P(sx + 48 - i, y, '#d0683e'); if (i < 5) P(sx + 48 - i, y + 1, '#9a3a2a'); }   // the pennant at the masthead
   sag(sx + 20, sy + S.top(20) + 1, 98, QY - 4, 4, '#4a3a2c');
   sag(sx + S.x1 + 2, sy + S.top(S.x1) - 3, 224, QY - 4, 5, '#4a3a2c');
   // gulls
@@ -883,6 +894,7 @@ function thrasyllos(blink, talk) {
     const fold = Math.sin(u * 0.36 + v * 0.03 * Math.sign(u)) * 0.16 + Math.sin(u * 0.13 + 1) * 0.1, l = 0.48 + u / 95 + fold - v * 0.003;
     let c = rampAt(WINE.slice(0, 6), 1 - clamp(l, 0, 1), x, y, 0.45);
     if (Math.sin(u * 0.36 + v * 0.03 * Math.sign(u)) < -0.92 && v > 8) c = WINE[5];   // the deepest creases
+    if (Math.sin(u * 0.36 + v * 0.03 * Math.sign(u)) > 0.94 && u > 0 && v > 8) c = WINE[1];   // the lit edge of a fold
     if (u > 14 && v < 14 && v > 2 && (u - 14) < (14 - v) * 1.6) c = rampAt(WINE.slice(0, 3), 0.3 + v / 30, x, y, 0.5);   // sun on the right shoulder
     if (v >= 12 && Math.abs(u + 0.5) >= 27) c = dk(c, 0.22);   // in the shadow of the arms
     P(x, y, c);
@@ -909,6 +921,7 @@ function thrasyllos(blink, talk) {
         let c = sleeve ? rampAt(WINE.slice(0, 6), 1 - clamp(l, 0, 1), x, y, 0.5) : rampAt(SKIN.slice(1, 6), 1 - clamp(l - (y - 104) * 0.006, 0, 1), x, y, 0.5);
         if (y === 103) c = (x % 3 === 0) ? '#b89a6a' : '#ead7ae';   // the sleeve's border
         if (!sleeve && y === 117 && i < 3) c = SKIN[5];   // the crease of the elbow
+        if (!sleeve && s > 0 && i === w - 2 && y > 106) c = SKIN[1];   // sun along the arm
         P(x, y, c);
       }
     }
@@ -916,6 +929,8 @@ function thrasyllos(blink, talk) {
   }
   for (let x = cx - 10; x <= cx + 10; x++) { const y = 80 + Math.round(Math.abs(x - cx) * -0.2 + 2); P(x, y, '#ead7ae'); P(x, y + 1, '#a8885a'); }   // the neckline
   R(cx - 8, 70, 16, 11, SKIN[4]); R(cx + 3, 70, 5, 11, SKIN[3]); R(cx - 8, 70, 3, 11, SKIN[5]);   // the neck, in the beard's shadow
+  line(cx - 7, 82, cx - 1, 87, '#4a2e1e'); line(cx + 7, 82, cx + 1, 87, '#4a2e1e');   // a cord, and a bronze charm for luck at sea
+  R(cx - 1, 87, 3, 3, '#b0773a'); P(cx + 1, 87, '#f0c27a'); P(cx - 1, 89, '#7a4a24'); P(cx, 88, '#d4954c');
   // the head: an egg lit from the upper right
   for (let y = cy - 17; y <= cy + 16; y++) for (let x = cx - 14; x <= cx + 14; x++) {
     let nx = (x + 0.5 - cx) / 13, ny = (y + 0.5 - cy) / 16;
@@ -931,6 +946,7 @@ function thrasyllos(blink, talk) {
   }
   for (let v = 3; v <= 5; v++) for (let u = -9; u <= -5; u++) if (bay(u, v) < 0.35) P(cx + u, cy + v, '#c87a5a');
   for (let v = 3; v <= 5; v++) for (let u = 5; u <= 9; u++) if (bay(u, v) < 0.35) P(cx + u, cy + v, '#e09a76');
+  P(cx + 9, cy + 2, SKIN[0]); P(cx + 10, cy + 3, SKIN[0]); P(cx + 4, cy - 7, SKIN[0]); P(cx + 5, cy - 7, SKIN[0]);   // the sun catching his cheek and brow
   // ears
   for (const [ex, s] of [[cx - 15, -1], [cx + 14, 1]]) { R(ex, cy - 1, 2, 8, s > 0 ? SKIN[2] : SKIN[4]); P(ex + (s > 0 ? 1 : 0), cy, s > 0 ? SKIN[1] : SKIN[3]); P(ex + (s > 0 ? 0 : 1), cy + 3, SKIN[5]); P(ex + (s > 0 ? 0 : 1), cy + 2, SKIN[5]); }
   // the nose: a lit ridge, a shadowed side, nostrils
@@ -942,7 +958,7 @@ function thrasyllos(blink, talk) {
     R(ex, cy - 1, 6, 1, '#2e1610'); P(ex - 1, cy, '#2e1610');
     if (blink) { R(ex, cy, 6, 1, SKIN[3]); R(ex, cy + 1, 6, 1, SKIN[2]); continue; }
     R(ex, cy, 6, 2, '#efe2d0'); P(ex, cy + 1, '#cdb8a2'); P(ex + 5, cy + 1, '#d8c4ae'); P(ex, cy, '#cdb8a2');
-    R(ex + 2, cy, 3, 2, '#4a2a1a'); P(ex + 3, cy, '#1a0a06'); P(ex + 3, cy + 1, '#2a140c'); P(ex + 4, cy, '#7a5238');
+    R(ex + 2, cy, 3, 2, '#4a2a1a'); P(ex + 3, cy, '#1a0a06'); P(ex + 3, cy + 1, '#2a140c'); P(ex + 4, cy, '#f4ece4'); P(ex + 4, cy + 1, '#7a5238');
     R(ex, cy + 2, 6, 1, SKIN[3]); P(ex + 1, cy + 3, SKIN[3]);
   }
   P(cx + 9, cy - 1, '#2e1610'); P(cx + 9, cy - 2, '#2e1610');
@@ -958,6 +974,7 @@ function thrasyllos(blink, talk) {
     if (v > hl) continue;
     const curl = vnoise2(x / 1.5, y / 1.5, 5), l = nx * 0.75 - ny * 0.75 + (curl - 0.5) * 1.0;
     P(x, y, l > 0.6 ? HAIR[0] : l > 0.22 ? HAIR[1] : l > -0.3 ? HAIR[2] : HAIR[3]);
+    if (curl > 0.8 && l > 0.15) P(x, y, '#9a7656'); else if (curl < 0.16) P(x, y, HAIR[4]);   // the lit tops of curls, the dark between them
   }
   // the beard, full and trimmed square, with a moustache over a mouth that is nearly smiling
   for (let y = cy + 1; y <= cy + 25; y++) for (let x = cx - 15; x <= cx + 15; x++) {
@@ -967,7 +984,9 @@ function thrasyllos(blink, talk) {
     if (v === 11 && au <= 4.5) continue;
     const curl = vnoise2(x / 1.4, y / 1.8, 8), l = u / 15 - (v - 12) / 20 + (curl - 0.5) * 1.0;
     P(x, y, l > 0.5 ? HAIR[0] : l > 0.12 ? HAIR[1] : l > -0.35 ? HAIR[2] : l > -0.75 ? HAIR[3] : HAIR[4]);
+    if (curl > 0.8 && l > 0.3 && u > 0) P(x, y, '#7e5e44'); else if (h2(x, y) < 0.012 && v > 14) P(x, y, '#7a7068');   // lit strands on the sunny side, and a grey hair or two
   }
+  for (let x = cx - 6; x <= cx + 6; x++) if (Math.abs(x - cx) > 1) P(x, cy + 8, x > cx ? HAIR[1] : HAIR[2]);   // the edge of the moustache
   R(cx - 4, cy + 10, 9, 1, '#4a2018'); P(cx + 5, cy + 9, '#4a2018'); P(cx + 6, cy + 9, '#4a2018');   // the mouth, up at one corner
   if (talk) { R(cx - 3, cy + 11, 7, 1, '#2a0e0a'); R(cx - 1, cy + 11, 3, 1, '#d8c0b0'); } else { R(cx - 3, cy + 11, 7, 1, '#a8604a'); P(cx + 1, cy + 11, '#c47a60'); P(cx + 2, cy + 11, '#c47a60'); }
 }
@@ -996,6 +1015,9 @@ function counter() {   // a plain counter: a thick top board, and planks across 
     P(x, y, c);
   }
   for (let row = 0; row < 4; row++) for (const nx of [26, 292]) { const y = CT + 8 + row * 11 + 5; P(nx, y, '#2a1a12'); P(nx + 1, y - 1, '#c8a070'); }
+  for (const [kx, ky] of [[96, CT + 16], [232, CT + 38]]) for (let a = 0; a < 6.28; a += 0.3) { P(kx + Math.round(Math.cos(a) * 4), ky + Math.round(Math.sin(a) * 1.5), SHADE_WOOD[4]); P(kx + Math.round(Math.cos(a) * 2), ky + Math.round(Math.sin(a) * 0.8), SHADE_WOOD[3]); }   // knots in the planks
+  for (let a = 0; a < 6.28; a += 0.25) P(190 + Math.round(Math.cos(a) * 6), CT + 4 + Math.round(Math.sin(a) * 1.6), '#a0703e');   // the ring a wet cup left
+  for (const [x0, y0, n] of [[60, CT + 2, 9], [228, CT + 5, 7], [120, CT + 3, 5]]) for (let i = 0; i < n; i++) P(x0 + i, y0 + (i > n / 2 ? 1 : 0), '#d8b07c');   // scratches
 }
 function goodsFront() {   // two jars in a stand, the tasting cup, and a little silver
   for (const [x, c] of [[34, '#c8723e'], [56, '#b8683a']]) {
@@ -1030,6 +1052,7 @@ function drawStall(g, t) {
   g.drawImage(ST.bg, 0, 0);
   for (let k = 0; k < 40; k++) { const y = 88 + Math.floor(hash(k * 1.7) * 38), x = Math.round(((hash(k * 3.1) * CW - t * (1 + (y - 88) / 14)) % CW + CW) % CW); if (Math.sin(t * 1.4 + k) > -0.3) R(x, y, 2 + ((y - 88) >> 3), 1, '#d8eef4'); }
   for (let k = 0; k < 2; k++) { const span = CW + 20, x = Math.round(((t * (7 + k * 4) + k * 150) % span) - 10), y = 40 + k * 12 + Math.round(Math.sin(t * 1.5 + k) * 2); g.drawImage(GULLS[Math.floor(t * 4 + k) % 3], x, y); }
+  { const span = CW + 40, x = Math.round(((t * 2.6 + 40) % span) - 20), f = Math.floor(t * 1.6) % 2; g.globalAlpha = 0.25; g.drawImage(BOATS[0][f], 0, 0, 20, 9, x, 118, 20, -9); g.globalAlpha = 1; g.drawImage(BOATS[0][f], x, 100); }   // a fishing boat going by
   const blink = (Math.floor(t * 10) % 41) === 0, talk = Math.floor(t * 5) % 9 < 3 && (t % 12) < 5, breathe = Math.sin(t * 1.3) > 0.85 ? -1 : 0;
   g.drawImage(ST.man[blink ? 1 : talk ? 2 : 0], 0, breathe);
   g.drawImage(ST.fg, 0, 0);
