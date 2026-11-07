@@ -1,4 +1,4 @@
-// Plays Chapters I to IV in a phone-sized browser through the real buttons, fast-forwarded,
+// Plays Chapters I to V in a phone-sized browser through the real buttons, fast-forwarded,
 // and saves screenshots of the key moments. Needs Playwright.
 // Usage: node tests/play.js [path/to/index.html] [screenshot folder]
 const { chromium } = require('playwright');
@@ -86,14 +86,14 @@ fs.mkdirSync(out, { recursive: true });
       if (sheet === 'outcome') { if (!seen.has(label + 'out')) { seen.add(label + 'out'); await snap(label + '-outcome'); } await page.click('#sheetCard button[data-act="continue"]'); continue; }
       if (sheet) {
         const risk = await page.evaluate(() => window.__emp.fns.atRisk(window.__emp.state()).length);
-        const pick = sheet === 'squall' ? (risk ? 'shelter' : 'ride') : sheet === 'flotsam' ? 'haul' : sheet === 'warship' ? 'argue' : sheet === 'storm3' || sheet === 'malea' ? 'hold' : sheet === 'survivors' ? 'take' : 'fight';
+        const pick = sheet === 'squall' ? (risk ? 'shelter' : 'ride') : sheet === 'flotsam' ? 'haul' : sheet === 'warship' ? 'argue' : sheet === 'storm3' || sheet === 'malea' ? 'hold' : sheet === 'survivors' ? 'take' : sheet === 'becalmed' ? 'row' : 'fight';
         await snap(label + '-event-' + sheet);
         await page.click(`#sheetCard button[data-c="${pick}"]`);
         continue;
       }
       if (s.phase === 'camp') {
         if (!seen.has(label + s.stop)) { seen.add(label + s.stop); await page.waitForTimeout(400); await snap(label + '-camp-' + s.stop); }
-        for (const id of ['spring', 'fish', 'sponge', 'oracle', 'cave']) {
+        for (const id of ['spring', 'fish', 'sponge', 'oracle', 'cave', 'pitch']) {
           const sel = `#panel button[data-act="camp"][data-id="${id}"]:not([disabled])`;
           if (await page.$(sel)) { await page.click(sel, { timeout: 3000 }).catch(() => {}); await page.waitForTimeout(200); }
         }
@@ -303,12 +303,70 @@ fs.mkdirSync(out, { recursive: true });
   for (const m of ['korinna', 'bank', 'shipwright', 'thras', 'works']) await sellHere(m);
   await tab('ledger'); await snap('151-ch4-ledger'); await tab('crew'); await snap('152-ch4-crew'); await tab('main');
   await open('.person[data-m="bank"]'); await page.click('#sheetCard button[data-act="repay"]');
-  await page.waitForSelector('#theater:not([hidden]) button[data-t="again"]');
+  await page.waitForSelector('#theater:not([hidden]) button[data-t="nextch"]');
   await page.waitForTimeout(500);
   await snap('153-ch4-summary');
-  const hint = await page.textContent('#tHint');
-  if (!/Chapter V,/.test(hint)) throw new Error('summary hint should point at Chapter V: ' + hint);
   console.log('chapter IV:', JSON.stringify(await page.evaluate(() => window.__emp.state().summary)));
+
+  // ---- Chapter V: two days across the open sea, to Croton and Taras ----
+  await page.click('button[data-t="nextch"]');
+  await page.waitForTimeout(300);
+  await snap('160-ch5-intro');
+  for (let i = 0; i < 14; i++) { const b = await page.$('button[data-t="next"]'); if (!b) break; await b.click(); }
+  await page.click('button[data-t="harbour"]');
+  await page.waitForTimeout(700);
+  await snap('161-ch5-rhodes');
+  if (await page.evaluate(() => window.__emp.state().hull) === 'small') {   // Elpis cannot go: no sail button, only the way to the shipwright, who will sell on credit
+    if (await page.$('#panel button[data-act="sail"]')) throw new Error('Elpis should not be offered the open sea');
+    await open('#panel button[data-m="shipwright"]'); await snap('162-ch5-shipwright');
+    await page.click('#sheetCard button[data-act="buyship"]'); await close();
+    if (await page.evaluate(() => window.__emp.state().hull) !== 'medium') throw new Error('the new ship should be bought on credit in Chapter V');
+  }
+  await open('.person[data-m="bank"]'); { const b = await page.$('#sheetCard button[data-act="loan"]'); if (b) await b.click(); } await close();
+  await hireIf('lykos'); await hireIf('euphron');
+  await open('.person[data-m="arsenal"]'); for (const g of ['awning', 'pithos']) { const b = await page.$(`#sheetCard button[data-act="buy"][data-g="${g}"]:not([disabled])`); if (b) await b.click(); } await close();
+  await open('.person[data-m="agent"]'); for (const f of ['rk', 'rt1', 'rt2']) { const b = await page.$(`#sheetCard button[data-act="freight"][data-f="${f}"]`); if (b) await b.click(); } await snap('163-ch5-agent'); await close();
+  await buyN('stores', 'water', 2); await buyN('stores', 'barley', 3);
+  await buyN('alexandrian', 'incense', 6); await buyN('perfumer', 'scent', 3); await buyN('korinna', 'sponge', 2); await buyN('alexandrian', 'papyrus', 4);
+  await tab('hold'); { const b = await page.$('button[data-act="autopack"]:not([disabled])'); if (b) await b.click(); } await snap('164-ch5-hold'); await tab('main');
+  await open('button[data-act="sail"]'); await snap('165-ch5-sail-check'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('e1');
+  if (s.port !== 'croton') throw new Error('expected Croton, got ' + JSON.stringify(s));
+  await page.waitForTimeout(600); await snap('170-croton');
+  await sellN('kgrain', 'incense', 2); await sellN('kgrain', 'papyrus', 2);
+  await open('.person[data-m="pythagorean"]'); await page.click('#sheetCard button[data-act="talk"]'); await snap('171-pythagorean'); await close();
+  await hireIf('milon', '172-milon');
+  await buyN('krstores', 'barley', 1);
+  await tab('hold'); { const b = await page.$('button[data-act="autopack"]:not([disabled])'); if (b) await b.click(); } await tab('main');
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('e2');
+  if (s.port !== 'taras') throw new Error('expected Taras, got ' + JSON.stringify(s));
+  await page.waitForTimeout(600); await snap('180-taras');
+  await sellHere('rich');
+  await open('.person[data-m="mechanic"]'); await page.click('#sheetCard button[data-act="talk"]'); await snap('181-archytas'); await close();
+  await hireIf('archippos');
+  await buyN('philokles', 'purple', 2); await buyN('lysandros', 'horse', 1); await buyN('philokles', 'tarwool', 2); await buyN('aristeas', 'krater', 2); await buyN('tstores', 'barley', 2);
+  await crate('tagent', 'tr1');
+  await tab('hold'); { const b = await page.$('button[data-act="autopack"]:not([disabled])'); if (b) await b.click(); } await snap('182-ch5-hold-home'); await tab('main');
+  await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('e3');
+  if (s.port !== 'croton') throw new Error('expected Croton on the way home, got ' + JSON.stringify(s));
+  await buyN('daos', 'pitch', 2); await buyN('krstores', 'water', 1);
+  await tab('hold'); { const b = await page.$('button[data-act="autopack"]:not([disabled])'); if (b) await b.click(); } await tab('main');
+  await open('button[data-act="sail"]'); await snap('183-ch5-sail-home'); await page.click('#sheetCard button[data-act="sail-yes"]');
+  s = await voyage('e4');
+  if (s.port === 'corinth') { await page.waitForTimeout(500); await snap('190-ch5-corinth'); await buyN('smith', 'bronze', 2); await tab('hold'); { const b = await page.$('button[data-act="autopack"]:not([disabled])'); if (b) await b.click(); } await tab('main'); await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]'); s = await voyage('e5'); }
+  if (s.port !== 'rhodes' || !s.home) throw new Error('expected to be home from Italy, got ' + JSON.stringify(s));
+  await page.waitForTimeout(600); await snap('200-ch5-home');
+  for (const m of ['korinna', 'aristeia', 'bank', 'shipwright', 'arsenal', 'works', 'thras']) await sellHere(m);
+  await tab('ledger'); await snap('201-ch5-ledger'); await tab('crew'); await snap('202-ch5-crew'); await tab('main');
+  await open('.person[data-m="bank"]'); await page.click('#sheetCard button[data-act="repay"]');
+  await page.waitForSelector('#theater:not([hidden]) button[data-t="again"]');
+  await page.waitForTimeout(500);
+  await snap('203-ch5-summary');
+  const hint = await page.textContent('#tHint');
+  if (!/Chapter VI,/.test(hint)) throw new Error('summary hint should point at Chapter VI: ' + hint);
+  console.log('chapter V:', JSON.stringify(await page.evaluate(() => window.__emp.state().summary)));
   console.log('errors:', errors.length ? errors.join('\n') : 'none');
   console.log('screenshots:', shots.join(', '));
   await browser.close();
