@@ -19,8 +19,33 @@ fs.mkdirSync(out, { recursive: true });
   const st = () => page.evaluate(() => { const s = window.__emp.state(); return { phase: s.phase, port: s.port, home: s.home, pending: s.pending, stop: s.camp && s.camp.stop, silver: s.silver, day: s.dayN, dock: window.__emp.fns.dockItems(s).length }; });
   const open = async sel => { await page.click(sel); await page.waitForSelector('#sheet:not([hidden])'); };
   const close = async () => { await page.click('#sheetCard button[data-act="close"]'); await page.waitForSelector('#sheet', { state: 'hidden' }); };
-  const buyN = async (m, g, n) => { await open(`.person[data-m="${m}"]`); for (let i = 0; i < n; i++) await page.click(`#sheetCard button[data-act="buy"][data-g="${g}"]`); await close(); };
+  const buyN = async (m, g, n) => { await open(`.person[data-m="${m}"]`); for (let i = 0; i < n; i++) { const b = await page.$(`#sheetCard button[data-act="buy"][data-g="${g}"]:not([disabled])`); if (!b) break; await b.click(); } await close(); };
+  const hireIf = async (h, shot) => { await open(`.person[data-hire="${h}"]`); if (shot) await snap(shot); const b = await page.$('#sheetCard button[data-act="hire"]:not([disabled])'); if (b) await b.click(); await close(); };
   const tab = async t => { await page.click(`#tab-${t}`); await page.waitForTimeout(150); };
+  // Drag the first thing on the quay into the first empty hold square that takes it, with the mouse, the way a finger would.
+  const dragToHold = async () => {
+    const plan = await page.evaluate(() => {
+      const S = window.__emp.state(), f = window.__emp.fns, L = window.__emp.hold.lay, it = f.dockItems(S)[0];
+      if (!it) return null;
+      for (let y = 0; y < L.H.rows; y++) for (let x = 0; x < L.H.cols; x++) if (f.fits(S, it, 'hold', x, y, it.rot)) return { id: it.id, from: [L.dx + it.x * 12 + 6, L.dy + it.y * 12 + 6], to: [L.hx + x * 12 + 6, L.hy + y * 12 + 6], at: [x, y] };
+      return null;
+    });
+    if (!plan) throw new Error('nothing to drag, or nowhere to put it');
+    const screen = async ([ax, ay]) => page.evaluate(([ax, ay]) => { const L = window.__emp.hold.lay, r = document.querySelector('#holdCanvas').getBoundingClientRect(); return [r.left + ax / L.wAp * r.width, r.top + ay / L.hAp * r.height]; }, [ax, ay]);
+    await page.evaluate(() => { document.querySelector('#holdCanvas').scrollIntoView({ block: 'end' }); });
+    let [fx, fy] = await screen(plan.from);
+    await page.mouse.move(fx, fy); await page.mouse.down(); await page.mouse.move(fx, fy - 20, { steps: 3 });
+    for (let k = 0; k < 60; k++) {   // carry it towards its square; near the edge the panel scrolls by itself
+      const [tx, ty] = await screen(plan.to);
+      const top = await page.evaluate(() => document.querySelector('#panel').getBoundingClientRect().top);
+      if (ty > top + 70) { await page.mouse.move(tx, ty, { steps: 5 }); break; }
+      await page.mouse.move(tx, top + 25, { steps: 2 }); await page.waitForTimeout(60);
+    }
+    await page.waitForTimeout(80); await page.mouse.up(); await page.waitForTimeout(150);
+    const where = await page.evaluate(id => { const it = window.__emp.state().items.find(i => i.id === id); return it.where + ':' + it.x + ',' + it.y; }, plan.id);
+    if (where !== 'hold:' + plan.at.join(',')) throw new Error('drag did not land: ' + where + ' wanted ' + plan.at);
+    return where;
+  };
 
   await page.goto(file);
   await page.evaluate(() => localStorage.clear());
@@ -40,10 +65,11 @@ fs.mkdirSync(out, { recursive: true });
   for (let i = 0; i < 4; i++) await page.click('#sheetCard button[data-act="buy"][data-g="wine"]');
   await close();
   await buyN('korinna', 'sponge', 3); await buyN('korinna', 'figs', 3); await buyN('aristeia', 'cups', 3);
-  await open('.person[data-hire="philon"]'); await page.click('#sheetCard button[data-act="hire"]'); await close();
+  await hireIf('philon');
   await tab('hold');
   await snap('05-hold-quay');
-  await page.click('button[data-act="autopack"]');
+  console.log('drag in Elpis:', await dragToHold());
+  { const b = await page.$('button[data-act="autopack"]:not([disabled])'); if (b) await b.click(); }
   await snap('06-hold-packed');
   await tab('main');
   await open('button[data-act="sail"]');
@@ -98,8 +124,8 @@ fs.mkdirSync(out, { recursive: true });
     for (let k = 0; k < 20; k++) { const b = await page.$('#sheetCard .trade button[data-act="sell"]:not([disabled])'); if (!b) break; await b.click(); }
     await close();
   }
-  await open('.person[data-hire="lykos"]'); await page.click('#sheetCard button[data-act="hire"]'); await close();
-  await open('.person[data-hire="kydas"]'); await page.click('#sheetCard button[data-act="hire"]'); await close();
+  await hireIf('lykos');
+  await hireIf('kydas');
   await buyN('uliades', 'marble', 2); await buyN('hermon', 'scent', 3); await buyN('theodote', 'cloth', 1); await buyN('mania', 'honey', 2);
   await open('.person[data-m="hstores"]'); const fill = await page.$('#sheetCard button[data-act="refill"]:not([disabled])'); if (fill) await fill.click(); await page.click('#sheetCard button[data-act="buy"][data-g="barley"]'); await close();
   await tab('hold'); await page.click('button[data-act="autopack"]'); await snap('21-hold-home');
@@ -132,7 +158,7 @@ fs.mkdirSync(out, { recursive: true });
   await snap('41-ch2-rhodes');
   await open('.person[data-m="bank"]'); await snap('42-ch2-loan'); await page.click('#sheetCard button[data-act="loan"]'); await close();
   await open('.person[data-m="arsenal"]'); await page.click('#sheetCard button[data-act="buy"][data-g="bench"]'); await page.click('#sheetCard button[data-act="buy"][data-g="awning"]'); await snap('43-ch2-arsenal'); await close();
-  await open('.person[data-hire="philon"]'); await page.click('#sheetCard button[data-act="hire"]'); await close();
+  await hireIf('philon');
   await buyN('stores', 'water', 1); await buyN('stores', 'barley', 1);
   await buyN('thras', 'wine', 3); await buyN('aristeia', 'cups', 2); await buyN('korinna', 'sponge', 1);
   await tab('hold'); await page.click('button[data-act="autopack"]'); await snap('44-ch2-hold'); await tab('main');
@@ -140,7 +166,7 @@ fs.mkdirSync(out, { recursive: true });
   s = await voyage('n1');
   if (s.port !== 'kos') throw new Error('expected Kos, got ' + JSON.stringify(s));
   await page.waitForTimeout(600); await snap('50-kos');
-  await open('.person[data-hire="pythes"]'); await page.click('#sheetCard button[data-act="hire"]'); await close();
+  await hireIf('pythes');
   await buyN('asklep', 'salve', 2);
   await tab('hold'); await page.click('button[data-act="autopack"]'); await tab('main');
   await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
@@ -153,7 +179,7 @@ fs.mkdirSync(out, { recursive: true });
     for (let k = 0; k < 20; k++) { const b = await page.$('#sheetCard .trade button[data-act="sell"]:not([disabled])'); if (!b) break; await b.click(); }
     await close();
   }
-  await open('.person[data-hire="seuthes"]'); await page.click('#sheetCard button[data-act="hire"]'); await close();
+  await hireIf('seuthes');
   await buyN('leandros', 'purple', 2); await buyN('archelaos', 'couch', 1); await buyN('leandros', 'wool', 1);
   await tab('hold'); await page.click('button[data-act="autopack"]'); await snap('62-ch2-hold-home'); await tab('main');
   await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
@@ -191,7 +217,8 @@ fs.mkdirSync(out, { recursive: true });
   await page.click('button[data-t="harbour"]');
   await page.waitForTimeout(700);
   await snap('81-ch3-rhodes');
-  await open('.person[data-hire="euphron"]'); await snap('82-ch3-carpenter'); await page.click('#sheetCard button[data-act="hire"]'); await close();
+  if (await page.evaluate(() => window.__emp.state().silver) < 150) { await open('.person[data-m="bank"]'); const b = await page.$('#sheetCard button[data-act="loan"]'); if (b) await b.click(); await close(); }   // broke after a bad season: borrow
+  await hireIf('euphron', '82-ch3-carpenter');
   await open('.person[data-m="agent"]'); await page.click('#sheetCard button[data-act="freight"][data-f="rd"]'); await page.click('#sheetCard button[data-act="freight"][data-f="rp"]'); await snap('83-ch3-agent'); await close();
   await buyN('stores', 'wheat', 8); await buyN('korinna', 'sponge', 2); await buyN('thras', 'wine', 2);
   await tab('hold'); await page.click('button[data-act="autopack"]'); await snap('84-ch3-hold'); await tab('main');
@@ -213,7 +240,7 @@ fs.mkdirSync(out, { recursive: true });
   await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
   s = await voyage('a3');
   if (s.port !== 'delos') throw new Error('expected Delos on the way home, got ' + JSON.stringify(s));
-  await open('.person[data-hire="kydas"]'); await page.click('#sheetCard button[data-act="hire"]'); await close();
+  await hireIf('kydas');
   await buyN('dstores', 'barley', 2);
   await tab('hold'); await page.click('button[data-act="autopack"]'); await tab('main');
   await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
@@ -248,7 +275,8 @@ fs.mkdirSync(out, { recursive: true });
   await open('.person[data-m="agent"]'); for (const f of ['rc', 'ry']) { const b = await page.$(`#sheetCard button[data-act="freight"][data-f="${f}"]`); if (b) await b.click(); } await close();
   await buyN('stores', 'wheat', 8); await buyN('stores', 'barley', 2); await buyN('stores', 'water', 1);
   await buyN('alexandrian', 'incense', 4); await buyN('alexandrian', 'papyrus', 4); await buyN('korinna', 'sponge', 2);
-  await tab('hold'); await page.click('button[data-act="autopack"]'); await snap('113-ch4-hold'); await tab('main');
+  await tab('hold'); await snap('113-ch4-hold-quay'); console.log('drag in ' + await page.evaluate(() => window.__emp.state().hull) + ':', await dragToHold());
+  { const b = await page.$('button[data-act="autopack"]:not([disabled])'); if (b) await b.click(); } await snap('113-ch4-hold'); await tab('main');
   await open('button[data-act="sail"]'); await page.click('#sheetCard button[data-act="sail-yes"]');
   s = await voyage('d1');
   if (s.port !== 'corinth') throw new Error('expected Corinth, got ' + JSON.stringify(s));

@@ -461,4 +461,16 @@ for (const name of ONLY.includes(4) ? Object.keys(SPRING) : []) {
   console.log(ok ? 'A finished Chapter III goes on to Chapter IV' + (ordered ? ' in Tyche, with ' + t.crew.length + ' hands' : ' in Elpis') + ': ok' : 'FAIL: a finished Chapter III should go on to Chapter IV');
   if (!ok) failed = true;
 }
+// A Chapter IV save from before the quay moved under the ship, with cargo standing where the old quay was, still loads with everything in reach.
+{
+  const s = E.newGame(31337);
+  s.ch = 4; s.phase = 'title'; E.changeHull(s, 'medium'); s.phase = 'port'; s.port = 'corcyra';
+  for (const [g, x, y, rot] of [['amber', 1, 5, 0], ['cheese', 0, 7, 0], ['timber', 0, 3, 1], ['hound', 1, 0, 0]]) s.items.push({ id: s.nextId++, g, where: 'dock', x, y, rot });
+  const t = E.migrate(JSON.parse(JSON.stringify(s)));
+  const dock = E.dockItems(t), placed = t.items.filter(i => ['amber', 'cheese', 'timber', 'hound'].includes(i.g));
+  const inReach = placed.length === 4 && placed.every(i => i.where === 'hold' || i.where === 'dock') && dock.every(i => i.x >= 0 && i.y >= 0 && i.x + (i.rot ? E.GOODS[i.g].h : E.GOODS[i.g].w) <= 7 && i.y + (i.rot ? E.GOODS[i.g].w : E.GOODS[i.g].h) <= 2);
+  E.OUT.length = 0;
+  console.log(inReach ? 'An old Chapter IV save with cargo on the quay loads with everything in reach: ok' : 'FAIL: cargo on the old quay should be moved somewhere reachable');
+  if (!inReach) failed = true;
+}
 if (failed) process.exit(1);

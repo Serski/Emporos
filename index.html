@@ -357,7 +357,7 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 // The rules of the game. Nothing in here touches the page, so tests/sim.js can play it on its own.
 
 const DAY_SECS = 40;                 // seconds of play from dawn to dusk, at normal speed
-const DOCK = { cols: 2, rows: 8 };   // the quay, or the beach, beside the ship
+const DOCK = { cols: 2, rows: 8 };   // the quay, or the beach, beside a small ship. A bigger ship has hers below her (HULLS.dock).
 const LOAN = { lender: 'Antimachos', principal: 150, due: 195 };   // Chapter I's sea loan; later loans are in CHAPTERS
 const OWN_SILVER = 30, BOUNTY = 20, REP_PER_VISIT = 12, PROXENOS_REP = 10, HEAT = 1.3, PILOT = 1.12, BENCH = 0.25;
 const SHIP_PRICE = 600, SHIP_DOWN = 200, SHIP_RATE = 1.3;   // the new ship: her price, the least Nausikrates takes down, and what the banker charges on the rest
@@ -410,11 +410,12 @@ const isDead = it => isCargo(it) && !GOODS[it.g].live;   // cargo you could thro
 const HULLS = {
   small: { name: 'Elpis', kind: 'a small coastal trader', cols: 5, rows: 7, bow: 1, sail: 1, oars: 1, hands: 6,
     mask: ['.###.', '#####', '#####', '##M##', '#####', '#####', '.###.'] },
-  medium: { name: 'Tyche', kind: 'a merchant ship', cols: 7, rows: 10, bow: 1, sail: 1.3, oars: 0.5, headSp: 0.7, run: 0.06, board: 1.2, hands: 8,
+  medium: { name: 'Tyche', kind: 'a merchant ship', cols: 7, rows: 10, bow: 1, sail: 1.3, oars: 0.5, headSp: 0.7, run: 0.06, board: 1.2, hands: 8, dock: { cols: 7, rows: 2 },
     mask: ['..###..', '.#####.', '#######', '#######', '###M###', '#######', '#######', '#######', '.#####.', '..###..'] },
 };
 const hullOf = s => HULLS[s.hull];
 const shipName = s => hullOf(s).name;
+const dockOf = s => hullOf(s).dock || DOCK;   // ships wider than Elpis keep at most 7 squares across, so the squares stay big on a phone
 const holdCells = s => hullOf(s).mask.join('').split('').filter(c => c === '#').length;
 
 const CREW = [
@@ -1277,7 +1278,7 @@ function migrate(s) {
     s.loan = Object.assign({ taken: LOAN.principal }, s.loan);
     if (s.flags && s.flags.reachedHalic) s.flags.reached_halic = true;
   }
-  if (s.v === VERSION) { s.contracts = s.contracts || []; s.shipOrdered = !!s.shipOrdered; }
+  if (s.v === VERSION) { s.contracts = s.contracts || []; s.shipOrdered = !!s.shipOrdered; if (HULLS[s.hull]) settleDock(s); }
   return s.v === VERSION ? s : null;
 }
 function begin(s) {
@@ -1323,7 +1324,7 @@ function fits(s, it, where, x, y, rot) {
       if (sideCell(s, xx, yy)) side = true;
     }
     if (g.side && !side) return false;
-  } else if (x < 0 || y < 0 || x + d.w > DOCK.cols || y + d.h > DOCK.rows) return false;
+  } else if (x < 0 || y < 0 || x + d.w > dockOf(s).cols || y + d.h > dockOf(s).rows) return false;
   for (const o of s.items) {
     if (o === it || o.where !== where) continue;
     const e = dims(o);
@@ -1335,7 +1336,7 @@ function itemAt(s, where, x, y) {
   return s.items.find(o => { if (o.where !== where) return false; const e = dims(o); return x >= o.x && x < o.x + e.w && y >= o.y && y < o.y + e.h; }) || null;
 }
 function firstFit(s, it, where) {
-  const H = where === 'hold' ? hullOf(s) : DOCK;
+  const H = where === 'hold' ? hullOf(s) : dockOf(s);
   for (const rot of rotsOf(it)) for (let y = 0; y < H.rows; y++) for (let x = 0; x < H.cols; x++) if (fits(s, it, where, x, y, rot)) return { x, y, rot };
   return null;
 }
@@ -1888,11 +1889,24 @@ function takeFreight(s, mid, fid) {
   return { ok: true, item: it };
 }
 const freightAboard = s => s.items.some(i => i.g === 'freight' && i.where === 'hold');
+// After the quay changes shape (a new ship, or an old save), put anything that no longer fits back on it.
+function settleDock(s) {
+  const dock = s.items.filter(i => i.where === 'dock');
+  for (const it of dock) it.where = 'moving';
+  for (const it of dock) {
+    if (fits(s, it, 'dock', it.x, it.y, it.rot)) { it.where = 'dock'; continue; }
+    const q = firstFit(s, it, 'dock'), p = q ? null : bestSpot(s, it);
+    if (q) Object.assign(it, { where: 'dock', x: q.x, y: q.y, rot: q.rot });
+    else if (p) Object.assign(it, { where: 'hold', x: p.x, y: p.y, rot: p.rot });
+    else removeItem(s, it);
+  }
+}
 // Move everything into another ship. The crew packs her; what will not fit stays on the quay.
 function changeHull(s, hull) {
   const moving = s.items.filter(i => i.where === 'hold');
   for (const it of moving) it.where = 'moving';
   s.hull = hull;
+  settleDock(s);
   const rank = it => { const g = GOODS[it.g]; return (g.bow ? 1000 : 0) + (g.side ? 500 : 0) + (g.fragile ? 0 : 100) + g.w * g.h * 10 + (g.soft ? 5 : 0); };
   for (const it of moving.sort((a, b) => rank(b) - rank(a))) {
     const p = bestSpot(s, it), q = p ? null : firstFit(s, it, 'dock');
@@ -3741,21 +3755,29 @@ function fitPixels(cv, cssW, cssH, cols) {
 // ---------- the hold: the ship from above, the quay beside it, and cargo you drag between them ----------
 const CELL = 12;   // art pixels to a square
 const HOLD = { cv: null, g: null, lay: null, u: 1, press: null, drag: null, sel: null, flash: null, msg: '' };
+// A narrow ship has the quay beside her; a wider one has it below her, so the hull can use the whole width of a phone.
 function holdLayout(cssW) {
-  const H = hullOf(S), pl = 2, gap = 3;
-  const hullW = H.cols * CELL, dockW = DOCK.cols * CELL, need = pl * 2 + hullW + gap + dockW + 1;
-  const k = clamp(Math.floor((cssW - 4) / need), 3, 5);
-  const wAp = Math.floor(cssW / k), left = Math.max(0, Math.floor((wAp - need) / 2));
-  const hx = left + pl, hy = 13, dx = hx + hullW + pl + gap + 1, dy = 11;
-  const hAp = Math.max(hy + H.rows * CELL + 12, dy + DOCK.rows * CELL + 2);
-  return { k, H, pl, hx, hy, dx, dy, wAp, hAp, hullW, dockW };
+  const H = hullOf(S), D = dockOf(S), pl = 2, gap = 3, below = D.cols > D.rows;
+  const hullW = H.cols * CELL, dockW = D.cols * CELL, wide = Math.max(hullW, dockW);
+  const need = below ? pl * 2 + wide + 1 : pl * 2 + hullW + gap + dockW + 1;
+  const k = clamp((cssW - 4) / need, 3, below ? 4 : 5);   // screen pixels to an art pixel, rounded down later to whole device pixels. 4 makes a square 48px: big enough, and a long hold stays short enough
+  const wAp = Math.floor(cssW / k), left = Math.max(0, Math.floor((wAp - need) / 2)), hy = 13;
+  let hx, dx, dy, hAp;
+  if (below) {
+    hx = left + pl + Math.floor((wide - hullW) / 2); dx = left + pl + Math.floor((wide - dockW) / 2);
+    dy = hy + H.rows * CELL + 23; hAp = dy + D.rows * CELL + 2;
+  } else {
+    hx = left + pl; dx = hx + hullW + pl + gap + 1; dy = 11;
+    hAp = Math.max(hy + H.rows * CELL + 12, dy + D.rows * CELL + 2);
+  }
+  return { k, H, D, pl, hx, hy, dx, dy, wAp, hAp, hullW, dockW, below };
 }
 function mountHold(cv) {
   HOLD.cv = cv; HOLD.g = cv.getContext('2d');
   cv.addEventListener('pointerdown', holdDown);
   cv.addEventListener('pointermove', holdMove);
   cv.addEventListener('pointerup', holdUp);
-  cv.addEventListener('pointercancel', () => { HOLD.press = null; HOLD.drag = null; });
+  cv.addEventListener('pointercancel', () => { HOLD.press = null; HOLD.drag = null; HOLD.pan = null; });
   cv.addEventListener('contextmenu', e => e.preventDefault());
   sizeHold();
 }
@@ -3763,7 +3785,7 @@ function sizeHold() {
   const cv = HOLD.cv;
   if (!cv) return;
   const wrap = cv.parentElement, cssW = Math.max(240, wrap.clientWidth || 360);
-  const L = holdLayout(cssW), dpr = window.devicePixelRatio || 1, u = Math.max(1, Math.round(L.k * dpr));
+  const L = holdLayout(cssW), dpr = window.devicePixelRatio || 1, u = Math.max(1, Math.floor(L.k * dpr));   // whole device pixels, and never wider than the screen
   HOLD.lay = L; HOLD.u = u;
   if (cv.width !== L.wAp * u || cv.height !== L.hAp * u) { cv.width = L.wAp * u; cv.height = L.hAp * u; }
   cv.style.width = (L.wAp * u / dpr) + 'px'; cv.style.height = (L.hAp * u / dpr) + 'px';
@@ -3800,9 +3822,9 @@ function drawHold() {
     if (dragged && GOODS[dragged.g].side && sideCell(S, c, r) && !itemAt(S, 'hold', c, r)) { const l = c === 0 || H.mask[r][c - 1] === '.'; B(l ? x + 1 : x + CELL - 4, y + 3, 3, 6, '#eac05a'); }
   }
   // the quay, or the beach, or the sea
-  const dW = L.dockW, dH = DOCK.rows * CELL;
+  const dW = L.dockW, dH = L.D.rows * CELL;
   B(L.dx - 1, L.dy - 1, dW + 2, dH + 2, atSea ? '#1d4f82' : '#5e5446');
-  for (let r = 0; r < DOCK.rows; r++) for (let c = 0; c < DOCK.cols; c++) {
+  for (let r = 0; r < L.D.rows; r++) for (let c = 0; c < L.D.cols; c++) {
     const x = L.dx + c * CELL, y = L.dy + r * CELL;
     if (atSea) { B(x, y, CELL, CELL, '#2f6f9e'); B(x + ((r * 5 + c * 3) % 8), y + 4, 3, 1, '#66b8db'); continue; }
     const beach = S.phase === 'camp';
@@ -3852,7 +3874,7 @@ function holdHit(p) {
   const L = HOLD.lay, cx = Math.floor((p.x - L.hx) / CELL), cy = Math.floor((p.y - L.hy) / CELL);
   if (cx >= 0 && cy >= 0 && cx < L.H.cols && cy < L.H.rows) return itemAt(S, 'hold', cx, cy);
   const dx = Math.floor((p.x - L.dx) / CELL), dy = Math.floor((p.y - L.dy) / CELL);
-  if (S.phase !== 'sea' && dx >= 0 && dy >= 0 && dx < DOCK.cols && dy < DOCK.rows) return itemAt(S, 'dock', dx, dy);
+  if (S.phase !== 'sea' && dx >= 0 && dy >= 0 && dx < L.D.cols && dy < L.D.rows) return itemAt(S, 'dock', dx, dy);
   return null;
 }
 function holdDown(e) {
@@ -3860,7 +3882,12 @@ function holdDown(e) {
   if (HOLD.drag && e.pointerId !== HOLD.drag.pointer) { turnDrag(); e.preventDefault(); return; }   // a second finger turns it
   const p = holdPoint(e), it = holdHit(p);
   Snd.init();
-  if (!it) { HOLD.sel = null; HOLD.msg = ''; return; }
+  if (!it) {
+    HOLD.sel = null; HOLD.msg = '';
+    HOLD.pan = { y: e.clientY, top: els.panel.scrollTop, pointer: e.pointerId };
+    try { HOLD.cv.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    return;
+  }
   const o = itemOrigin(it);
   HOLD.press = { id: it.id, sx: p.x, sy: p.y, offX: p.x - o.x, offY: p.y - o.y, pointer: e.pointerId, touch: e.pointerType === 'touch' };
   HOLD.sel = it.id; HOLD.msg = '';
@@ -3868,8 +3895,11 @@ function holdDown(e) {
   e.preventDefault();
 }
 function holdMove(e) {
+  const Q = HOLD.pan;
+  if (Q && e.pointerId === Q.pointer) { els.panel.scrollTop = Q.top - (e.clientY - Q.y); e.preventDefault(); return; }
   const P = HOLD.press;
   if (!P || e.pointerId !== P.pointer) return;
+  HOLD.last = { clientX: e.clientX, clientY: e.clientY };
   const p = holdPoint(e);
   if (!HOLD.drag) {
     if (Math.hypot(p.x - P.sx, p.y - P.sy) < 3) return;
@@ -3881,6 +3911,19 @@ function holdMove(e) {
   aimDrag();
   e.preventDefault();
 }
+// Carrying something near the top or bottom of the panel scrolls it, so the whole of a long hold is in reach.
+function dragScroll() {
+  const D = HOLD.drag, last = HOLD.last;
+  if (!D || !last) return;
+  const r = els.panel.getBoundingClientRect(), edge = 60, y = last.clientY;
+  const v = y < r.top + edge ? -Math.ceil((r.top + edge - y) / 5) : y > r.bottom - edge ? Math.ceil((y - (r.bottom - edge)) / 5) : 0;
+  if (!v) return;
+  const before = els.panel.scrollTop;
+  els.panel.scrollTop += v;
+  if (els.panel.scrollTop === before) return;
+  const p = holdPoint(last);
+  D.px = p.x; D.py = p.y; aimDrag();
+}
 function aimDrag() {
   const D = HOLD.drag, L = HOLD.lay, it = S.items.find(i => i.id === D.id);
   if (!it) return;
@@ -3888,7 +3931,7 @@ function aimDrag() {
   D.left = D.px - Math.min(D.offX, d.w * CELL - 2); D.top = D.py - Math.min(D.offY, d.h * CELL - 2) - D.lift;
   const cx = D.left + d.w * CELL / 2, cy = D.top + d.h * CELL / 2;
   const inHull = cx > L.hx - 8 && cx < L.hx + L.hullW + 8 && cy > L.hy - 10 && cy < L.hy + L.H.rows * CELL + 8;
-  const inDock = S.phase !== 'sea' && cx > L.dx - 6 && cx < L.dx + L.dockW + 8 && cy > L.dy - 8 && cy < L.dy + DOCK.rows * CELL + 6;
+  const inDock = S.phase !== 'sea' && cx > L.dx - 6 && cx < L.dx + L.dockW + 8 && cy > L.dy - 8 && cy < L.dy + L.D.rows * CELL + 6;
   if (inHull || inDock) {
     const where = inHull ? 'hold' : 'dock', ox = inHull ? L.hx : L.dx, oy = inHull ? L.hy : L.dy;
     const x = Math.round((D.left - ox) / CELL), y = Math.round((D.top - oy) / CELL);
@@ -3902,6 +3945,7 @@ function turnDrag() {
   aimDrag(); Snd.turn();
 }
 function holdUp(e) {
+  if (HOLD.pan && e.pointerId === HOLD.pan.pointer) { HOLD.pan = null; return; }
   const P = HOLD.press;
   if (!P || e.pointerId !== P.pointer) return;
   const D = HOLD.drag;
@@ -4253,13 +4297,14 @@ function campPanel() {
   return h + `<p class="note">${cap(num(n))} aboard. Food for ${fmtDays(pv.food / n)}, water for ${fmtDays(pv.water / n)}.</p>`;
 }
 function holdPanel() {
-  return '<p class="hold-help" id="holdHelp"></p><div class="hold-wrap"><canvas id="holdCanvas" role="img" aria-label="The hold of ${shipName(S)}, seen from above, with the quay beside it"></canvas></div>' +
+  return '<p class="hold-help" id="holdHelp"></p><div class="hold-wrap"><canvas id="holdCanvas" role="img" aria-label="The hold of ' + shipName(S) + ', seen from above, with the quay ' + (dockOf(S).cols > dockOf(S).rows ? 'below' : 'beside') + ' it"></canvas></div>' +
     '<div class="meters" id="holdMeters"></div><p class="hold-info" id="holdInfo" aria-live="polite"></p><div class="btns" id="holdBtns"></div>';
 }
 function updateHoldLive() {
   const sea = S.phase === 'sea', place = S.phase === 'camp' ? 'beach' : 'quay', n = dockItems(S).length, pv = provisions(S), m = Math.max(1, mouths(S));
-  setText($('#holdHelp'), sea ? 'At sea you can move things around the hold, but not unload them. Tap a thing to turn it.' :
-    `Drag things between the ${place} and the hold. Tap a thing to turn it, or turn it mid-drag with a second finger. The bolt-thrower fits only in the bow, at the top.${S.items.some(i => i.g === 'bench') ? ' An oar bench must lie against the side.' : ''} Fragile cargo should touch something soft.`);
+  const tall = HOLD.lay && HOLD.lay.below;
+  setText($('#holdHelp'), (sea ? 'At sea you can move things around the hold, but not unload them. Tap a thing to turn it.' :
+    `Drag things between the ${place} and the hold, and tap a thing to turn it. The bolt-thrower fits only in the bow${S.items.some(i => i.g === 'bench') ? ', an oar bench only against the side,' : ''} and fragile cargo should touch something soft.`) + (tall ? ' Drag the empty deck to scroll.' : ''));
   setHTML($('#holdMeters'), `<span>Hold <b>${holdUsed(S)}</b> of ${holdCells(S)} squares</span>${sea ? '' : `<span>${cap(place)} <b>${n}</b></span>`}<span>Food <b>${fmtDays(pv.food / m)}</b></span><span>Water <b>${fmtDays(pv.water / m)}</b></span>`);
   const it = HOLD.sel != null && S.items.find(i => i.id === HOLD.sel);
   setHTML($('#holdInfo'), HOLD.msg ? esc(HOLD.msg) : it ? itemInfo(it) : (n && !sea ? `${cap(num(n))} thing${n > 1 ? 's' : ''} on the ${place}. Drag ${n > 1 ? 'them' : 'it'} into the hold, or let the crew pack.` : 'Tap a thing to see what it is.'));
@@ -4624,7 +4669,7 @@ function frame(now) {
   pumpStory(now);
   if (UI.bannerT > 0) { UI.bannerT -= dt; if (UI.bannerT <= 0) els.banner.classList.remove('on'); }
   if (els.theater.hidden) drawMain(t); else drawTheater(t);
-  if (UI.tab === 'hold' && els.theater.hidden) drawHold();
+  if (UI.tab === 'hold' && els.theater.hidden) { dragScroll(); drawHold(); }
   uiAcc += dt;
   if (uiAcc >= 0.12) {
     uiAcc = 0;
