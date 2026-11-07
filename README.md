@@ -10,10 +10,6 @@ Open `index.html` in a browser. It is a single file with nothing to install, and
 
 To put it online for free with GitHub Pages (public repositories only on the free plan): in the repository, go to **Settings → Pages**, choose **Deploy from a branch**, then pick `main` and `/ (root)`. The game appears at `https://serski.github.io/Emporos/` a minute or two later.
 
-## Also here: Othonoi
-
-[`othonoi/`](othonoi/README.md) is a small separate game in the same style: a week at the Kalogerou artist residency on Othonoi, the westernmost inhabited island in Greece, with a pixel map of the island and three chapters (make an installation, write a song, or go to the beach). Open `othonoi/index.html` to play.
-
 ## Chapter I: Halicarnassus
 
 Antimachos the banker has lent Ariston 150 drachmas on a sea loan. Bring the ship home and he owes 195. If she sinks, he owes nothing. A round trip takes six days at sea and about fifteen minutes to play.
