@@ -6,7 +6,10 @@
   "scripts": {
     "build": "node tools/build.mjs",
     "sim": "node tests/sim.js",
-    "test": "node tests/play.js"
+    "test": "node tests/play.js",
+    "othonoi:build": "node othonoi/tools/build.mjs",
+    "othonoi:sim": "node othonoi/tests/sim.js",
+    "othonoi:test": "node othonoi/tests/play.js"
   },
   "devDependencies": {
     "playwright": "1.63.0"
