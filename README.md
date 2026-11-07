@@ -2,7 +2,7 @@
 
 A pixel-art trading game for phones. Ariston, a young trader from Rhodes, sails out in 290 BC with a small ship, a sea loan and a crew that has to eat. *Emporos* is the Greek word for a merchant who travels by sea. It is a working title.
 
-The plan is nine chapters, each a voyage further out from Rhodes. **Chapters I to VI are playable now**: Halicarnassus in the spring, Miletus in the summer, Athens in the autumn, and, in a bigger ship the next year, Corcyra in the spring, Taras in Italy in the summer, and Syracuse in Sicily in the autumn.
+The plan is nine chapters, each a voyage further out from Rhodes. **Chapters I to VII are playable now**: Halicarnassus in the spring, Miletus in the summer, Athens in the autumn; in a bigger ship the next year, Corcyra in the spring, Taras in Italy in the summer, and Syracuse in Sicily in the autumn; and, the year after, in a grain ship with a second deck, Cyprus.
 
 ## Play
 
@@ -83,9 +83,21 @@ Autumn, 289 BC: the last voyage of the year, and the last in Tyche. South-west t
 - **Cretan pirates.** On the coast of Crete, pirates may come out from behind a cape. With a Cretan aboard you can let him talk to them first.
 - **The way home.** At Amnisos, below Knossos, go home by way of Karpathos, or run straight for Rhodes across the open sea before a strong wind.
 
+## Chapter VII: Cyprus
+
+Spring, 288 BC, in a grain ship. East along the coast of Lycia, round the cape of swallows, across the open sea to Paphos, the city of Aphrodite, and on to Kition, where the Phoenicians are. About ten days at sea, and forty minutes to play.
+
+- **The grain ship.** Nausikrates has finished the ship he was drawing in the sand: Tyche's hull, deeper, with a whole second deck for cargo on top of the hold. She has 40 squares below and 34 on deck, sails faster than anything in the harbour, hardly rows at all, and pirates need ladders to board her. She costs 1,200 drachmas and Tyche in part exchange; Antimachos lends the rest if you can put 400 down. You can also sail Tyche again.
+- **The deck.** The hold has a second page. Switch between the hold and the deck above the grid, drag things onto either one, or select a thing and send it below or up on deck. The crew packs the vital and the valuable below and the cheap and the bulky on deck. Cargo on deck takes the weather: in rough water or a gale the sea may wash some of it over the side. Animals are tied down, and nobody gambles with another man's crate.
+- **King Ptolemy's toll.** Cyprus belongs to the king of Egypt, and his warships patrol the coast of Lycia. Pay the toll, send the officer a jar of wine, or remind him that Rhodes called his king the Saviour after the siege.
+- **The cape of swallows.** A gale may come off the Lycian mountains as you round the cape. Holding on with a full deck costs deck cargo; running for the lee of the Swallow Islands costs time.
+- **Paphos.** The sanctuary of Aphrodite, whose image is a cone of black stone, and a priestess who buys incense, purple and amber. Copper from the mines, which the statue works need for the god's head, and kyprinon, the perfume of Cyprus. An old sculptor tells the story of Pygmalion.
+- **Kition.** A Phoenician city with a pink salt lake full of flamingos and ships with horses' heads on their bows. Sidonian glass, Lebanon cedar for the shipwright, salt, a merchant who buys everything, Mago the Phoenician pilot, and an old captain who has sailed past the Pillars of Herakles.
+- **The way home.** At Myra, go by way of Patara, or run straight for Rhodes before a strong wind, which is quicker and hard on whatever is on deck.
+
 Between chapters, your silver, any debt, the ship and everything in her, the crew, your good name in each port, and the friends you made all carry over. Hired hands go home at the end of each voyage.
 
-The history of the period is real and stays in the background: the siege of Rhodes and the bronze Sun-god being built with the money, the tomb of Mausolus above Halicarnassus, Coan wine made with seawater, Cretan archers and Cretan pirates, the summer north wind, the unfinished temple at Didyma, Miletus laid out in straight streets, the Rhodian sea law on cargo thrown overboard, the lions of Delos, the stone lion of Kea, the ship sheds of Piraeus, a king's garrison on the hill of Munichia, Athens buying grain from anyone who brought it, the diolkos across the Isthmus, Diogenes in his jar at Corinth, the queen who brought Corcyra to her second husband as a dowry, Illyrian lemboi, the sailors' saying about Cape Malea, the pitch springs of Zakynthos, the wrestlers of Croton and the temple of Hera on its cape, the Pythagoreans and their beans, Archytas of Taras and his wooden dove, the Tarentine cavalry, the boy on a dolphin on the coins of Taras, the mercenaries of the king of Syracuse, the Halieia, the festival of the Sun in Rhodes, Amnisos and the ruined palace at Knossos, the archers of Kydonia and its quinces, Cretan dittany, the saying that all Cretans are liars, Talos the bronze man, the death of Agathocles and the pulling down of his statues, his Campanian soldiers, the spring of Arethusa, the gilded shield on the temple of Athena, and Damocles' sword. Ariston and his crew are invented.
+The history of the period is real and stays in the background: the siege of Rhodes and the bronze Sun-god being built with the money, the tomb of Mausolus above Halicarnassus, Coan wine made with seawater, Cretan archers and Cretan pirates, the summer north wind, the unfinished temple at Didyma, Miletus laid out in straight streets, the Rhodian sea law on cargo thrown overboard, the lions of Delos, the stone lion of Kea, the ship sheds of Piraeus, a king's garrison on the hill of Munichia, Athens buying grain from anyone who brought it, the diolkos across the Isthmus, Diogenes in his jar at Corinth, the queen who brought Corcyra to her second husband as a dowry, Illyrian lemboi, the sailors' saying about Cape Malea, the pitch springs of Zakynthos, the wrestlers of Croton and the temple of Hera on its cape, the Pythagoreans and their beans, Archytas of Taras and his wooden dove, the Tarentine cavalry, the boy on a dolphin on the coins of Taras, the mercenaries of the king of Syracuse, the Halieia, the festival of the Sun in Rhodes, Amnisos and the ruined palace at Knossos, the archers of Kydonia and its quinces, Cretan dittany, the saying that all Cretans are liars, Talos the bronze man, the death of Agathocles and the pulling down of his statues, his Campanian soldiers, the spring of Arethusa, the gilded shield on the temple of Athena, and Damocles' sword, Demetrius losing Macedonia, Ptolemy the Saviour, the oracle of Apollo at Patara, the rock tombs of Lycia, the cape of swallows, the copper of Cyprus cast like ox hides, the cone of Aphrodite at Paphos, Pygmalion, kyprinon, the salt lake of Kition, Sidonian glass, Lebanon cedar, Phoenician horse-headed ships, Gadir and the Phoenician letters. Ariston and his crew are invented.
 
 ## The nine voyages
 
@@ -97,15 +109,16 @@ The history of the period is real and stays in the background: the siege of Rhod
 | IV | Medium merchant ship | Corcyra (playable) |
 | V | Medium merchant ship | Taras (playable) |
 | VI | Medium merchant ship | Syracuse (playable) |
-| VII–IX | Large grain ship (Tyche's hull, with a deck as a second page of cargo) | Cyprus, Tyre, Alexandria |
+| VII | Large grain ship (Tyche's hull, with a deck as a second page of cargo) | Cyprus (playable) |
+| VIII–IX | Large grain ship | Tyre, Alexandria |
 
 ## Project layout
 
 - `src/game.html` is the whole game: HTML, CSS and JavaScript in one file. It is a page fragment, with no `<html>` or `<body>` tags, so it can be published as a claude.ai artifact as it is.
 - `index.html` is the same game wrapped as a standalone page. It is generated, so don't edit it by hand.
 - `tools/build.mjs` creates `index.html` from `src/game.html`.
-- `tests/sim.js` plays Chapters I to VI in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
-- `tests/play.js` plays all six chapters in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
+- `tests/sim.js` plays Chapters I to VII in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
+- `tests/play.js` plays all seven chapters in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
 
 Inside `src/game.html`, the rules sit between `// ===== ENGINE START =====` and `// ===== ENGINE END =====` and never touch the page. That is what lets `tests/sim.js` run them on their own. All the art and sound is drawn and synthesized in code.
 
@@ -123,7 +136,7 @@ Check the balance (takes a few minutes; add a games count and a chapter, such as
 node tests/sim.js
 ```
 
-Play all six chapters in a headless browser (takes about ten minutes):
+Play all seven chapters in a headless browser (takes about twelve minutes):
 
 ```bash
 npm install
