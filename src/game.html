@@ -1341,7 +1341,7 @@ const DAYS = {
     events: [[0.38, 'storm3']] },
   a_del_kea: { from: 'delos', to: 'kea', dist: 1.05, wind: [[0, 'light'], [0.35, 'head']],
     lines: [[0.03, 'West from Delos the north wind was in their faces again, as if it had been waiting for them.'],
-      [0.55, 'They passed Syros, and then a string of islands whose names Glaukos and Nikias argued about all afternoon.']] },
+      [0.55, s => alive(s, 'nikias') ? 'They passed Syros, and then a string of islands whose names Glaukos and Nikias argued about all afternoon.' : 'They passed Syros, and then a string of islands whose names Glaukos argued about with himself all afternoon.']] },
   a_kea_pir: { from: 'kea', to: 'piraeus', dist: 1, wind: [[0, 'light'], [0.5, 'head']],
     lines: [[0.03, 'They rounded Cape Sounion, where the temple of Poseidon stands on the cliff and watches every ship go by.'],
       [0.45, 'At the end of the long gulf a point of light flashed on a rock: the spear of the bronze Athena on the Acropolis, which sailors can see from far out at sea.']] },
@@ -2207,6 +2207,7 @@ function refill(s, where) {
 
 // ---------- crew ----------
 const crewOk = s => s.crew.filter(c => c.st === 'ok');
+const alive = (s, id) => s.crew.some(c => c.id === id);   // the sailors who can die are only named in the story while they live
 const hasHealer = s => s.crew.some(c => c.heal && c.st !== 'dead');
 const hasBolt = s => s.items.some(i => i.g === 'bolt' && i.where === 'hold');
 const feeOf = (s, hid) => hid === 'kallias' && s.flags.rescued ? 0 : HIRES[hid].fee;
@@ -2757,6 +2758,8 @@ function woundLines(s, hurt) {
   const where = STOPS[DAYS[s.voyage.day].to].name;
   for (const c of hurt) {
     if (c.id === 'ariston' || rnd(s) >= 0.4) continue;
+    if (c.id === 'glaukos') { lines.push('Glaukos was hurt worse than anyone, and said he had been hurt worse before. Nobody believed him, and in the morning he was at the steering oar again, complaining.'); continue; }
+    if (c.id === 'mikkos') { lines.push('Mikkos was badly hurt, and frightened, and very brave about it. By the morning he was asking about breakfast, which everybody agreed was a good sign.'); continue; }
     s.crew.splice(s.crew.indexOf(c), 1);
     s.lost.push({ id: c.id, name: c.name, where, ch: s.ch });
     if (c.hire) for (const it of s.items.filter(i => i.g === 'kit' && i.owner === c.id)) removeItem(s, it);
@@ -2805,7 +2808,8 @@ function crewVoice(s, kind) {
   if (kind === 'run') return { good: 'Glaukos: “She’s fast, but so are we, today.”', even: 'Glaukos: “Maybe. If Poseidon likes us.”', poor: 'Glaukos: “Not this loaded. Not from a hemiolia.”', 'very poor': 'Glaukos: “Run? From that? In this?”' }[o];
   const kydas = s.crew.find(c => c.id === 'kydas' && c.st === 'ok');
   if (kydas && o !== 'very poor') return 'Kydas counts them: “' + cap(num(s.pirates.n)) + '. I can count to ' + num(s.pirates.n) + '.”';
-  return { good: 'Pamphilos picks up a boat hook and says nothing, which for him is a speech.', even: 'Nikias and Lysis agree it could go either way, and then argue about which.', poor: 'Mikkos asks if he is allowed to hide. Nobody says no.', 'very poor': cap(num(crewOk(s).length)) + ' of them, against ' + num(s.pirates.n) + ' pirates.' }[o];
+  return { good: alive(s, 'pamphilos') ? 'Pamphilos picks up a boat hook and says nothing, which for him is a speech.' : 'The crew pick up boat hooks and say nothing, which is a good sign.',
+    even: alive(s, 'nikias') && alive(s, 'lysis') ? 'Nikias and Lysis agree it could go either way, and then argue about which.' : 'Glaukos says it could go either way, and then argues with himself about which.', poor: 'Mikkos asks if he is allowed to hide. Nobody says no.', 'very poor': cap(num(crewOk(s).length)) + ' of them, against ' + num(s.pirates.n) + ' pirates.' }[o];
 }
 // The autumn gale: throw cargo overboard to save the ship, hold on, or run for shelter.
 function jettisonPlan(s) {
@@ -2936,7 +2940,8 @@ const EVENTS = {
       }
       if (rnd(s) < campOdds(s)) {
         s.flags.campanians = 'stood';
-        return ['Ariston said no. Pamphilos stood up behind him with a boat hook, and then Tlepolemos, and then, one by one, everyone else.', 'Minatus looked at them for a long time. Then he smiled, as if it had been a joke, and went forward again. Nobody slept much that night.'];
+        const two = crewOk(s).filter(x => x.id !== 'ariston' && !x.hire).sort((a, b) => b.fight - a.fight).slice(0, 2).map(x => x.name);
+        return ['Ariston said no. ' + (two.length > 1 ? two[0] + ' stood up behind him with a boat hook, and then ' + two[1] + ', and then, one by one, everyone else.' : 'The crew stood up behind him, one by one, with boat hooks.'), 'Minatus looked at them for a long time. Then he smiled, as if it had been a joke, and went forward again. Nobody slept much that night.'];
       }
       if (c) c.fee = 0;
       s.flags.campanians = 'robbed';
@@ -3038,7 +3043,7 @@ const EVENTS = {
       const p = argueChance(s), jar = bestJar(s);
       const out = [
         { id: 'pay', label: 'Pay the toll', hint: 'A tenth of what the cargo is worth: ' + toll(s) + ' dr.' },
-        { id: 'argue', label: 'Tell him Rhodes is free, and pays no king', hint: p >= 0.5 ? 'Glaukos: “They know the rose on our sail.”' : p >= 0.35 ? 'Nikias says it might work. Lysis says it might not.' : 'Glaukos: “He looks like a man nobody has ever said no to.”' },
+        { id: 'argue', label: 'Tell him Rhodes is free, and pays no king', hint: p >= 0.5 ? 'Glaukos: “They know the rose on our sail.”' : p >= 0.35 ? (alive(s, 'nikias') && alive(s, 'lysis') ? 'Nikias says it might work. Lysis says it might not.' : 'Glaukos says it might work, and then that it might not.') : 'Glaukos: “He looks like a man nobody has ever said no to.”' },
       ];
       if (jar) out.push({ id: 'gift', label: 'Send the officer a jar of ' + GOODS[jar.g].of, hint: 'One amphora instead of the toll. Officers are people too.' });
       return out;
