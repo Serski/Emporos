@@ -1,0 +1,987 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rhodes, Painted</title>
+<meta name="description" content="A sample of the harbour at Rhodes and a merchant's stall in lit, painterly pixel art, drawn in code, for Emporos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,wght@0,400;0,600;1,400&family=Pixelify+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --glaze: #16100c; --line: #4b3727; --line-soft: #34261b;
+  --clay: #d97b46; --bone: #f2e6cb; --bone-dim: #bba887; --gold: #eac05a;
+  --font-pixel: "Pixelify Sans", ui-monospace, "Courier New", monospace;
+  --font-story: "Literata", Georgia, "Times New Roman", serif;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; font-variant-ligatures: none; }
+html, body { margin: 0; background: var(--glaze); color: var(--bone); }
+body { font: 16px/1.5 var(--font-story); -webkit-font-smoothing: antialiased; }
+main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 48px; }
+h1 { margin: 0; font: 700 30px/1.1 var(--font-pixel); letter-spacing: 0.03em; }
+.sub { margin: 6px 0 0; font: 500 13px/1.3 var(--font-pixel); color: var(--bone-dim); letter-spacing: 0.08em; text-transform: uppercase; }
+p.lede { max-width: 40em; margin: 14px 0 0; }
+h2 { margin: 30px 0 10px; display: flex; align-items: center; gap: 10px; font: 600 13px/1 var(--font-pixel); letter-spacing: 0.14em; text-transform: uppercase; color: var(--clay); }
+h2::after { content: ""; flex: 1; height: 2px; background: var(--line-soft); }
+figure { margin: 0; }
+.frame { position: relative; max-width: 100%; margin: 0 auto; border: 2px solid var(--line); background: #000; line-height: 0; }
+canvas { display: block; image-rendering: crisp-edges; image-rendering: pixelated; }
+figcaption { max-width: 40em; margin: 10px auto 0; font-size: 15px; color: var(--bone-dim); }
+.say { position: absolute; left: 3%; right: 3%; bottom: 4%; line-height: 1.4; padding: 10px 12px; background: rgba(16, 11, 8, 0.9); border: 2px solid var(--clay); }
+.say b { display: block; font: 600 13px/1.2 var(--font-pixel); letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); }
+.say span { display: block; margin-top: 4px; font: 15px/1.4 var(--font-story); }
+@media (max-width: 620px) { .say { position: static; border-width: 2px 0 0; } .say span { font-size: 14px; } }
+.wait { padding: 40px; text-align: center; font: 500 14px/1.4 var(--font-pixel); color: var(--bone-dim); line-height: 1.4; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Rhodes, painted</h1>
+  <p class="sub">Emporos · art sample · late afternoon, spring, 290 BC</p>
+  <p class="lede">Every pixel here is lit: the code knows the shape of each column, cloud, fold and face, works out how the sun falls on it, then brings the whole picture down to one small palette with ordered dithering. It is still all drawn in code, with no images.</p>
+
+  <h2>The harbour</h2>
+  <figure>
+    <div class="frame" id="harbourBox"><canvas id="harbour" width="400" height="225" role="img" aria-label="The harbour at Rhodes in the late afternoon: towering clouds over the mountains of Asia, the city and the painted temple of Apollo on the hill, the bronze Sun-god going up in his scaffold, Elpis at the quay, and the stalls along the front."></canvas></div>
+    <figcaption>400 × 225 art pixels.</figcaption>
+  </figure>
+
+  <h2>The stall</h2>
+  <figure>
+    <div class="frame" id="stallBox"><canvas id="stall" width="400" height="225" role="img" aria-label="Thrasyllos the wine merchant standing behind his plain wooden counter, arms at his sides, with the harbour behind him."></canvas>
+      <div class="say"><b>Thrasyllos · Wine merchant</b><span>“Halicarnassus has Knidian wine, Coan wine and wine of its own. It still buys mine. Think about that.”</span></div>
+    </div>
+    <figcaption>A plain stall: linen, wood, two jars, a cup, and the man himself.</figcaption>
+  </figure>
+</main>
+<script>
+'use strict';
+// =====================================================================
+// Numbers, noise, colour and light
+// =====================================================================
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v, lerp = (a, b, t) => a + (b - a) * t;
+const sm = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function ih(x, y, s) { let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(s | 0, 1442695041)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function vn(x, y, s) { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf); const a = ih(xi, yi, s), b = ih(xi + 1, yi, s), c = ih(xi, yi + 1, s), d = ih(xi + 1, yi + 1, s); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; }
+function fbm(x, y, s, o) { o = o || 4; let sum = 0, amp = 0.5, f = 1, n = 0; for (let i = 0; i < o; i++) { sum += amp * vn(x * f, y * f, s + i * 31); n += amp; amp *= 0.5; f *= 2.07; } return sum / n; }
+function rnd(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+const C = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; };
+const mixc = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+const mul = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+function nrm(x, y, z) { const l = Math.hypot(x, y, z) || 1; return [x / l, y / l, z / l]; }
+function grad(stops, t) { t = clamp(t, 0, 1); for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) return mixc(stops[i - 1][1], stops[i][1], (t - stops[i - 1][0]) / (stops[i][0] - stops[i - 1][0])); return stops[stops.length - 1][1]; }
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+const bay = (x, y) => (BAYER[((y & 3) << 2) | (x & 3)] + 0.5) / 16;
+
+// The light: x to the right, y up, z towards us. A low warm sun from the right, a cool sky, warm bounce from the ground.
+let LD = nrm(0.66, 0.42, 0.62), HV = nrm(LD[0], LD[1], LD[2] + 1);
+let SUN = [1.2, 0.98, 0.76], AMB = [0.36, 0.44, 0.66], BNC = [0.42, 0.32, 0.22];
+function shade(al, n, ao, sh, sp, pw) {
+  ao = ao == null ? 1 : ao; sh = sh == null ? 1 : sh;
+  const d = Math.max(0, n[0] * LD[0] + n[1] * LD[1] + n[2] * LD[2]) * sh, up = n[1] * 0.5 + 0.5;
+  let s = 0;
+  if (sp) s = sp * Math.pow(Math.max(0, n[0] * HV[0] + n[1] * HV[1] + n[2] * HV[2]), pw || 24) * sh;
+  return [al[0] * (SUN[0] * d + (AMB[0] * up + BNC[0] * (1 - up)) * ao) + s * SUN[0], al[1] * (SUN[1] * d + (AMB[1] * up + BNC[1] * (1 - up)) * ao) + s * SUN[1], al[2] * (SUN[2] * d + (AMB[2] * up + BNC[2] * (1 - up)) * ao) + s * SUN[2]];
+}
+
+// A picture in full colour, before it is brought down to the palette.
+class Buf {
+  constructor(w, h) { this.w = w; this.h = h; this.c = new Float32Array(w * h * 3); this.a = new Uint8Array(w * h); this.s = new Uint8Array(w * h); }
+  put(x, y, c) { x = Math.floor(x); y = Math.floor(y); if (x < 0 || y < 0 || x >= this.w || y >= this.h) return; const i = y * this.w + x; this.c[i * 3] = c[0]; this.c[i * 3 + 1] = c[1]; this.c[i * 3 + 2] = c[2]; this.a[i] = 1; this.s[i] = 0; }
+  get(x, y) { x = Math.floor(x); y = Math.floor(y); if (x < 0 || y < 0 || x >= this.w || y >= this.h) return null; const i = y * this.w + x; return this.a[i] ? [this.c[i * 3], this.c[i * 3 + 1], this.c[i * 3 + 2]] : null; }
+  shadow(x, y, k) {   // darken what is already there, once, towards the cool sky light
+    x = Math.floor(x); y = Math.floor(y); if (x < 0 || y < 0 || x >= this.w || y >= this.h) return; const i = y * this.w + x;
+    if (!this.a[i] || this.s[i]) return; this.s[i] = 1;
+    this.c[i * 3] *= k * 0.86; this.c[i * 3 + 1] *= k * 0.92; this.c[i * 3 + 2] *= k * 1.08;
+  }
+}
+
+// ---------- the palette: median cut over the picture's own colours, refined, then looked up through a table ----------
+function buildPalette(bufs, n, fixed) {
+  let pts = [];
+  for (const B of bufs) for (let i = 0; i < B.w * B.h; i += 2) if (B.a[i]) pts.push(clamp(B.c[i * 3], 0, 1), clamp(B.c[i * 3 + 1], 0, 1), clamp(B.c[i * 3 + 2], 0, 1));
+  pts = new Float32Array(pts);
+  const N = pts.length / 3, idx = new Uint32Array(N); for (let i = 0; i < N; i++) idx[i] = i;
+  let boxes = [{ s: 0, e: N }];
+  const range = b => { let lo = [9, 9, 9], hi = [-9, -9, -9]; for (let k = b.s; k < b.e; k++) for (let q = 0; q < 3; q++) { const v = pts[idx[k] * 3 + q]; if (v < lo[q]) lo[q] = v; if (v > hi[q]) hi[q] = v; } const r = [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]]; const ax = r[1] >= r[0] && r[1] >= r[2] ? 1 : r[0] >= r[2] ? 0 : 2; return { ax, r: r[ax] * Math.sqrt(b.e - b.s) }; };
+  while (boxes.length < n - fixed.length) {
+    let best = -1, bi = 0, bax = 0;
+    boxes.forEach((b, i) => { if (b.e - b.s < 2) return; const r = range(b); if (r.r > best) { best = r.r; bi = i; bax = r.ax; } });
+    if (best <= 0) break;
+    const b = boxes[bi], sub = Array.from(idx.subarray(b.s, b.e)).sort((p, q) => pts[p * 3 + bax] - pts[q * 3 + bax]);
+    idx.set(sub, b.s); const mid = b.s + ((b.e - b.s) >> 1);
+    boxes.splice(bi, 1, { s: b.s, e: mid }, { s: mid, e: b.e });
+  }
+  let pal = boxes.map(b => { const m = [0, 0, 0]; for (let k = b.s; k < b.e; k++) for (let q = 0; q < 3; q++) m[q] += pts[idx[k] * 3 + q]; return mul(m, 1 / (b.e - b.s)); });
+  for (let it = 0; it < 4; it++) {   // a few rounds of k-means to settle the colours
+    const sum = pal.map(() => [0, 0, 0, 0]);
+    for (let i = 0; i < N; i += 2) { const r = pts[i * 3], g = pts[i * 3 + 1], b = pts[i * 3 + 2]; let bd = 1e9, bk = 0; for (let k = 0; k < pal.length; k++) { const p = pal[k], d = 2 * (r - p[0]) ** 2 + 4 * (g - p[1]) ** 2 + 3 * (b - p[2]) ** 2; if (d < bd) { bd = d; bk = k; } } const s = sum[bk]; s[0] += r; s[1] += g; s[2] += b; s[3]++; }
+    pal = pal.map((p, k) => sum[k][3] ? [sum[k][0] / sum[k][3], sum[k][1] / sum[k][3], sum[k][2] / sum[k][3]] : p);
+  }
+  pal = pal.concat(fixed.map(C));
+  const lut = new Uint8Array(32768);
+  for (let r = 0; r < 32; r++) for (let g = 0; g < 32; g++) for (let b = 0; b < 32; b++) {
+    const R_ = (r + 0.5) / 32, G_ = (g + 0.5) / 32, B_ = (b + 0.5) / 32; let bd = 1e9, bk = 0;
+    for (let k = 0; k < pal.length; k++) { const p = pal[k], d = 2 * (R_ - p[0]) ** 2 + 4 * (G_ - p[1]) ** 2 + 3 * (B_ - p[2]) ** 2; if (d < bd) { bd = d; bk = k; } }
+    lut[(r << 10) | (g << 5) | b] = bk;
+  }
+  const bytes = pal.map(p => [Math.round(clamp(p[0], 0, 1) * 255), Math.round(clamp(p[1], 0, 1) * 255), Math.round(clamp(p[2], 0, 1) * 255)]);
+  return { pal, lut, bytes };
+}
+const SPREAD = 0.065;
+function qi(P, r, g, b, x, y) { const d = (bay(x, y) - 0.5) * SPREAD; return P.lut[(clamp(Math.floor((r + d) * 32), 0, 31) << 10) | (clamp(Math.floor((g + d) * 32), 0, 31) << 5) | clamp(Math.floor((b + d) * 32), 0, 31)]; }
+function toCanvas(B, P, ox, oy) {   // bring a picture down to the palette, dithered, as a canvas
+  ox = ox || 0; oy = oy || 0;
+  const cv = document.createElement('canvas'); cv.width = B.w; cv.height = B.h;
+  const g = cv.getContext('2d'), img = g.createImageData(B.w, B.h), d = img.data;
+  for (let y = 0; y < B.h; y++) for (let x = 0; x < B.w; x++) {
+    const i = y * B.w + x; if (!B.a[i]) continue;
+    const k = qi(P, B.c[i * 3], B.c[i * 3 + 1], B.c[i * 3 + 2], x + ox, y + oy), c = P.bytes[k];
+    d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2]; d[i * 4 + 3] = 255;
+  }
+  g.putImageData(img, 0, 0); cv.data = d; return cv;
+}
+// Darken the edge of a shape where it meets nothing: an outline that takes its colour from what it wraps.
+function outline(B, k) {
+  const w = B.w, h = B.h, add = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x; if (B.a[i]) continue;
+    let best = null, bl = 9;
+    for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) { const c = B.get(x + dx, y + dy); if (!c) continue; const l = c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11; if (l < bl) { bl = l; best = c; } }
+    if (best) add.push(x, y, best);
+  }
+  for (let j = 0; j < add.length; j += 3) B.put(add[j], add[j + 1], [add[j + 2][0] * k * 0.8, add[j + 2][1] * k * 0.75, add[j + 2][2] * k * 0.95]);
+}
+// A turned pot: a radius for each row, lit as a solid of revolution.
+function lathe(B, cx, y0, radii, al, sp, band) {
+  radii.forEach((r, j) => {
+    if (r <= 0) return;
+    const dr = ((radii[j + 1] || r) - (radii[j - 1] || r)) / 2;
+    for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x++) {
+      const u = (x + 0.5 - cx) / r; if (Math.abs(u) > 1) continue;
+      const nz = Math.sqrt(1 - u * u), n = nrm(u * 0.95, -dr * 0.9 * nz + 0.05, nz);
+      const a = band ? band(j, u, al) : al;
+      B.put(x, y0 + j, shade(a, n, 0.75 + 0.25 * nz, 1, sp || 0, 18));
+    }
+  });
+}
+function cyl(B, x0, y0, w, h, al, ao, sp) {   // an upright round thing: a post, a mast, a leg
+  for (let i = 0; i < w; i++) { const u = (i + 0.5) / w * 2 - 1, n = nrm(u, 0, Math.sqrt(1 - u * u * 0.9)); for (let y = y0; y < y0 + h; y++) B.put(x0 + i, y, shade(al, n, ao == null ? 1 : ao, 1, sp || 0, 20)); }
+}
+function ropeLine(B, x0, y0, x1, y1, c, sag) {
+  const n = Math.max(2, Math.round(Math.hypot(x1 - x0, y1 - y0) * 1.2));
+  for (let i = 0; i <= n; i++) { const t = i / n; B.put(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t + (sag || 0) * 4 * t * (1 - t), c); }
+}
+
+// =====================================================================
+// The sky, the clouds and the far mountains: shared by both pictures
+// =====================================================================
+const SKYK = [[0, C('#1d3f82')], [0.32, C('#3466ad')], [0.62, C('#6e9cc8')], [0.84, C('#c2cbd0')], [1, C('#f0d8b8')]];
+const CLOUDK = [[0, C('#5a5c88')], [0.26, C('#8a90b6')], [0.48, C('#c4c6d6')], [0.66, C('#ece8e6')], [0.82, C('#fff4e4')], [1, C('#ffe6c0')]];
+function skyAt(x, y, hz, sunX) { let c = grad(SKYK, y / hz); const g = Math.exp(-Math.hypot(x - sunX, y - 20) / 120); return mixc(c, C('#ffeccc'), g * 0.55); }
+function cloudField(list, x, y, seed) { let c = -1; for (const [cx, cy, rx, ry] of list) { const dx = (x - cx) / rx, dy = (y - cy) / ry; c = Math.max(c, 1 - (dx * dx + dy * dy)); } return c + (fbm(x / 22, y / 15, seed, 5) - 0.5) * 1.05; }
+function paintSky(B, list, seed, hz, sunX) {
+  for (let y = 0; y < hz; y++) for (let x = 0; x < B.w; x++) {
+    const sky = skyAt(x, y, hz, sunX), D = cloudField(list, x, y, seed);
+    if (D < 0.26) { B.put(x, y, sky); continue; }
+    const lit = D - cloudField(list, x + 6, y - 4, seed), under = sm(hz * 0.55, hz, y);
+    const v = 0.6 + lit * 1.7 - under * 0.22 - Math.max(0, D - 0.9) * 0.15;
+    B.put(x, y, mixc(sky, grad(CLOUDK, v), sm(0.26, 0.4, D)));
+  }
+}
+function paintMountains(B, x0, x1, hz, seed, height) {   // the coast of Asia across the strait: rock lit by the low sun, hazed with distance
+  for (let x = x0; x < x1; x++) {
+    const f = sm(x0, x0 + 90, x) * (1 - sm(x1 - 20, x1 + 40, x) * 0.3);
+    const top = hz - (4 + height * fbm(x / 70, 0.5, seed, 4)) * f;
+    for (let y = Math.ceil(top); y < hz; y++) {
+      const T = fbm(x / 13, y / 7, seed + 2, 4), Tx = fbm((x + 1) / 13, y / 7, seed + 2, 4) - T, k = (y - top) / Math.max(1, hz - top);
+      const n = nrm(-Tx * 16 + 0.1, 0.5 - k * 0.4, 1), rock = shade(mixc(C('#9a8478'), C('#7a7a5a'), sm(0.4, 1, k)), n, 0.9);
+      B.put(x, y, mixc(rock, mixc(skyAt(x, hz - 2, hz, 9999), C('#aab8d0'), 0.4), 0.58 - k * 0.1));
+    }
+    const top2 = hz - (1 + height * 0.28 * fbm(x / 26, 1.5, seed + 5, 3)) * f;
+    for (let y = Math.ceil(top2); y < hz; y++) {
+      const T = fbm(x / 7, y / 5, seed + 7, 3), Tx = fbm((x + 1) / 7, y / 5, seed + 7, 3) - T;
+      B.put(x, y, mixc(shade(C('#6e7450'), nrm(-Tx * 12 + 0.2, 0.4, 1), 0.9), C('#9fb0c4'), 0.42));
+    }
+  }
+}
+
+// =====================================================================
+// The harbour
+// =====================================================================
+const W = 400, H = 225, HZ = 120, SHORE = 137, QY = 173, GY = 221, WL = 164, SUNX = 440;
+const waterTop = new Int16Array(W).fill(HZ);
+const HCLOUDS = [[262, 96, 96, 44], [236, 64, 58, 42], [272, 38, 42, 31], [320, 80, 64, 32], [204, 92, 48, 26], [150, 108, 42, 14], [36, 34, 54, 16], [92, 25, 40, 13], [374, 22, 28, 9], [176, 46, 22, 7]];
+const hillY = x => x > 254 ? 999 : Math.round(58 + 5 * fbm(x / 22, 0.3, 51, 3) + (SHORE - 9 - 60) * sm(80, 262, x));
+
+const FRONT = nrm(0, 0.05, 1), SIDE = nrm(1, 0.05, 0.35), UPF = nrm(0, 0.8, 0.6);
+function bush(B, cx, cy, rx, ry, al, seed) {   // leaves in a lit clump
+  for (let y = Math.floor(cy - ry - 1); y <= cy + ry + 1; y++) for (let x = Math.floor(cx - rx - 1); x <= cx + rx + 1; x++) {
+    const nx = (x + 0.5 - cx) / rx, ny = -(y + 0.5 - cy) / ry, e = vn(x / 1.6, y / 1.6, seed) * 0.35, d = nx * nx + ny * ny;
+    if (d > 1 - e * 0.6 + 0.1) continue;
+    const nz = Math.sqrt(Math.max(0.05, 1 - d)), b = (vn(x / 1.3, y / 1.3, seed + 1) - 0.5) * 1.2;
+    B.put(x, y, shade(al, nrm(nx + b, ny + b * 0.5, nz), 0.55 + 0.45 * (ny * 0.5 + 0.5)));
+  }
+}
+function cypress(B, x, yb, h, seed) {
+  for (let j = 0; j < h; j++) {
+    const k = j / h, w = j < 2 ? 1 : Math.max(2, Math.round(1.4 + 4.2 * Math.pow(k, 0.6) * (1 - sm(0.92, 1, k) * 0.4)));
+    for (let i = 0; i < w; i++) {
+      const u = (i + 0.5) / w * 2 - 1, b = (vn((x + i) / 1.2, (yb - h + j) / 1.5, seed) - 0.5) * 1.4;
+      B.put(x - (w >> 1) + i, yb - h + j, shade(C('#3a5a32'), nrm(u + b, 0.2 + b * 0.3, Math.sqrt(1 - u * u * 0.8)), 0.8));
+    }
+  }
+  B.put(x, yb, C('#4a3a2c'));
+}
+function house(B, x, yb, w, h, wall, roof, kind, r) {
+  const sw = 3, top = yb - h;
+  for (let y = top + 2; y < yb; y++) for (let k = 1; k <= 3; k++) B.shadow(x - k, y, 0.62);   // the shadow it throws on whatever stands behind
+  for (let y = top; y < yb; y++) for (let xx = x; xx < x + w + sw; xx++) {
+    const side = xx >= x + w, pl = 0.95 + 0.14 * (vn(xx / 2, y / 2, 61) - 0.5) - (ih(xx, y, 62) < 0.06 ? 0.08 : 0) - sm(0.62, 0.8, vn(xx / 4, y / 3, 64)) * 0.1;
+    const ao = 1 - 0.4 * sm(top + 2.5, top, y) - 0.25 * sm(yb - 3, yb, y);
+    B.put(xx, y, shade(mul(wall, pl), side ? SIDE : FRONT, ao, 1 - 0.5 * sm(top + 1.5, top, y)));
+  }
+  for (let wx = x + 1 + Math.floor(r() * 2); wx < x + w - 2; wx += 4 + Math.floor(r() * 2)) {   // windows, set back in the wall
+    if (r() < 0.35) continue;
+    const wh = h > 7 ? 3 : 2;
+    for (let j = 0; j < wh; j++) { B.put(wx, top + 3 + j, shade(C('#2a1e1e'), FRONT, 0.6)); B.put(wx + 1, top + 3 + j, shade(C('#3a2a26'), FRONT, 0.6)); }
+    B.put(wx, top + 3 + wh, shade(mul(wall, 1.05), UPF)); B.put(wx + 1, top + 3 + wh, shade(mul(wall, 1.05), UPF));
+  }
+  if (h >= 6 && r() < 0.55) { const dx = x + 1 + Math.floor(r() * Math.max(1, w - 4)), dc = r() < 0.5 ? C('#6a4430') : C('#3d6a8a'); for (let j = 0; j < 4; j++) for (let i = 0; i < 3; i++) B.put(dx + i, yb - 4 + j, shade(dc, FRONT, i === 0 ? 0.5 : 0.75)); }
+  if (kind === 'gable') {
+    const gh = Math.max(2, Math.ceil(w / 2) - 1);
+    for (let j = 1; j <= gh; j++) {
+      const a = x + j - 1, b = x + w - j; if (a > b) break;
+      for (let xx = a; xx <= b; xx++) B.put(xx, top - j, shade(wall, FRONT, 0.9));
+      B.put(a, top - j, shade(roof, nrm(-0.5, 0.6, 0.6))); B.put(b, top - j, shade(roof, nrm(0.6, 0.6, 0.5)));
+      for (let s = 0; s < sw; s++) B.put(x + w + s, top - j + Math.round(s * 0.4), shade(roof, nrm(0.3, 0.8, 0.5)));
+    }
+  } else {
+    for (let j = 0; j < 3; j++) for (let xx = x - 1; xx < x + w + sw + (j === 2 ? 0 : 1); xx++) {
+      const rip = Math.sin(xx * Math.PI / 2) * 0.35, n = j === 0 ? nrm(rip, 0.9, 0.4) : j === 2 ? nrm(0, -0.4, 1) : nrm(rip, 0.75, 0.66);
+      B.put(xx + (j === 0 ? 1 : 0), top - 3 + j, shade(mul(roof, 0.86 + 0.2 * ih(xx, j + top, 63)), n, j === 2 ? 0.5 : 1));
+    }
+  }
+}
+function blocks(B, x0, x1, y0, y1, al, n, seed, bw, bh, ao) {   // coursed stone: each block its own shade, bevelled, with mortar between
+  bw = bw || 7; bh = bh || 3;
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+    const row = Math.floor((y - y0) / bh), ly = (y - y0) % bh, off = (row * 4) % bw, lx = (x - x0 + off) % bw, bid = Math.floor((x - x0 + off) / bw);
+    const tone = 0.88 + 0.18 * ih(bid, row, seed) + (vn(x / 2.5, y / 2, seed) - 0.5) * 0.12;
+    let nn = n, a = ao == null ? 1 : ao;
+    if (ly === bh - 1 || lx === 0) { a *= 0.45; nn = nrm(n[0], n[1] - 0.6, n[2]); }
+    else if (ly === 0) nn = nrm(n[0], n[1] + 0.7, n[2]);
+    B.put(x, y, shade(mul(al, tone), nn, a));
+  }
+}
+function tower(B, x, top, bot, seed) {
+  for (let y = top + 3; y < bot; y++) for (let k = 1; k <= 4; k++) B.shadow(x - k, y, 0.6);
+  blocks(B, x, x + 11, top, bot, C('#d8c8a8'), FRONT, seed, 6, 3);
+  blocks(B, x + 11, x + 15, top, bot, C('#d8c8a8'), SIDE, seed + 1, 4, 3);
+  for (let i = 0; i < 15; i += 3) for (let j = 1; j <= 3; j++) { B.put(x + i, top - j, shade(C('#d8c8a8'), i >= 11 ? SIDE : FRONT)); B.put(x + i + 1, top - j, shade(C('#d8c8a8'), i >= 11 ? SIDE : FRONT)); }
+  for (let i = 0; i < 15; i++) B.put(x + i, top, shade(C('#e0d0b0'), UPF));
+  for (const sy of [top + 5, top + 12]) for (let j = 0; j < 4; j++) B.put(x + 5, sy + j, C('#2a2026'));
+}
+function temple(B, cx, yb) {   // Apollo on the acropolis, painted the way the Greeks painted them
+  const w = 70, x0 = cx - 35, top = yb - 7 - 24, M = C('#ece2cc');
+  for (let s = 0; s < 3; s++) { const y = yb - 2 * s - 2, ins = 4 - s; for (let x = x0 - ins; x < x0 + w + ins; x++) { B.put(x, y, shade(M, UPF)); B.put(x, y + 1, shade(M, FRONT, (x - x0) % 9 === 0 ? 0.6 : 0.9)); } }
+  for (let y = top + 1; y < yb - 6; y++) for (let x = x0 + 1; x < x0 + w - 1; x++) B.put(x, y, shade(mixc(M, C('#9a4a32'), 0.25), FRONT, 0.32, 0));
+  for (let y = yb - 18; y < yb - 6; y++) for (let x = cx - 4; x < cx + 4; x++) B.put(x, y, C('#1e1416'));
+  for (let i = 0; i < 10; i++) {
+    const x = Math.round(x0 + 1 + i * (w - 6) / 9);
+    for (let y = top + 3; y < yb - 6; y++) for (let k = 0; k < 4; k++) { const u = (k + 0.5) / 4 * 2 - 1; B.put(x + k, y, shade(M, nrm(u, 0, Math.sqrt(1 - u * u * 0.85)), 1, 1, 0.1)); }
+    for (let k = -1; k < 5; k++) { B.put(x + k, top + 1, shade(M, UPF)); B.put(x + k, top + 2, shade(M, nrm(0, -0.3, 1), 0.7)); }
+    for (let k = -1; k < 5; k++) B.put(x + k, yb - 7, shade(M, UPF));
+  }
+  for (let x = x0 - 1; x < x0 + w + 1; x++) {
+    for (let y = top - 3; y <= top; y++) B.put(x, y, shade(M, FRONT, y === top ? 0.55 : 1));
+    const k = (x - x0 + 4) % 5;
+    for (let y = top - 7; y < top - 3; y++) B.put(x, y, k < 2 ? shade(C('#3a5a8a'), FRONT) : shade(mixc(M, C('#c89a7a'), 0.3), FRONT, 0.85));
+    B.put(x, top - 8, shade(C('#a8452e'), FRONT)); B.put(x, top - 9, shade(M, UPF));
+  }
+  const ph = 10;
+  for (let j = 0; j < ph; j++) {
+    const half = Math.round((w / 2 + 3) * (1 - (j + 1) / (ph + 1)));
+    for (let x = cx - half; x < cx + half; x++) B.put(x, top - 10 - j, shade(C('#a8452e'), FRONT, 0.55));
+    B.put(cx - half - 1, top - 10 - j, shade(M, nrm(-0.5, 0.7, 0.5))); B.put(cx - half - 2, top - 10 - j, shade(C('#b85a34'), nrm(-0.5, 0.8, 0.3)));
+    B.put(cx + half, top - 10 - j, shade(M, nrm(0.6, 0.7, 0.4))); B.put(cx + half + 1, top - 10 - j, shade(C('#c86a40'), nrm(0.6, 0.8, 0.2)));
+  }
+  for (const [fx, fh] of [[-14, 3], [-9, 5], [-4, 6], [2, 6], [7, 5], [12, 3]]) for (let j = 0; j < fh; j++) { B.put(cx + fx, top - 11 - j, shade(M, nrm(-0.3, 0.2, 1))); B.put(cx + fx + 1, top - 11 - j, shade(M, nrm(0.7, 0.2, 0.7))); }
+  for (const [ax, ay] of [[cx - 1, top - 21], [x0 - 4, top - 10], [x0 + w + 3, top - 10]]) for (let j = 0; j < 3; j++) { B.put(ax, ay - j, shade(M, FRONT)); B.put(ax + 1, ay - j, shade(M, SIDE)); }
+}
+function colossusWorks(B, cx, gy) {   // the Sun-god's bronze feet on the marble base, the earth ramp, the scaffold, a crane and the furnace
+  for (let x = cx - 34; x < cx + 38; x++) {
+    const t = gy + Math.round(1.5 * fbm(x / 6, 0, 12, 3));
+    for (let y = t; y < gy + 5; y++) B.put(x, y, shade(C('#b49c70'), nrm(0.2, 0.8, 0.5), 0.9));
+    for (let y = gy + 5; y < gy + 10; y++) { const n2 = fbm(x / 3, y / 2, 5, 3); B.put(x, y, shade(C('#a08e78'), nrm((n2 - 0.5) * 3, 0.2, 1), 0.7 - (y - gy - 5) * 0.08)); }
+    waterTop[x] = Math.max(waterTop[x], gy + 10);
+  }
+  const M = C('#f2ece0'), BR = C('#9a6634'), WD = C('#8a5e3a');
+  for (const x of [cx - 15, cx - 3, cx + 11]) cyl(B, x, gy - 56, 2, 52, mul(WD, 0.7), 0.6);
+  for (let y = gy - 52; y < gy - 34; y += 8) for (let x = cx - 19; x < cx + 21; x++) B.put(x, y, shade(mul(WD, 0.7), UPF, 0.6));
+  const b0 = cx - 18, bw = 36, top = gy - 18;
+  for (let y = gy - 3; y < gy; y++) for (let x = b0 - 2; x < b0 + bw + 2; x++) B.put(x, y, shade(M, y === gy - 3 ? UPF : FRONT, 0.85));
+  for (let y = top + 3; y < gy - 3; y++) {
+    for (let x = b0; x < b0 + bw - 6; x++) B.put(x, y, shade(mul(M, 0.96 + 0.06 * vn(x / 3, y / 3, 7)), y === top + 6 ? nrm(0, -0.5, 1) : FRONT, x < b0 + 2 ? 0.7 : 1));
+    for (let x = b0 + bw - 6; x < b0 + bw; x++) B.put(x, y, shade(M, SIDE));
+  }
+  for (let x = b0 - 1; x < b0 + bw + 1; x++) { B.put(x, top, shade(M, UPF)); B.put(x, top + 1, shade(M, FRONT)); B.put(x, top + 2, shade(M, nrm(0, -0.6, 1), 0.6)); }
+  for (const fx of [cx - 17, cx + 1]) {   // the feet, toes towards us, and the ankles, with the iron frame standing out of them
+    const c = fx + 8;
+    for (let j = 0; j < 7; j++) {
+      const y = top - 7 + j, w = 10 + j * 1.0;
+      for (let x = Math.floor(c - w / 2); x < Math.ceil(c + w / 2); x++) {
+        const u = (x + 0.5 - c) / (w / 2), toe = j >= 4 && Math.floor(x - (c - w / 2)) % 3 === 2;
+        B.put(x, y, shade(BR, nrm(u * 0.75, 0.95 - j * 0.28, 0.6), toe ? 0.45 : 1, 1, 0.9, 14));
+      }
+    }
+    for (let y = top - 22; y < top - 6; y++) {
+      const k = (y - (top - 22)) / 16, w = 8 - Math.sin(k * Math.PI * 0.8) * 0.8 + (k > 0.72 ? 2 : 0);
+      for (let x = Math.floor(c - w / 2); x < Math.ceil(c + w / 2); x++) { const u = (x + 0.5 - c) / (w / 2); B.put(x, y, shade(BR, nrm(u, 0.05, Math.sqrt(Math.max(0.05, 1 - u * u * 0.9))), 1, 1, 1.1, 14)); }
+    }
+    for (let x = c - 4; x < c + 4; x++) B.put(x, top - 23, shade(mul(BR, 0.55), UPF, 0.6));
+    for (const ix of [c - 2, c + 2]) for (let y = top - 30; y < top - 23; y++) B.put(ix, y, shade(C('#5a5860'), FRONT, 1, 1, 0.4));
+  }
+  for (const [wx, wy] of [[cx - 10, gy - 55], [cx + 5, gy - 55], [cx - 27, gy - 30]]) for (let j = 0; j < 5; j++) B.put(wx, wy - j, j > 3 ? C('#c48a58') : C('#7a5a3a'));
+  for (let k = 0; k < 20; k++) for (let x = cx + 15 - Math.round(k * 0.2); x < cx + 18 + Math.round(k * 1.1); x++) {   // the ramp of earth
+    const y = gy - 20 + k; B.put(x, y, shade(mul(C('#a88a5a'), 0.9 + 0.2 * vn(x / 2, y / 2, 9)), nrm(0.5, 0.75, 0.4), 0.9));
+  }
+  for (const x of [cx - 22, cx + 23]) cyl(B, x, gy - 58, 2, 58, WD, 1);
+  for (const y of [gy - 54, top - 26]) for (let x = cx - 23; x < cx + 26; x++) { B.put(x, y, shade(WD, UPF)); B.put(x, y + 1, shade(WD, FRONT, 0.7)); }
+  for (let y = top - 24; y < gy; y += 3) for (let x = cx - 29; x < cx - 25; x++) B.put(x, y, shade(WD, UPF));
+  cyl(B, cx - 30, top - 25, 1, gy - top + 25, WD); cyl(B, cx - 25, top - 25, 1, gy - top + 25, WD);
+  const kx = cx + 33; cyl(B, kx, gy - 76, 3, 76, WD);
+  ropeLine(B, kx, gy - 76, cx - 4, gy - 70, shade(WD, UPF), 0); ropeLine(B, kx, gy - 75, cx - 4, gy - 69, shade(mul(WD, 0.7), FRONT), 0);
+  for (let y = gy - 12; y < gy; y++) for (let x = kx - 6; x < kx + 6; x++) { const u = (x - kx) / 6; B.put(x, y, shade(WD, nrm(u, 0.2, 1), (y - gy + 12) % 3 === 0 ? 0.5 : 1)); }
+  const fx = cx - 40;   // the furnace
+  for (let y = gy - 12; y < gy; y++) for (let x = fx; x < fx + 12; x++) B.put(x, y, shade(C('#8a5a40'), x > fx + 9 ? SIDE : FRONT, 0.9));
+  for (let y = gy - 22; y < gy - 12; y++) for (let x = fx + 3; x < fx + 8; x++) B.put(x, y, shade(C('#7a4e38'), x > fx + 6 ? SIDE : FRONT));
+  for (let y = gy - 6; y < gy - 2; y++) for (let x = fx + 3; x < fx + 8; x++) B.put(x, y, mixc(C('#ffb040'), C('#c03a10'), (y - gy + 6) / 4 + (x - fx - 3) * 0.05));
+}
+function mole(B) {   // the harbour mole, its tower, and ships tied up behind it
+  for (const [mx, mt] of [[352, 84], [384, 90]]) {
+    for (let x = mx - 16; x < mx + 16; x++) for (let y = 133; y < 137; y++) B.put(x, y, shade(C('#6a4a32'), y === 133 ? UPF : FRONT, 0.8));
+    cyl(B, mx, mt, 2, 133 - mt, C('#6a4a32'));
+    for (let x = mx - 11; x < mx + 12; x++) { B.put(x, mt + 3, shade(C('#6a4a32'), UPF)); for (let j = 0; j < 3; j++) B.put(x, mt + 4 + j, shade(C('#eee4d0'), nrm(Math.sin(x * 0.9) * 0.4, 0.4 - j * 0.4, 1))); }
+  }
+  for (let x = 318; x < W; x++) { for (let y = 136; y < 138; y++) B.put(x, y, shade(C('#d8c8a8'), UPF)); waterTop[x] = Math.max(waterTop[x], 144); }
+  blocks(B, 318, W, 138, 144, C('#c8b898'), FRONT, 77, 9, 3);
+  tower(B, 320, 104, 140, 81);
+  for (let y = 96; y < 104; y++) for (let x = 322 + (y - 96 > 3 ? 0 : 1); x < 333 - (y - 96 > 3 ? 0 : 1); x++) B.put(x, y, shade(C('#c46440'), nrm((x - 327) / 6, 0.7, 0.5)));
+}
+function paintCity(B, r) {
+  for (let x = 0; x <= 256; x++) for (let y = hillY(x); y < SHORE; y++) {
+    const b = fbm(x / 5, y / 4, 52, 3), bx = fbm((x + 1) / 5, y / 4, 52, 3) - b, by = fbm(x / 5, (y + 1) / 4, 52, 3) - b;
+    B.put(x, y, shade(mixc(C('#b8a06a'), C('#86884e'), sm(0.35, 0.75, fbm(x / 14, y / 9, 53, 3))), nrm(0.25 - bx * 6, 0.75, 0.6 + by * 4), 0.9));
+  }
+  for (let k = 0; k < 120; k++) { const x = Math.floor(r() * 252), t = hillY(x); if (t > SHORE - 12) continue; bush(B, x, t + 2 + r() * Math.min(12, SHORE - t - 10), 2 + r() * 2.5, 1.5 + r() * 1.5, r() < 0.5 ? C('#5e7440') : C('#76804a'), k); }
+  for (const [x, h] of [[8, 16], [14, 11], [104, 17], [110, 12]]) cypress(B, x, hillY(x) + 1, h, x);
+  temple(B, 58, hillY(58) + 2);
+  for (let yb = 66; yb <= SHORE - 7; yb += 6) {
+    let x = Math.floor(r() * 8) - 6;
+    while (x < 256) {
+      const w = 8 + Math.floor(r() * 8), h = 7 + Math.floor(r() * 3) + (yb > 110 ? 1 : 0), right = x + w + 3;
+      const fits = Math.max(hillY(Math.max(0, x)), hillY(Math.min(256, right))) <= yb - 1 && right < 257, inTemple = yb < 76 && right > 18 && x < 100;
+      if (fits && !inTemple) {
+        if (r() < 0.13) { if (r() < 0.5) cypress(B, x + 3, yb, 10 + Math.floor(r() * 6), x); else bush(B, x + 4, yb - 4, 4, 3, C('#7a8a50'), x); x += 8; continue; }
+        house(B, x, yb, w, h, [C('#f2ead8'), C('#ead8b4'), C('#e2cca2'), C('#f4efe4'), C('#e4cca4'), C('#d8be96'), C('#e8c8b0'), C('#d4c4a4')][Math.floor(r() * 8)], [C('#b25a3a'), C('#a04c32'), C('#c06a46'), C('#8a4a34'), C('#9a6a50'), C('#b8704c')][Math.floor(r() * 6)], r() < 0.3 ? 'gable' : 'eaves', r);
+      }
+      x += w + 3 + (r() < 0.25 ? 1 + Math.floor(r() * 2) : 0);
+    }
+  }
+  blocks(B, 0, 257, SHORE - 10, SHORE, C('#d8c6a2'), FRONT, 91, 8, 3);
+  for (let x = 0; x < 257; x++) { B.put(x, SHORE - 11, shade(C('#e4d4b0'), UPF)); if (x % 5 < 3) for (let j = 12; j <= 14; j++) B.put(x, SHORE - j, shade(C('#d8c6a2'), x % 5 === 2 ? SIDE : FRONT)); }
+  for (const tx of [18, 78, 146, 210]) tower(B, tx, SHORE - 26, SHORE, tx);
+  for (let y = SHORE - 9; y < SHORE; y++) for (let x = 118; x < 126; x++) B.put(x, y, C('#20181a'));
+  for (let x = 0; x <= 256; x++) waterTop[x] = SHORE;
+}
+// Elpis from the side, every strake lit, with her painted eye.
+function makeElpis() {
+  const B = new Buf(140, 104), wl = 92, x0 = 18, x1 = 122;
+  const top = x => Math.round(wl - 15 - 11 * Math.pow(1 - sm(x0, x0 + 34, x), 1.6) - 8 * Math.pow(sm(x1 - 34, x1, x), 2));
+  const bot = x => x < x0 + 14 ? Math.round(wl - (x0 + 14 - x) * 0.9) : x > x1 - 10 ? Math.round(wl - (x - (x1 - 10)) * 2.2) : wl;
+  const WD = C('#8a5e3a');
+  for (let k = 0; k < 26; k++) { const x = 30 - k * 0.8, y = top(30) - 3 + k; B.put(x, y, shade(WD, nrm(-0.6, 0.3, 0.8))); B.put(x + 1, y, shade(WD, nrm(0.5, 0.3, 0.8))); }
+  for (let y = wl - 6; y < wl + 1; y++) for (let x = 10; x < 15; x++) B.put(x, y, shade(WD, nrm((x - 12) / 3, 0, 1), 0.8));
+  cyl(B, 63, 6, 3, wl - 20, WD);
+  for (let x = 28; x <= 102; x++) { const dy = Math.round(Math.pow((x - 64.5) / 37, 2) * 1.6); B.put(x, 15 + dy, shade(WD, UPF)); B.put(x, 16 + dy, shade(WD, FRONT, 0.6)); }
+  for (let x = 30; x <= 100; x++) {   // the furled sail, in folds, tied with brails
+    const dy = Math.round(Math.pow((x - 64.5) / 37, 2) * 1.6), th = x < 35 || x > 95 ? 3 : 6, f = Math.sin(x * 0.85 + vn(x / 3, 0, 4) * 3) * 0.5;
+    for (let j = 0; j < th; j++) { const tie = x % 10 === 4; B.put(x, 17 + dy + j, tie ? shade(C('#5a3a24'), FRONT) : shade(C('#ece2cc'), nrm(f, 0.6 - j / th * 1.3, 0.8), 0.9)); }
+  }
+  for (let x = x0; x <= x1; x++) {
+    const t = top(x), b = bot(x), end = x < x0 + 8 ? -0.6 : x > x1 - 8 ? 0.6 : 0;
+    for (let y = t; y <= b; y++) {
+      const d = y - t, s = (y - t) / Math.max(1, wl - t);
+      let al, n = nrm(end, 0.45 - s * 1.0, 1), ao = 1, sp = 0;
+      if (d <= 1) { al = C('#c8945c'); n = nrm(end, 0.9, 0.4); }
+      else if (d === 2) { al = C('#5a3a24'); ao = 0.5; }
+      else if (d <= 6) { al = C('#a8402a'); }
+      else if (d <= 8) { al = C('#3a2416'); n = nrm(end, d === 7 ? 0.8 : -0.6, 0.8); }
+      else if (y >= wl - 1) { al = C('#1a1414'); sp = 0.6; }
+      else { al = mul(C('#6e4a2c'), 0.9 + 0.2 * vn(x / 6, y, 3)); if ((d - 9) % 4 === 3) { n = nrm(end, -0.7, 0.7); ao = 0.6; } }
+      B.put(x, y, shade(al, n, ao, 1, sp, 30));
+    }
+  }
+  const neck = [[20, 66], [18, 64], [16, 61], [15, 58], [15, 55], [16, 52], [18, 50], [21, 49], [24, 50], [25, 52]];
+  for (let k = 0; k < neck.length - 1; k++) { const [ax, ay] = neck[k], [bx, by] = neck[k + 1]; for (let s = 0; s <= 4; s++) { const x = ax + (bx - ax) * s / 4, y = ay + (by - ay) * s / 4; for (let q = -1; q <= 1; q++) B.put(x + q, y, shade(WD, nrm(q * 0.8, 0.3, 0.7))); } }
+  B.put(26, 53, shade(C('#e8d2a0'), FRONT)); B.put(25, 51, C('#1a120c'));
+  for (let y = top(x1) - 9; y <= top(x1); y++) { B.put(x1 + 1, y, shade(WD, FRONT)); B.put(x1 + 2, y, shade(WD, SIDE)); }
+  const ex = x1 - 16, ey = top(x1 - 16) + 3;   // the eye
+  for (let j = 0; j < 4; j++) for (let i = 0; i < 8; i++) { if ((j === 0 || j === 3) && (i === 0 || i === 7)) continue; B.put(ex + i, ey + j, shade(C('#f4ecdc'), FRONT)); }
+  for (let j = 0; j < 4; j++) for (let i = 3; i < 6; i++) B.put(ex + i, ey + j, C('#120c0e'));
+  B.put(ex + 4, ey + 1, C('#6a6a7a')); for (let i = 0; i < 9; i++) B.put(ex - 1 + i, ey - 1, C('#2a1410'));
+  for (let k = 0; k < 7; k++) lathe(B, 74 + k * 4, top(74 + k * 4) - 5, [1, 1.4, 1.8, 2, 2.1], C('#c06a38'), 0.4);   // jar necks over the rail
+  for (let y = top(46) - 4; y < top(46); y++) for (let x = 44; x < 52; x++) B.put(x, y, shade(C('#c9a46a'), nrm((x - 48) / 5, 0.6 - (y - top(46) + 4) / 4, 0.8)));
+  const fig = (fx, ft, robe, hair, hat) => {
+    for (let y = ft - 8; y < ft; y++) for (let i = 0; i < 6; i++) { const u = (i + 0.5) / 6 * 2 - 1; B.put(fx + i, y, shade(robe, nrm(u, 0.2, 0.9))); }
+    for (let y = ft - 13; y < ft - 8; y++) for (let i = 1; i < 5; i++) { const u = (i - 2.5) / 2.2, v = (y - ft + 10.5) / 2.6; B.put(fx + i, y, shade(C('#c48a58'), nrm(u, -v * 0.5, 1))); }
+    for (let i = 1; i < 5; i++) B.put(fx + i, ft - 14, shade(hair, UPF)); B.put(fx + 3, ft - 11, C('#1a100a'));
+    if (hat) for (let i = -1; i < 7; i++) B.put(fx + i, ft - 15, shade(C('#8a6a44'), UPF));
+  };
+  fig(30, top(30) - 1, C('#7a5a3a'), C('#d8d2c4'), true); fig(86, top(86) - 4, C('#9a6a3a'), C('#2a1d14'));
+  outline(B, 0.5);
+  const rope = C('#3a2a20');
+  ropeLine(B, 64, 7, x1 + 2, top(x1) - 9, rope, 0); ropeLine(B, 64, 7, 22, 50, rope, 0);
+  ropeLine(B, 63, 8, 28, 15, C('#4a3a30'), 0); ropeLine(B, 65, 8, 102, 15, C('#4a3a30'), 0);
+  ropeLine(B, 62, 11, 52, top(52) - 1, rope, 0); ropeLine(B, 66, 11, 76, top(76) - 1, rope, 0);
+  return { B, wl, x0, x1, top };
+}
+// ---------- the quay, the stalls and the traders ----------
+const LOOKS = {
+  thras: { skin: '#c48a58', hair: '#3a281c', style: 'short', beard: 2, robe: '#8b3240', trim: '#ead7ae' },
+  korinna: { skin: '#b97f50', hair: '#24180f', style: 'veil', veil: '#3f6f8e', beard: 0, robe: '#d2b27a', trim: '#8a5a34' },
+  aristeia: { skin: '#cf9a6a', hair: '#bfb7aa', style: 'veil', veil: '#2a2420', beard: 0, robe: '#4a3a30', trim: '#c8623a' },
+  arsenal: { skin: '#b07a4c', hair: '#5a4632', style: 'bald', beard: 1, robe: '#5f6b4a', trim: '#d9a441' },
+  stores: { skin: '#c99468', hair: '#6b4a2e', style: 'long', beard: 0, robe: '#9a6a3a', trim: '#efe3cc' },
+  works: { skin: '#b88252', hair: '#2d2018', style: 'curly', beard: 2, robe: '#e9dcc0', trim: '#b0773a', hat: 'pilos' },
+  bank: { skin: '#c99a6c', hair: '#d8d2c4', style: 'short', beard: 1, robe: '#2f4a6a', trim: '#e3b453' },
+};
+const STALLS = [['thras', 0.08, 'wine'], ['korinna', 0.22, 'sponge'], ['aristeia', 0.36, 'cups'], ['arsenal', 0.5, 'bolt'], ['stores', 0.64, 'stores'], ['works', 0.78, 'works'], ['bank', 0.92, 'bank']];
+// A trader seen over a counter: a round, lit head about 11 pixels tall, arms at the sides.
+function traderBuf(L, blink) {
+  const B = new Buf(30, 34), cx = 15, cy = 9, sk = C(L.skin), hr = C(L.hair), rb = C(L.robe), tr = C(L.trim);
+  for (let y = 16; y < 34; y++) {   // shoulders, chest and the arms hanging down
+    const v = y - 16, half = v < 4 ? 5 + v * 1.2 : 9.5;
+    for (let x = cx - half; x <= cx + half; x++) {
+      const u = (x + 0.5 - cx) / 10, arm = Math.abs(u) > 0.62 && v >= 3, f = Math.sin(x * 1.3 + v * 0.15) * 0.25;
+      const bare = arm && v > 9 && !(L.style === 'veil'), al = bare ? sk : rb;
+      B.put(x, y, shade(al, nrm(arm ? (Math.abs(u) - 0.8) * 4 * Math.sign(u) : u + f, 0.25 - v * 0.02, 0.9), arm && Math.abs(Math.abs(u) - 0.64) < 0.06 ? 0.4 : 1));
+    }
+  }
+  for (let x = cx - 2; x <= cx + 2; x++) B.put(x, 16 + Math.abs(x - cx) * 0 + (Math.abs(x - cx) < 2 ? 1 : 0), shade(tr, FRONT));
+  for (let y = 0; y < 17; y++) for (let x = cx - 6; x <= cx + 6; x++) {   // the head
+    const nx = (x + 0.5 - cx) / 4.8, ny = (y + 0.5 - cy) / 6, d = nx * nx + ny * ny; if (d > 1) continue;
+    B.put(x, y, shade(sk, nrm(nx, -ny * 0.8, Math.sqrt(1 - d * 0.9)), 1, 1, 0.12));
+  }
+  for (let y = 14; y < 17; y++) for (let x = cx - 2; x <= cx + 1; x++) B.put(x, y, shade(sk, FRONT, 0.55));
+  const ey = cy - 1;
+  if (!blink) { B.put(cx - 2, ey, C('#1a0e0a')); B.put(cx + 2, ey, C('#1a0e0a')); } else { B.put(cx - 2, ey, shade(sk, FRONT, 0.7)); B.put(cx + 2, ey, shade(sk, FRONT, 0.7)); }
+  B.put(cx - 2, ey - 1, shade(hr, FRONT, 0.8)); B.put(cx + 2, ey - 2, shade(hr, FRONT, 0.8)); B.put(cx + 3, ey - 1, shade(hr, FRONT, 0.8));
+  B.put(cx, ey + 2, shade(sk, nrm(0.5, -0.3, 0.8), 0.7)); B.put(cx + 1, ey + 1, shade(sk, nrm(0.7, 0.2, 0.7)));
+  B.put(cx, cy + 4, shade(C('#7a3a2a'), FRONT)); B.put(cx + 1, cy + 4, shade(C('#8a4434'), FRONT));
+  const hairAt = (x, y, n) => B.put(x, y, shade(hr, n, 1, 1, 0.25, 12));
+  if (L.style === 'veil') {
+    const vl = C(L.veil);
+    for (let y = 1; y < 22; y++) for (let x = cx - 7; x <= cx + 7; x++) {
+      const nx = (x + 0.5 - cx) / 6.4, ny = (y + 0.5 - cy) / 7, d = nx * nx + Math.max(0, ny) * Math.max(0, ny) * 0.2 + (ny < 0 ? ny * ny : 0);
+      const inFace = Math.abs(x + 0.5 - cx) < 4 && y > 3 && y < 15;
+      if (d > 1 || inFace) continue;
+      B.put(x, y, shade(vl, nrm(nx, 0.3 - (y - 1) / 22, 0.8), 1, 1, 0.1));
+    }
+    for (let x = cx - 3; x <= cx + 3; x++) hairAt(x, 4, UPF);
+  } else if (L.style === 'bald') {
+    for (const x of [cx - 5, cx + 4]) for (let y = cy - 2; y < cy + 2; y++) hairAt(x, y, FRONT);
+    B.put(cx + 1, 3, shade(sk, UPF, 1, 1, 0.8, 8));
+  } else {
+    for (let y = 1; y < cy - 1; y++) for (let x = cx - 6; x <= cx + 6; x++) {
+      const nx = (x + 0.5 - cx) / 5.4, ny = (y + 0.5 - cy) / 6.6, b = (vn(x / 1.2, y / 1.2, 7) - 0.5) * (L.style === 'curly' ? 1.6 : 0.8);
+      if (nx * nx + ny * ny > 1 + b * 0.15 || (y > cy - 4 && Math.abs(nx) < 0.7)) continue;
+      hairAt(x, y, nrm(nx + b, -ny * 0.7 + 0.3, 0.7));
+    }
+    if (L.style === 'long') for (let y = cy - 2; y < 23; y++) for (const x of [cx - 6, cx - 5, cx + 5, cx + 6]) hairAt(x, y, nrm(Math.sign(x - cx) * 0.6, 0.2, 0.8));
+  }
+  if (L.beard) for (let y = cy + 2; y < cy + (L.beard > 1 ? 9 : 6); y++) for (let x = cx - 5; x <= cx + 5; x++) {
+    const nx = (x + 0.5 - cx) / 5, ny = (y - cy) / 7.5; if (nx * nx + ny * ny > 1.1 || (y === cy + 4 && Math.abs(x - cx - 0.5) < 2) || (y < cy + 4 && Math.abs(nx) < 0.55)) continue;
+    hairAt(x, y, nrm(nx, -0.3, 0.9));
+  }
+  const face = () => {
+    for (const s2 of [-1, 1]) { const ex = cx + (s2 < 0 ? -2 : 2); if (!blink) B.put(ex, ey, C('#140a06')); else B.put(ex, ey, shade(sk, FRONT, 0.6)); B.put(ex, ey + 1, shade(sk, FRONT, 0.75)); if (L.style !== 'veil' || true) B.put(ex + (s2 < 0 ? 0 : 0), ey - 2, mul(shade(hr, FRONT), 0.8)); B.put(ex + (s2 < 0 ? -1 : 1), ey - 2, mul(shade(hr, FRONT), 0.8)); }
+    B.put(cx, ey + 1, shade(sk, nrm(0.8, 0.2, 0.6))); B.put(cx - 1, ey + 2, shade(sk, FRONT, 0.55));
+    B.put(cx - 1, cy + 4, C('#5a2018')); B.put(cx, cy + 4, C('#6a2a20')); B.put(cx + 1, cy + 4, C('#5a2018'));
+  };
+  face();
+  if (L.hat === 'pilos') for (let y = -1; y < 4; y++) for (let x = cx - 5; x <= cx + 5; x++) { const w = 5 - (3 - y) * 1.2; if (Math.abs(x + 0.5 - cx) > w || y < 0) continue; B.put(x, y, shade(C('#a07a4a'), nrm((x + 0.5 - cx) / 6, 0.5, 0.8))); }
+  outline(B, 0.45);
+  return B;
+}
+function stallBuf(L, kind) {   // a plain stall: two posts, a linen awning, a plank counter and the goods on it
+  const back = new Buf(46, 56), awn = new Buf(50, 14), front = new Buf(46, 30), o = 23, linen = C('#e8dcc0'), WD = C('#8a5e3a');
+  for (const px of [o - 18, o + 16]) cyl(back, px, 2, 2, 54, WD);
+  outline(back, 0.5);
+  for (let y = 0; y < 9; y++) {   // the awning slopes down towards us; we see its sunlit top, then the hem
+    const half = 18 + y * 0.6;
+    for (let x = Math.floor(25 - half); x < Math.ceil(25 + half); x++) {
+      const f = Math.sin(x * 0.75 + y * 0.1) * 0.3;
+      awn.put(x, y + 1, shade(mul(linen, 0.95 + 0.07 * vn(x / 2, y, 3)), nrm(f, 0.85, 0.5), 1));
+    }
+  }
+  for (let x = 1; x < 49; x++) for (let y = 10; y < 12; y++) awn.put(x, y, shade(mul(linen, 0.92), nrm(Math.sin(x * 0.75) * 0.3, -0.1, 1), y === 11 ? 0.75 : 0.9));
+  outline(awn, 0.5);
+  for (let x = 2; x < 44; x++) { front.put(x, 12, shade(C('#c49460'), UPF)); front.put(x, 13, shade(C('#a87848'), FRONT)); }
+  for (let y = 14; y < 24; y++) for (let x = 3; x < 43; x++) front.put(x, y, shade(mul(WD, 0.85 + 0.2 * vn(x / 5, y * 2, 8)), (y - 14) % 4 === 3 ? nrm(0, -0.6, 0.8) : FRONT, (y - 14) % 4 === 3 ? 0.5 : 1));
+  const top = 12, al = C('#c0703c');
+  if (kind === 'wine') { for (const ax of [8, 14, 33]) lathe(front, ax, top - 12, [1.2, 1.2, 1, 1, 2, 3, 3.4, 3.5, 3.4, 3, 2.6, 2, 1.4, 0.8], al, 0.5); lathe(front, 24, top - 3, [3.5, 2.5, 1], C('#1c1614'), 1.2); }
+  if (kind === 'sponge') { for (const [sx, sy] of [[7, 9], [12, 9], [9, 6]]) for (let y = 0; y < 4; y++) for (let x = 0; x < 5; x++) front.put(sx + x, sy + y, shade(C('#d8a040'), nrm((x - 2) / 3, 0.5 - y / 4, 0.8), (x * 3 + y * 5) % 7 === 0 ? 0.4 : 1)); for (let x = 24; x < 36; x++) for (let y = 8; y < 12; y++) front.put(x, y, shade(y === 8 ? C('#7a3a52') : C('#b08a52'), nrm(0, y === 8 ? 0.8 : 0, 1), (x + y) % 2 ? 0.8 : 1)); }
+  if (kind === 'cups') for (const [ux, uy] of [[6, 12], [14, 12], [22, 12], [30, 12], [10, 8], [18, 8], [26, 8]]) lathe(front, ux + 3, uy - 4, [3.5, 2.6, 1, 1.5], C('#1c1614'), 1.4);
+  if (kind === 'bolt') { for (let x = 8; x < 30; x++) for (let y = 8; y < 11; y++) front.put(x, y, shade(WD, nrm(0, 0.6 - (y - 8) * 0.5, 0.8))); for (let y = 1; y < 12; y++) { front.put(30 + Math.round(Math.abs(y - 7) * 0.4), y, shade(C('#5a3a24'), FRONT)); } ropeLine(front, 30, 1, 12, 9, C('#d8ccaa'), 0); ropeLine(front, 30, 12, 12, 9, C('#d8ccaa'), 0); }
+  if (kind === 'stores') { for (const sx of [5, 12]) lathe(front, sx + 3, top - 8, [1.5, 2.5, 3, 3.4, 3.5, 3.5, 3.4, 3.2], C('#c9a46a'), 0.1); lathe(front, 30, top - 11, [1.6, 1.4, 1.4, 2.5, 3.6, 4, 4.1, 4, 3.6, 3, 2.2], C('#d6a874'), 0.4); }
+  if (kind === 'works') { for (let y = 5; y < 12; y++) for (let x = 5; x < 15; x++) front.put(x, y, shade(C('#ece6d8'), y === 5 ? UPF : x > 12 ? SIDE : FRONT)); for (let x = 20; x < 34; x++) for (let y = 10; y < 12; y++) front.put(x, y, shade(C('#efe4c4'), nrm(0, 0.6, 0.8))); }
+  if (kind === 'bank') { for (const [sx, n] of [[6, 5], [11, 8], [16, 4]]) for (let k = 0; k < n; k++) for (let x = 0; x < 4; x++) front.put(sx + x, 11 - k, shade(C('#d8dde2'), nrm((x - 1.5) / 2, k % 2 ? 0.6 : -0.2, 0.8), 1, 1, 0.8)); cyl(front, 30, 0, 1, 12, C('#b8783a'), 1, 0.8); for (let x = 24; x < 37; x++) front.put(x, 0, shade(C('#b8783a'), UPF, 1, 1, 0.8)); for (let x = 22; x < 27; x++) front.put(x, 6, shade(C('#b8783a'), UPF)); for (let x = 34; x < 39; x++) front.put(x, 7, shade(C('#b8783a'), UPF)); }
+  outline(front, 0.5);
+  return { back, awn, front };
+}
+function paintQuay(B) {
+  for (let x = 0; x < W; x++) B.put(x, QY - 1, C('#2a2028'));
+  let x = -6;
+  while (x < W) { const w = 22 + Math.floor(ih(x, 1, 5) * 12); for (let y = QY; y < QY + 6; y++) for (let i = 0; i < w; i++) { const n = y === QY ? nrm(0, 0.9, 0.4) : y === QY + 5 || i === w - 1 ? nrm(0, -0.5, 0.8) : UPF; B.put(x + i, y, shade(mul(C('#dccaa6'), 0.92 + 0.12 * vn((x + i) / 3, y / 2, 6)), n, y === QY + 5 || i === w - 1 ? 0.5 : 1)); } x += w; }
+  const rows = [7, 8, 9, 10, 12];
+  let y = QY + 6;
+  rows.forEach((rh, r) => {
+    let x = -Math.floor(ih(r, 9, 3) * 20);
+    while (x < W && y < H) {
+      const w = 18 + rh * 2 + Math.floor(ih(x, r, 4) * 18), tone = 0.86 + 0.16 * ih(x, r, 5);
+      for (let j = 0; j < rh; j++) for (let i = 0; i < w; i++) {
+        const X = x + i, Y = y + j; if (X < 0 || X >= W || Y >= H) continue;
+        const b = fbm(X / 3, Y / 2.4, r + 11, 3), bx = fbm((X + 1) / 3, Y / 2.4, r + 11, 3) - b;
+        let n = nrm(-bx * 3, 0.85, 0.55), ao = 1;
+        if (j === rh - 1 || i === w - 1) { n = nrm(0, -0.6, 0.8); ao = 0.4; } else if (j === 0 || i === 0) n = nrm(i === 0 ? -0.4 : 0, 1, 0.3);
+        const worn = vn(X / 6, Y / 4, r + 3) > 0.72 ? 1.06 : 1;
+        B.put(X, Y, shade(mul(C('#d4c09a'), tone * worn), n, ao));
+      }
+      x += w;
+    }
+    y += rh;
+  });
+  for (const bx of [130, 292]) lathe(B, bx, QY - 8, [2.6, 3, 3, 3, 2.8, 2.8, 2.8, 3.2, 3.4], C('#b8a888'), 0.1);   // bollards
+  for (let k = 0; k < 4; k++) for (let x = 64 + k; x < 78 - k; x++) B.put(x, QY + 1 - k, shade(C('#c8b07a'), nrm(0, 0.7, 0.7), k % 2 ? 0.75 : 1));   // a coil of rope
+  for (let k = 0; k < 5; k++) lathe(B, 168 + k * 4, QY - 12 + (k % 2), [1, 1.2, 2, 3, 3.3, 3.3, 3, 2.6, 2, 1.4, 0.8], C('#c0703c'), 0.4);   // jars waiting to be loaded
+  for (const [bx, by] of [[224, 0], [231, 0], [227, -6]]) for (let j = 0; j < 6; j++) for (let i = 0; i < 7; i++) B.put(bx + i, QY - 6 + by + j, shade(C('#9a6a40'), j === 0 ? UPF : i === 6 ? SIDE : FRONT, (i + j) % 6 === 0 ? 0.6 : 1));
+}
+// ---------- the sea, worked out every frame ----------
+const SEA = { img: null, ctx: null, cv: null, refl: null };
+function seaColour(x, y, t, sx0) {
+  const d = (y - HZ) / (QY - HZ), fx = x / (3 + d * 11), fy = y / (0.7 + d * 2.6);
+  const h = (X, Y) => vn(X + t * 0.22, Y, 71) * 0.62 + vn(X * 2.1 - t * 0.37, Y * 2.2 + 3, 72) * 0.38;
+  const h0 = h(fx, fy), hx = h(fx + 0.12, fy) - h0, hy = h(fx, fy + 0.25) - h0;
+  const facing = -hy * 3.2;   // waves leaning towards us show the lower, warmer sky
+  const sky = skyAt(x, clamp(HZ - 8 - (1 - d) * 60 + facing * 40, 0, HZ - 1), HZ, SUNX);
+  const deep = mixc(C('#2a6e98'), C('#123e66'), sm(0, 1, d)), fres = clamp(0.78 - d * 0.55 + facing * 0.6, 0.05, 0.95);
+  let c = mixc(deep, sky, fres);
+  const g = Math.max(0, hx * 6 + facing * 0.6 - 0.25) * (0.3 + x / W) * sm(0.05, 0.45, d);   // glints on the side of the swell that faces the sun
+  c = [c[0] + g * 1.1, c[1] + g * 0.95, c[2] + g * 0.75];
+  if (sx0 !== undefined) {   // the reflection of whatever stands at the water's edge
+    const wt = waterTop[x], k = y - wt, len = 30;
+    if (k >= 0 && k < len) {
+      const sy = wt - 1 - k + Math.round(facing * 6 * (k / len)), sx = clamp(x + Math.round(hx * 12), 0, W - 1);
+      if (sy >= 0) { const i = (sy * W + sx) * 4; if (SEA.refl[i + 3]) { const a = 0.55 * (1 - k / len); c = mixc(c, [SEA.refl[i] / 255 * 0.85, SEA.refl[i + 1] / 255 * 0.85, SEA.refl[i + 2] / 255 * 0.9], a); } }
+      if (k < 2) { const f = vn(x / 2 + t * 0.6, k, 9) > 0.55 ? 0.35 : 0; c = mixc(c, C('#f4f0e6'), f); }
+    }
+  }
+  return c;
+}
+function drawSea(P, t) {
+  const d = SEA.img.data, step = SEA.full ? 2 : 1; SEA.par = SEA.par ? 0 : 1; SEA.full = true;   // half the rows each time, after the first
+  for (let y = HZ + (step > 1 ? SEA.par : 0); y < QY; y += step) for (let x = 0; x < W; x++) {
+    const i = ((y - HZ) * W + x) * 4;
+    const c = seaColour(x, y, t, 0), k = qi(P, c[0], c[1], c[2], x, y), b = P.bytes[k];
+    d[i] = b[0]; d[i + 1] = b[1]; d[i + 2] = b[2]; d[i + 3] = 255;
+  }
+  SEA.ctx.putImageData(SEA.img, 0, 0);
+}
+
+// ---------- building the harbour ----------
+const HB = {};
+function buildHarbour() {
+  const sky = new Buf(W, H), land = new Buf(W, H), quay = new Buf(W, H), r = rnd(20);
+  paintSky(sky, HCLOUDS, 81, HZ, SUNX);
+  paintMountains(sky, 150, W, HZ, 41, 26);
+  paintCity(land, r);
+  colossusWorks(land, 288, 132);
+  mole(land);
+  paintQuay(quay);
+  const E = makeElpis();
+  const traders = {}, stalls = {};
+  for (const [id, , kind] of STALLS) { traders[id] = [traderBuf(LOOKS[id], false), traderBuf(LOOKS[id], true)]; stalls[id] = stallBuf(LOOKS[id], kind); }
+  // a sample of the sea, so the palette knows its colours
+  const seaS = new Buf(W, QY - HZ); for (let y = HZ; y < QY; y += 2) for (let x = 0; x < W; x += 2) seaS.put(x, y - HZ, seaColour(x, y, 0));
+  const P = buildPalette([sky, land, quay, E.B, seaS, ...Object.values(traders).flat(), ...Object.values(stalls).flatMap(s => [s.back, s.awn, s.front])], 64, ['#ffffff', '#120c0e']);
+  HB.P = P; HB.sky = toCanvas(sky, P); HB.land = toCanvas(land, P); HB.quay = toCanvas(quay, P); HB.ship = toCanvas(E.B, P); HB.E = E;
+  HB.traders = {}; for (const id in traders) HB.traders[id] = traders[id].map(b => toCanvas(b, P));
+  HB.stalls = {}; for (const id in stalls) HB.stalls[id] = { back: toCanvas(stalls[id].back, P), awn: toCanvas(stalls[id].awn, P), front: toCanvas(stalls[id].front, P) };
+  // what the water reflects: the land, and Elpis where she lies
+  const rc = document.createElement('canvas'); rc.width = W; rc.height = H; const rg = rc.getContext('2d');
+  rg.drawImage(HB.land, 0, 0); rg.drawImage(HB.ship, 170, WL - E.wl);
+  SEA.refl = rg.getImageData(0, 0, W, H).data;
+  for (let x = 170 + E.x0; x <= 170 + E.x1; x++) waterTop[x] = Math.max(waterTop[x], WL + 1);
+  SEA.cv = document.createElement('canvas'); SEA.cv.width = W; SEA.cv.height = QY - HZ; SEA.ctx = SEA.cv.getContext('2d'); SEA.img = SEA.ctx.createImageData(W, QY - HZ);
+  HB.gulls = [0, 1, 2].map(f => { const b = new Buf(11, 7); const wing = [[0, 0], [1, -1], [2, 1]][f]; for (let i = 0; i < 4; i++) { b.put(5 + i * 0.5 - 1, 4, C('#ffffff')); } for (let i = 1; i < 5; i++) { const yy = 4 - Math.round(wing[1] * i * 0.6) - (f === 0 ? i * 0.5 : 0); b.put(5 - i, yy, C('#f0f0ec')); b.put(5 + i, yy, C('#f0f0ec')); } b.put(0, 4 - (f === 0 ? 2 : f === 1 ? -0 : -2), C('#3a3a44')); b.put(10, 4 - (f === 0 ? 2 : f === 1 ? -0 : -2), C('#3a3a44')); b.put(7, 4, C('#e8a83a')); outline(b, 0.7); return toCanvas(b, P); });
+}
+function drawHarbour(g, t) {
+  g.imageSmoothingEnabled = false;
+  g.drawImage(HB.sky, 0, 0);
+  if (!HB.seaT || t - HB.seaT > 1 / 20 || t < HB.seaT) { drawSea(HB.P, t); HB.seaT = t; }
+  g.drawImage(SEA.cv, 0, HZ);
+  g.drawImage(HB.land, 0, 0);
+  // smoke from the furnace, lit by the low sun
+  const P = HB.P;
+  if (!HB.smoke) { HB.smoke = document.createElement('canvas'); HB.smoke.width = 56; HB.smoke.height = 58; HB.sctx = HB.smoke.getContext('2d'); HB.simg = HB.sctx.createImageData(56, 58); }
+  if (!HB.smokeT || t - HB.smokeT > 1 / 15 || t < HB.smokeT) { HB.smokeT = t; HB.simg.data.fill(0);
+  for (let y = 62; y < 120; y++) for (let x = 236; x < 292; x++) {
+    const k = (120 - y) / 58, cx = 250 + k * k * 22 + Math.sin(t * 0.5 + k * 3) * 2, wdt = 3 + k * 12;
+    const dx = (x - cx) / wdt; if (Math.abs(dx) > 1.2) continue;
+    const D = (1 - dx * dx) * (1 - k * 0.7) + (fbm(x / 6, (y + t * 9) / 6, 33, 3) - 0.5) * 1.2;
+    if (D < 0.35) continue;
+    const lit = D - ((1 - ((x + 3 - cx) / wdt) ** 2) * (1 - k * 0.7) + (fbm((x + 3) / 6, (y - 2 + t * 9) / 6, 33, 3) - 0.5) * 1.2);
+    const c = mixc(C('#8a8088'), C('#f4e4d0'), clamp(0.45 + lit * 2, 0, 1)), q = P.bytes[qi(P, c[0], c[1], c[2], x, y)], i = ((y - 62) * 56 + x - 236) * 4;
+    HB.simg.data[i] = q[0]; HB.simg.data[i + 1] = q[1]; HB.simg.data[i + 2] = q[2]; HB.simg.data[i + 3] = 255;
+  }
+  HB.sctx.putImageData(HB.simg, 0, 0); }
+  g.drawImage(HB.smoke, 236, 62);
+  const sw = Math.round(Math.sin(t * 0.8) * 1.2);   // the block on the crane, swinging a little
+  g.fillStyle = '#3a2a22'; for (let y = 62; y < 72; y++) g.fillRect(284 + Math.round(sw * (y - 62) / 10), y, 1, 1);
+  g.fillStyle = '#e8e0d0'; g.fillRect(281 + sw, 72, 7, 4); g.fillStyle = '#b8ae9c'; g.fillRect(281 + sw, 75, 7, 1);
+  const E = HB.E, bob = Math.round(Math.sin(t * 1.1) * 0.6);
+  g.drawImage(HB.ship, 170, WL - E.wl + bob);
+  g.fillStyle = '#3a2a20';
+  for (const [sx, sy, ex, ey, s] of [[170 + 24, WL - E.wl + E.top(24) + bob, 131, QY - 8, 5], [170 + E.x1 + 2, WL - E.wl + E.top(E.x1) - 8 + bob, 292, QY - 8, 6]]) {
+    const n = 60; for (let i = 0; i <= n; i++) { const k = i / n; g.fillRect(Math.round(sx + (ex - sx) * k), Math.round(sy + (ey - sy) * k + s * 4 * k * (1 - k)), 1, 1); }
+  }
+  for (let k = 0; k < 3; k++) { const span = W + 30, x = Math.round(((t * (9 + k * 3) + k * 130) % span) - 15), y = 22 + k * 16 + Math.round(Math.sin(t * 1.5 + k) * 3); g.drawImage(HB.gulls[Math.floor(t * (4 + k) + k) % 3], x, y); }
+  g.drawImage(HB.quay, 0, 0);
+  for (const [id, at] of STALLS) {
+    const cx = Math.round(24 + at * (W - 48)), st = HB.stalls[id];
+    g.fillStyle = 'rgba(40,24,40,0.3)'; g.fillRect(cx - 18, GY, 44, 3);
+    g.drawImage(st.back, cx - 23, GY - 56);
+    const blink = (Math.floor(t * 10 + at * 37) % 47) === 0;
+    g.drawImage(HB.traders[id][blink ? 1 : 0], cx - 15, GY - 44);
+    g.fillStyle = 'rgba(40,24,48,0.32)'; g.fillRect(cx - 16, GY - 44, 32, 3);   // the awning's shadow
+    g.drawImage(st.awn, cx - 25, GY - 57);
+    g.drawImage(st.front, cx - 23, GY - 26);
+  }
+}
+
+// =====================================================================
+// The stall: Thrasyllos behind his counter
+// =====================================================================
+const SW = 400, SH = 225, SHZ = 122, CT = 170, MX = 200, MY = 70;
+function distantTown(B) {   // Rhodes on her hill, pale with distance, across the water
+  const haze = C('#c4cad2'), hz = (c, k) => mixc(c, haze, Math.min(0.85, k + 0.14));
+  const top = x => 66 + 50 * sm(10, 196, x) + 3 * fbm(x / 18, 0, 3, 3);
+  for (let x = 0; x < 204; x++) for (let y = Math.floor(top(x)); y < SHZ; y++) B.put(x, y, hz(shade(mixc(C('#a89668'), C('#7e8450'), fbm(x / 9, y / 6, 4, 3)), nrm(0.3, 0.7, 0.6), 0.9), 0.55));
+  const r = rnd(9);
+  for (let yb = 74; yb < SHZ - 2; yb += 5) for (let x = Math.floor(r() * 6); x < 200; x += 6 + Math.floor(r() * 8)) {
+    if (top(x + 4) > yb - 4 || r() < 0.2) continue;
+    if (r() < 0.25) { for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) if (i !== 1 || j !== 0 || r() < 0.5) B.put(x + i, yb - 3 + j, hz(shade(C('#56683a'), nrm(i - 1, 0.6 - j * 0.4, 0.7)), 0.45)); continue; }
+    const yj = yb + Math.floor(r() * 2);
+    const w = 3 + Math.floor(r() * 2), wall = [C('#f2ead8'), C('#e6d6b4'), C('#f4efe4')][Math.floor(r() * 3)];
+    for (let j = 0; j < 3; j++) { for (let i = 0; i < w; i++) B.put(x + i, yj - 3 + j, hz(shade(wall, FRONT, j === 0 ? 0.8 : 1), 0.42)); B.put(x + w, yj - 3 + j, hz(shade(wall, SIDE), 0.42)); B.put(x - 1, yj - 2 + j, hz(shade(C('#8a8a6a'), FRONT, 0.5), 0.5)); }
+    if (r() < 0.7) for (let i = -1; i <= w; i++) B.put(x + i, yj - 4, hz(shade(C('#b0603e'), UPF), 0.45));
+    if (r() < 0.5) B.put(x + 1, yj - 2, hz(C('#3a2a2a'), 0.45));
+  }
+  for (let x = 16; x < 40; x++) for (let y = 60; y < 67; y++) B.put(x, y, hz(shade(C('#f2ece0'), (x - 16) % 3 === 2 ? FRONT : nrm(0.6, 0, 0.8), (x - 16) % 3 === 2 ? 0.45 : 1), 0.35));
+  for (let x = 15; x < 41; x++) { B.put(x, 59, hz(shade(C('#f2ece0'), UPF), 0.35)); if (Math.abs(x - 27.5) < 12 - 0) for (let j = 0; j < Math.max(0, 4 - Math.abs(x - 27.5) / 3.2); j++) B.put(x, 58 - j, hz(shade(C('#a8452e'), FRONT), 0.35)); }
+  for (let x = 0; x < 204; x++) for (let y = SHZ - 4; y < SHZ; y++) B.put(x, y, hz(shade(C('#d8c8a4'), y === SHZ - 4 ? UPF : FRONT, (x % 7 === 0) ? 0.7 : 1), 0.4));
+  for (let x = 286; x < 400; x++) for (let y = SHZ + 2; y < SHZ + 6; y++) B.put(x, y, hz(shade(C('#d0c0a0'), y === SHZ + 2 ? UPF : FRONT), 0.32));
+  for (let y = 88; y < SHZ + 2; y++) for (let x = 300; x < 314; x++) B.put(x, y, hz(shade(C('#dccca8'), x > 310 ? SIDE : FRONT, (y - 88) % 4 === 3 ? 0.7 : 1), 0.32));
+  for (let x = 299; x < 315; x++) for (let y = 84; y < 88; y++) if ((x - 299) % 3 < 2 || y > 85) B.put(x, y, hz(shade(C('#dccca8'), x > 310 ? SIDE : FRONT), 0.32));
+  for (const [mx, mt] of [[338, 58], [366, 64]]) { for (let y = mt; y < SHZ + 2; y++) B.put(mx, y, hz(C('#5a4438'), 0.3)); for (let x = mx - 12; x < mx + 13; x++) for (let j = 0; j < 3; j++) B.put(x, mt + 4 + j, hz(shade(C('#eee4d0'), nrm(Math.sin(x) * 0.3, 0.4 - j * 0.4, 1)), 0.2)); for (let x = mx - 14; x < mx + 14; x++) for (let y = SHZ - 2; y < SHZ + 2; y++) B.put(x, y, hz(shade(C('#5a3e2a'), y === SHZ - 2 ? UPF : FRONT), 0.3)); }
+}
+function stallWater(x, y, t) {   // the strait behind him, with the light on it
+  const d = (y - SHZ) / (CT - SHZ), fx = x / (3 + d * 10), fy = y / (0.8 + d * 2.4);
+  const h = (X, Y) => vn(X + t * 0.2, Y, 81) * 0.62 + vn(X * 2.1 - t * 0.33, Y * 2.2 + 3, 82) * 0.38;
+  const h0 = h(fx, fy), hx = h(fx + 0.12, fy) - h0, hy = h(fx, fy + 0.25) - h0, facing = -hy * 3.2;
+  const sky = skyAt(x, clamp(SHZ - 8 - (1 - d) * 60 + facing * 40, 0, SHZ - 1), SHZ, 440);
+  let c = mixc(mixc(C('#3a7aa2'), C('#1c5078'), d), sky, clamp(0.75 - d * 0.5 + facing * 0.6, 0.05, 0.95));
+  const g = Math.max(0, hx * 6 + facing * 0.6 - 0.25) * (0.3 + x / SW) * sm(0.05, 0.45, d);
+  return [c[0] + g * 1.1, c[1] + g * 0.95, c[2] + g * 0.75];
+}
+function awningUnder(B) {   // undyed linen seen from below, the sun glowing through it, then the beam
+  for (let y = 0; y < 26; y++) for (let x = 0; x < SW; x++) {
+    const k = y / 26, u = (x - 200) / (1 + k * 0.7), fold = Math.sin(u * 0.16 + Math.sin(u * 0.05) * 1.5) * (0.5 + k * 0.5);
+    const seam = Math.abs(((u + 1200) % 120) - 60) < 0.7, glow = 0.62 + fold * 0.2 + (x / SW) * 0.35 - k * 0.12;
+    let c = mul(C('#e8d8b8'), 1), col = [c[0] * (BNC[0] * 0.9 + glow * 0.62), c[1] * (BNC[1] * 0.9 + glow * 0.5), c[2] * (BNC[2] * 0.9 + glow * 0.36)];
+    if (seam) col = mul(col, 0.8);
+    B.put(x, y, col);
+  }
+  for (let x = 0; x < SW; x++) for (let y = 26; y < 34; y++) {
+    const g = vn(x / 22, y * 1.4, 4), n = y === 26 ? nrm(0, 0.9, 0.4) : y === 33 ? nrm(0, -0.8, 0.6) : FRONT;
+    B.put(x, y, shade(mul(C('#8a5e3a'), 0.85 + 0.25 * g), n, y > 31 ? 0.6 : 1));
+  }
+}
+function posts(B) {
+  for (const x0 of [0, 382]) for (let x = x0; x < x0 + 18; x++) {
+    const u = (x - x0 + 0.5) / 18 * 2 - 1;
+    for (let y = 0; y < SH; y++) {
+      const g = vn(x / 1.5, y / 14, 5), crack = vn(x / 0.9, y / 30, 6) > 0.86;
+      B.put(x, y, shade(mul(C('#8a5e3a'), 0.78 + 0.3 * g), nrm(u, 0, Math.sqrt(1 - u * u * 0.9)), crack ? 0.4 : 1, 1, 0.08));
+    }
+  }
+}
+function counterBoard(B) {
+  for (let y = CT; y < CT + 9; y++) for (let x = 0; x < SW; x++) {
+    const k = y - CT, g = vn(x / 26, y * 1.6, 2) * 0.6 + vn(x / 6, y * 3, 12) * 0.4, n = k < 7 ? nrm(0, 0.92, 0.38) : nrm(0, -0.3, 1);
+    B.put(x, y, shade(mul(C('#b88a58'), 0.8 + 0.32 * g), k === 0 ? nrm(0, 0.6, 0.8) : n, k >= 7 ? 0.7 : 1, 1, 0.15, 10));
+  }
+  for (let y = CT + 9; y < SH; y++) for (let x = 0; x < SW; x++) {
+    const k = y - CT - 9, row = Math.floor(k / 14), ky = k % 14, g = vn(x / 30 + row * 9, ky / 1.2, 6) * 0.65 + vn(x / 5, ky, 16 + row) * 0.35;
+    const n = ky === 0 ? nrm(0, 0.8, 0.6) : ky === 13 ? nrm(0, -0.7, 0.7) : FRONT;
+    B.put(x, y, shade(mul(C('#7a5232'), 0.75 + 0.35 * g), n, (ky === 13 ? 0.4 : 1) * (k < 4 ? 0.55 : 1)));
+  }
+  for (let row = 0; row < 4; row++) for (const nx of [30, 368]) { const y = CT + 9 + row * 14 + 7; B.put(nx, y, C('#1a120e')); B.put(nx + 1, y - 1, shade(C('#c8a070'), UPF)); }
+}
+function amphora(B, cx, base, al) {   // a Rhodian wine jar: rim, long neck, two handles, round shoulder, pointed toe
+  const rr = [3.2, 3.6, 2.6, 2.5, 2.5, 2.5, 2.6, 2.8, 3.2, 4.5, 6.5, 8.2, 9.3, 9.9, 10.2, 10.3, 10.2, 10, 9.7, 9.3, 8.9, 8.4, 7.9, 7.3, 6.8, 6.2, 5.6, 5, 4.4, 3.8, 3.2, 2.7, 2.3, 2, 1.8, 1.7, 1.7, 2, 2.2, 1.6];
+  const y0 = base - rr.length;
+  lathe(B, cx, y0, rr, al, 0.35, (j, u, a) => j === 14 || j === 15 ? mul(a, 0.82) : a);
+  for (const s of [-1, 1]) {   // handles: from the neck out and down to the shoulder
+    for (let k = 0; k <= 12; k++) {
+      const t = k / 12, x = cx + s * (3 + Math.sin(t * Math.PI * 0.9) * 5.5), y = y0 + 2 + t * 9 - Math.sin(t * Math.PI) * 2.5;
+      for (let q = 0; q < 2; q++) B.put(x + s * q, y, shade(al, nrm(s * (q ? 0.8 : 0.2), 0.5 - t, 0.7), 0.9, 1, 0.3, 16));
+    }
+  }
+  for (let x = cx - 2; x <= cx + 1; x++) B.put(x + 5, y0 + 4, shade(mul(al, 0.6), FRONT, 0.7));   // the maker's stamp
+}
+function goods(B) {
+  for (let x = 44; x < 112; x++) for (let y = CT - 7; y < CT; y++) {   // a stand for the jars
+    const top = y < CT - 5; if (!top && (x - 44) % 64 > 4) continue;
+    B.put(x, y, shade(C('#8a5e3a'), top ? (y === CT - 7 ? UPF : FRONT) : nrm((x - 46) / 3, 0, 1), top ? 1 : 0.8));
+  }
+  amphora(B, 62, CT - 6, C('#c07040')); amphora(B, 92, CT - 6, C('#b06438'));
+  // the tasting cup, black and glossy, with wine in it
+  const y0 = CT - 9;
+  lathe(B, MX, y0, [11, 10.8, 10, 8.6, 6.4, 2.2, 2, 2.4, 5, 5.4], C('#1a1614'), 1.6);
+  for (let x = MX - 10; x <= MX + 10; x++) { const u = (x - MX) / 10.5; B.put(x, y0 - 1, shade(C('#1a1614'), nrm(u * 0.5, 0.8, 0.5), 1, 1, 1.2)); if (Math.abs(u) < 0.85) B.put(x, y0, shade(C('#5a1424'), nrm(0, 0.95, 0.3), 1, 1, 0.8, 30)); }
+  for (const s of [-1, 1]) for (let k = 0; k <= 8; k++) { const t = k / 8, x = MX + s * (11 + Math.sin(t * Math.PI) * 3.5), y = y0 + t * 3; B.put(x, y, shade(C('#1a1614'), nrm(s, 0.4, 0.6), 1, 1, 1.4)); }
+  for (const [sx, n] of [[318, 4], [326, 7], [334, 3], [342, 5]]) for (let k = 0; k < n; k++) for (let i = 0; i < 6; i++) {   // a little silver
+    const u = (i + 0.5) / 6 * 2 - 1; B.put(sx + i, CT - 1 - k, shade(C('#c8ccd2'), nrm(u * 0.6, k % 2 ? 0.7 : -0.2, 0.7), 1, 1, 0.9, 12));
+  }
+  for (const [x, y] of [[352, CT - 1], [355, CT - 2]]) for (let i = 0; i < 5; i++) B.put(x + i, y, shade(C('#c8ccd2'), nrm(0, 0.9, 0.4), 1, 1, 1));
+}
+
+// Curls: the distance to the nearest of a scatter of points, so each curl is its own little lit bump.
+function cells(x, y, sx, sy, seed) {
+  const gx = Math.floor(x / sx), gy = Math.floor(y / sy); let best = 9, bx = 0, by = 0;
+  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+    const px = (gx + i + 0.15 + 0.7 * ih(gx + i, gy + j, seed)) * sx, py = (gy + j + 0.15 + 0.7 * ih(gx + i, gy + j, seed + 1)) * sy;
+    const dx = (x - px) / sx, dy = (y - py) / sy, d = Math.hypot(dx, dy);
+    if (d < best) { best = d; bx = dx; by = dy; }
+  }
+  return [best, bx, by];
+}
+// The man himself, lit as a solid: face, hair and beard, a wine-red chiton, a cream cloak in deep folds, arms at his sides.
+function thrasyllosBuf(blink, talk) {
+  const keep = LD; LD = nrm(0.8, 0.36, 0.48); HV = nrm(LD[0], LD[1], LD[2] + 1);   // a lower, more sideways light, to give the face its shape
+  const B = new Buf(SW, SH), cx = MX, cy = 74, rx = 23, ry = 29, K = rx / 21;
+  const SK = C('#c48a58'), HR = C('#3a281c'), WINE = C('#8b3240'), WOOL = C('#e6d8bc'), TRIM = C('#ead7ae');
+  const skin = (al, n, ao) => { const c = shade(al, n, ao, 1, 0.14, 12), d = Math.max(0, n[0] * LD[0] + n[1] * LD[1] + n[2] * LD[2]); return [c[0] + al[0] * 0.2 * (1 - d) * ao, c[1] + al[1] * 0.05 * (1 - d) * ao, c[2]]; };
+  const half = y => 13 + 33 * sm(cy + 30, cy + 45, y);   // the neck, sloping out to the shoulders; the arms round them off
+  // ---- chest, in the wine-red chiton, folds falling from the neckline ----
+  for (let y = cy + 30; y < CT; y++) for (let x = cx - 62; x <= cx + 62; x++) {
+    const u = x - cx, au = Math.abs(u + 0.5), v = y - cy - 34; if (au > half(y)) continue;
+    const ang = Math.atan2(u, v + 26), ph = ang * 11 + fbm(x / 9, y / 13, 3, 3) * 4, amp = sm(2, 36, v) * (0.4 + fbm(x / 14, y / 16, 4, 2) * 0.8);
+    const n = nrm(u / 60 + Math.cos(ph) * amp * 0.6, 0.6 - sm(0, 26, v) * 0.5, 0.85);
+    B.put(x, y, shade(WINE, n, 1 - Math.max(0, -Math.sin(ph)) * amp * 0.4 - sm(38, 45, au) * 0.35, 1, 0.08));
+  }
+  // ---- the arms, hanging straight down: a short sleeve, then the bare arm ----
+  for (const s of [-1, 1]) for (let y = cy + 37; y < CT; y++) {
+    const k = (y - cy - 38) / (CT - cy - 38), cap = Math.sqrt(Math.max(0, 1 - Math.pow(Math.max(0, cy + 49 - y) / 12, 2)));
+    const c = cx + s * (50 + Math.sin(k * Math.PI) * 1.5), w = (10.5 - k * 2.6) * cap, sleeve = y < cy + 66;
+    if (w < 1) continue;
+    for (let x = Math.floor(c - w); x <= Math.ceil(c + w); x++) {
+      const u = (x + 0.5 - c) / w; if (Math.abs(u) > 1) continue;
+      const bulge = sleeve ? 0 : Math.exp(-Math.pow((k - 0.42) / 0.18, 2)) * 0.25 * Math.sign(u) * -s;
+      const n = nrm(u + bulge, sleeve ? 0.2 + (1 - cap) * 1.5 - k * 0.5 : 0.05, Math.sqrt(Math.max(0.05, 1 - u * u)));
+      const elbow = !sleeve && Math.abs(y - (CT - 12)) < 1 && u * s < 0.2;
+      B.put(x, y, sleeve ? shade(WINE, n, Math.sin(x * 0.9 + y * 0.35) > 0.8 ? 0.65 : 1) : skin(SK, n, elbow ? 0.55 : 1));
+    }
+    if (y === cy + 66) for (let x = Math.floor(c - w); x <= Math.ceil(c + w); x++) { B.put(x, y, shade(TRIM, FRONT)); B.put(x, y + 1, shade(TRIM, nrm(0, -0.5, 1), 0.7)); }
+    if (y > cy + 50) { const inner = Math.round(c - s * (w + 1)); for (let q = 0; q < 2; q++) B.put(inner - s * q, y, mul(shade(WINE, FRONT), 0.3 + q * 0.2)); }
+  }
+  // ---- the cloak: cream wool over his left shoulder and arm, swagged across the chest ----
+  for (let y = cy + 28; y < CT; y++) for (let x = cx - 66; x <= cx + 52; x++) {
+    const u = x - cx, au = Math.abs(u + 0.5), v = y - cy - 30;
+    const d = u + 62 - v * 1.1 + Math.sin(v * 0.06) * 4, wd = 48 - v * 0.18;
+    if (d < 0 || d > wd) continue;
+    if (au > half(y) + (u < 0 ? 4 : 1) && !(u < -40 && y > cy + 46 && au < 62)) continue;
+    if (au < 12 && y < cy + 40) continue;
+    const warp = fbm(x / 11, y / 9, 21, 4), ph = d * 0.5 + warp * 6.5 + Math.sin(d * 0.13) * 2, amp = 0.35 + fbm(x / 18, y / 15, 22, 2) * 0.9;
+    const fold = Math.sin(ph), slope = Math.cos(ph) * amp;
+    const n = nrm(slope * 0.5 + 0.08, 0.32 + slope * 0.45, 0.82), ao = 1 - Math.max(0, -fold) * amp * 0.42 - sm(4, 0, d) * 0.4;
+    let c = shade(mul(WOOL, 0.97 + 0.05 * vn(x / 1.5, y / 1.5, 23)), n, ao, 1, 0.04);
+    c = [c[0] + (1 - ao) * 0.05, c[1] + (1 - ao) * 0.01, c[2] - (1 - ao) * 0.02];   // warm in the folds, as wool is
+    if (d > wd - 4) c = shade(WINE, n, ao * 0.95);   // the dyed border along its edge
+    else if (d > wd - 5) c = shade(TRIM, n, ao);
+    B.put(x, y, c);
+  }
+  // ---- the neck, in the shadow of the beard, and the neckline of the chiton ----
+  for (let y = cy + 18; y < cy + 42; y++) for (let x = cx - 13; x <= cx + 13; x++) { const u = (x - cx) / 13.5; B.put(x, y, skin(SK, nrm(u, -0.25, Math.sqrt(1 - u * u)), 0.5 + sm(cy + 30, cy + 42, y) * 0.3)); }
+  for (let x = cx - 14; x <= cx + 14; x++) { const y = cy + 41 - Math.round(Math.pow(Math.abs(x - cx) / 14, 2) * 3); B.put(x, y, shade(TRIM, UPF)); B.put(x, y + 1, shade(TRIM, FRONT, 0.75)); }
+  // ---- the head ----
+  const fz = (u, v) => {
+    const au = Math.abs(u), g = (a, b) => Math.exp(-(a * a + b * b));
+    return 0.07 * Math.exp(-Math.pow((v + 0.24) / 0.07, 2)) * (1 - sm(0.6, 0.85, au))
+      - 0.1 * g((au - 0.37) / 0.17, (v + 0.05) / 0.1)
+      + 0.26 * Math.exp(-Math.pow(u / 0.085, 2)) * sm(-0.24, -0.04, v) * (1 - sm(0.3, 0.37, v))
+      + 0.09 * g(u / 0.11, (v - 0.3) / 0.07) + 0.06 * g((au - 0.12) / 0.06, (v - 0.33) / 0.05)
+      + 0.06 * g((au - 0.5) / 0.17, (v - 0.12) / 0.13)
+      + 0.05 * g(u / 0.22, (v - 0.56) / 0.03) - 0.035 * g(u / 0.25, (v - 0.52) / 0.02);
+  };
+  for (let y = cy - 31; y <= cy + 30; y++) for (let x = cx - 25; x <= cx + 25; x++) {
+    const u = (x + 0.5 - cx) / rx, v = (y + 0.5 - cy) / ry;
+    let uu = u; if (v > 0.15) uu /= 1 - (v - 0.15) * 0.4;
+    const d = uu * uu + v * v; if (d > 1) continue;
+    const e = 0.01, dzu = (fz(u + e, v) - fz(u - e, v)) / (2 * e), dzv = (fz(u, v + e) - fz(u, v - e)) / (2 * e);
+    const nz = Math.sqrt(1 - d), n = nrm(uu - dzu * 0.7 * nz, -v * 0.9 + dzv * 0.7 * nz, nz);
+    const au = Math.abs(u), red = 0.32 * Math.exp(-(Math.pow((au - 0.45) / 0.2, 2) + Math.pow((v - 0.18) / 0.16, 2))) + 0.38 * Math.exp(-(Math.pow(u / 0.12, 2) + Math.pow((v - 0.28) / 0.1, 2)));
+    const ao = 1 - 0.32 * Math.exp(-(Math.pow((au - 0.37) / 0.2, 2) + Math.pow((v + 0.02) / 0.12, 2))) - 0.15 * sm(-0.5, -0.65, v);
+    const nose = u < -0.02 && u > -0.17 && v > -0.12 && v < 0.36 ? 0.7 : u > 0.0 && u < 0.06 && v > -0.08 && v < 0.3 ? 1.15 : 1, nostril = Math.abs(au - 0.1) < 0.045 && Math.abs(v - 0.37) < 0.025 ? 0.45 : 1;   // the shadowed side of the nose
+    B.put(x, y, skin(mixc(SK, C('#c0604a'), red), n, ao * nose * nostril));
+  }
+  for (let v = -0.42; v <= -0.38; v += 0.02) for (let u = -0.3; u <= 0.3; u += 0.02) B.put(cx + u * rx, cy + v * ry + Math.round(Math.sin(u * 6) * 0.6), skin(SK, nrm(0, -0.5, 1), 0.78));   // a line across the brow
+  for (const s of [-1, 1]) for (let y = cy - 3; y < cy + 11; y++) for (let k = 0; k < 4; k++) {   // ears
+    const x = cx + s * (23 + k), inner = k === 1 && y > cy - 1 && y < cy + 8;
+    if ((y === cy - 3 || y === cy + 9) && k > 1) continue;
+    B.put(x, y, skin(mixc(SK, C('#c0604a'), 0.35), nrm(s * (0.6 + k * 0.1), 0.1, 0.6), inner ? 0.45 : 0.9));
+  }
+  for (const s of [-1, 1]) {   // eyes: an almond of white, a dark iris with a catch of light, a heavy upper lid
+    const ex = cx + s * 8.4, ey = cy - 1;
+    for (let y = ey - 3; y <= ey + 3; y++) for (let x = Math.floor(ex - 6); x <= Math.ceil(ex + 6); x++) {
+      const a = (x + 0.5 - ex) / 5, b = (y + 0.5 - ey) / (2.3 * (1 - a * a * 0.45)); if (a * a + b * b > 1) continue;
+      if (blink) { B.put(x, y, skin(SK, nrm(a * 0.3, 0.3, 1), 0.72)); continue; }
+      const ir = Math.hypot(x + 0.5 - (ex + 0.8), (y + 0.5 - ey) * 1.05);
+      let c;
+      if (ir < 2.5) c = ir < 1.1 ? C('#120806') : mixc(C('#5a3418'), C('#3a200e'), ir / 2.5);
+      else c = shade(mixc(C('#e8ded0'), C('#a89482'), sm(0.1, -0.9, -b)), nrm(a * 0.5, 0.2, 1), 1 - Math.max(0, -b) * 0.35);
+      B.put(x, y, c);
+    }
+    if (!blink) { B.put(Math.round(ex + 1.8), ey - 1, C('#f6eee6')); B.put(Math.round(ex - 0.2), ey + 1, C('#7a5234')); }
+    for (let x = Math.floor(ex - 5.4); x <= Math.ceil(ex + 5.4); x++) { const a = (x + 0.5 - ex) / 5.4, yl = Math.round(ey - 2.4 - (1 - a * a) * 0.8) + (blink ? 1 : 0); B.put(x, yl, C('#24120c')); if (Math.abs(a) < 0.7) B.put(x, yl - 2, skin(SK, nrm(0, 0.1, 1), 0.72)); }
+    B.put(Math.round(ex + s * 5.8), ey - 1, C('#24120c'));
+    for (let x = Math.floor(ex - 4); x <= Math.ceil(ex + 4); x++) B.put(x, ey + 3, skin(SK, nrm(0, -0.4, 1), 0.74));
+  }
+  for (let k = 0; k <= 16; k++) {   // eyebrows: the left flat and low, the right raised, which is his whole opinion of you
+    const t = k / 16, lx = cx - 17 + t * 14, ly = cy - 7.5 + Math.sin(t * Math.PI) * -0.7 + t * 0.8;
+    const rxp = cx + 3 + t * 14, ryp = cy - 9 - Math.sin(t * Math.PI * 0.85) * 3 + t * 1;
+    for (let q = 0; q < 3; q++) {
+      const n = nrm(0.2, 0.6 - q * 0.4, 0.8);
+      if (q < 2 || (t > 0.15 && t < 0.8)) B.put(lx, ly + q - 1, shade(mul(HR, 0.9), n, 1, 1, 0.2));
+      if (q < 2 || (t > 0.1 && t < 0.6)) B.put(rxp, ryp + q - 1, shade(mul(HR, 0.9), n, 1, 1, 0.2));
+    }
+  }
+  // the hair: short, dark, in tight curls, each catching the sun
+  for (let y = cy - 36; y <= cy + 8; y++) for (let x = cx - 28; x <= cx + 28; x++) {
+    const u = (x + 0.5 - cx) / (rx + 3.4), v = (y + 0.5 - cy + 1) / (ry + 4), au = Math.abs(u);
+    const [cd, bx, by] = cells(x, y, 4.2, 3.6, 41), d = u * u + v * v;
+    if (d > 1 + (0.45 - cd) * 0.12) continue;
+    const line = -0.6 + au * au * 0.5 - Math.exp(-Math.pow((au - 0.52) / 0.12, 2)) * 0.09 + (au > 0.8 ? (au - 0.8) * 4.2 : 0) + Math.sin(u * 14) * 0.012;
+    if (v > line + (0.45 - cd) * 0.05) continue;
+    const n = nrm(u * 0.9 + bx * 1.25, -v * 0.9 + 0.2 - by * 1.25, Math.sqrt(Math.max(0.15, 1 - d)));
+    B.put(x, y, shade(mul(HR, 0.95 + 0.15 * vn(x / 5, y / 5, 45)), n, 1.05 - cd * 0.7, 1, 0.6, 8));
+  }
+  // the beard: trimmed close at the cheeks, full and square at the chin, a moustache over a mouth that is nearly smiling
+  for (let y = cy - 3; y <= cy + 42; y++) for (let x = cx - 25; x <= cx + 25; x++) {
+    const u = (x + 0.5 - cx) / rx, v = (y + 0.5 - cy) / ry, au = Math.abs(u);
+    const sideburn = au > 0.86 && au < 1.08 && v > -0.12 && v < 0.4;
+    const moust = v > 0.4 && v < 0.49 + au * 0.14 && au < 0.5;
+    const lower = v > 0.55 && v < 1.34 - au * au * 0.6 && au < 1.02 - Math.max(0, v - 0.85) * 0.75;
+    const cheek = v > 0.28 + (1 - au) * 0.35 && au > 0.5 && au < 1.06 && v < 0.95;
+    if (!(sideburn || moust || lower || cheek)) continue;
+    if (v > 0.5 && v < 0.6 && au < 0.24) continue;   // the lips show here
+    const [cd, bx, by] = cells(x + Math.sin(y * 0.5) * 1.2, y, 2.6, 4.4, 43);
+    const n = nrm(u * 0.9 + bx * 0.55, 0.15 - (v - 0.6) * 0.5 - by * 0.55, 0.85);
+    const grey = ih(x, y, 44) < 0.05;
+    B.put(x, y, shade(grey ? C('#9a8a7a') : mul(HR, 1.08 + 0.12 * vn(x / 4, y / 6, 46)), n, (1.0 - cd * 0.45) * (moust ? 0.9 : 1), 1, 0.3, 8));
+  }
+  for (let x = cx - 5; x <= cx + 5; x++) {   // lips, the right corner turned up
+    const u = (x - cx) / 5.5, ly = cy + Math.round(0.52 * ry) + (x > cx + 3 ? -1 : 0);
+    B.put(x, ly, talk ? C('#2a0e0a') : skin(C('#a04a42'), nrm(0, -0.6, 0.8), 0.6));
+    B.put(x, ly + 1, talk ? (Math.abs(u) < 0.5 ? C('#d8c8b8') : C('#3a1410')) : skin(C('#b85a50'), nrm(u * 0.3, 0.7, 0.7), 1));
+  }
+  outline(B, 0.55);
+  for (let y = 0; y < SH; y++) for (let x = SW - 2; x > MX; x--) {   // a warm rim of light down his sunlit side
+    const i = y * SW + x; if (!B.a[i] || B.a[i + 1]) continue;
+    for (let q = 0; q < 3; q++) B.c[i * 3 + q] = lerp(B.c[i * 3 + q], [1.1, 0.92, 0.7][q], 0.5);
+    if (B.a[i - 1]) for (let q = 0; q < 3; q++) B.c[(i - 1) * 3 + q] = lerp(B.c[(i - 1) * 3 + q], [1.0, 0.85, 0.65][q], 0.25);
+  }
+  LD = keep; HV = nrm(LD[0], LD[1], LD[2] + 1);
+  return B;
+}
+const SB = {};
+function buildStall() {
+  const bg = new Buf(SW, SH), fg = new Buf(SW, SH);
+  paintSky(bg, [[250, 82, 100, 40], [300, 52, 60, 34], [228, 60, 50, 30], [350, 90, 70, 30], [70, 40, 60, 16], [140, 30, 40, 12]], 91, SHZ, 440);
+  for (let i = 0; i < SW * SHZ; i++) for (let q = 0; q < 3; q++) bg.c[i * 3 + q] = lerp(bg.c[i * 3 + q], grad(SKYK, Math.floor(i / SW) / SHZ)[q], 0.22);   // softer, so he stands out
+  paintMountains(bg, 190, SW, SHZ, 47, 30);
+  distantTown(bg);
+  awningUnder(fg); posts(fg); counterBoard(fg); goods(fg);
+  const men = [thrasyllosBuf(false, false), thrasyllosBuf(true, false), thrasyllosBuf(false, true)];
+  const seaS = new Buf(SW, CT - SHZ); for (let y = SHZ; y < CT; y += 2) for (let x = 0; x < SW; x += 2) seaS.put(x, y - SHZ, stallWater(x, y, 0));
+  const P = buildPalette([bg, fg, seaS, men[0], men[0]], 72, ['#ffffff', '#140a06', '#f4ece4']);
+  SB.P = P; SB.bg = toCanvas(bg, P); SB.fg = toCanvas(fg, P); SB.men = men.map(m => toCanvas(m, P));
+  SB.cv = document.createElement('canvas'); SB.cv.width = SW; SB.cv.height = CT - SHZ; SB.ctx = SB.cv.getContext('2d'); SB.img = SB.ctx.createImageData(SW, CT - SHZ);
+  SB.gull = HB.gulls;
+}
+function drawStall(g, t) {
+  g.imageSmoothingEnabled = false;
+  g.drawImage(SB.bg, 0, 0);
+  if (!SB.seaT || t - SB.seaT > 1 / 15 || t < SB.seaT) {
+    const d = SB.img.data, P = SB.P, step = SB.full ? 2 : 1; SB.par = SB.par ? 0 : 1; SB.full = true;
+    for (let y = SHZ + (step > 1 ? SB.par : 0); y < CT; y += step) for (let x = 0; x < SW; x++) {
+      const i = ((y - SHZ) * SW + x) * 4;
+      if (SB.bg.data[(y * SW + x) * 4 + 3]) { d[i + 3] = 0; continue; }
+      const c = stallWater(x, y, t), b = P.bytes[qi(P, c[0], c[1], c[2], x, y)];
+      d[i] = b[0]; d[i + 1] = b[1]; d[i + 2] = b[2]; d[i + 3] = 255;
+    }
+    SB.ctx.putImageData(SB.img, 0, 0); SB.seaT = t;
+  }
+  g.drawImage(SB.cv, 0, SHZ);
+  for (let k = 0; k < 2; k++) { const span = SW + 30, x = Math.round(((t * (8 + k * 4) + k * 170) % span) - 15), y = 46 + k * 14 + Math.round(Math.sin(t * 1.5 + k) * 2); g.drawImage(SB.gull[Math.floor(t * 4 + k) % 3], x, y); }
+  const blink = (Math.floor(t * 10) % 41) === 0, talk = Math.floor(t * 5) % 9 < 3 && (t % 12) < 5, breathe = Math.sin(t * 1.3) > 0.85 ? -1 : 0;
+  g.drawImage(SB.men[blink ? 1 : talk ? 2 : 0], 0, breathe);
+  g.drawImage(SB.fg, 0, 0);
+}
+</script>
+<script>
+'use strict';
+// =====================================================================
+// Running the pictures
+// =====================================================================
+function fitCanvas(cv, box) {
+  const dpr = window.devicePixelRatio || 1, avail = Math.min(box.parentElement.clientWidth - 4, 960);
+  let k = avail * dpr / cv.width;
+  if (k >= 3 || (dpr < 2 && k >= 2)) k = Math.floor(k);   // whole screen pixels to the art pixel; only a sharp phone screen too narrow for that gets an in-between size
+  cv.style.width = cv.width * k / dpr + 'px'; cv.style.height = cv.height * k / dpr + 'px';
+  box.style.width = cv.width * k / dpr + 4 + 'px';
+}
+const harbour = document.getElementById('harbour'), stall = document.getElementById('stall');
+function fitAll() { fitCanvas(harbour, document.getElementById('harbourBox')); fitCanvas(stall, document.getElementById('stallBox')); }
+addEventListener('resize', fitAll); fitAll();
+const still = new URLSearchParams(location.search).has('still') || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+setTimeout(() => {   // building the pictures takes a moment; let the page show first
+  buildHarbour();
+  if (typeof buildStall === 'function') buildStall();
+  window.__ready = true;
+  const frame = now => {
+    const t = still ? 12 : now / 1000;
+    drawHarbour(harbour.getContext('2d'), t);
+    if (typeof drawStall === 'function') drawStall(stall.getContext('2d'), t);
+    if (!still) requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}, 30);
+</script>
+</body>
+</html>
