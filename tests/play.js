@@ -78,10 +78,24 @@ fs.mkdirSync(out, { recursive: true });
   await page.evaluate(() => window.__emp.speed(12));
 
   const seen = new Set();
+  // In every port, go and see the sight worth seeing, take the first choice that can be afforded, and read what happens.
+  async function sightsee() {
+    await page.waitForTimeout(400);
+    const port = await page.evaluate(() => window.__emp.state().port), card = await page.$(`#panel button[data-sight="${port}"]`);
+    if (!card || await page.evaluate(p => !!window.__emp.state().sights[p], port)) return;
+    await card.click(); await page.waitForSelector('#sheet:not([hidden])');
+    await snap('sight-' + port);
+    const c = await page.$('#sheetCard button[data-act="sight"]:not([disabled])');
+    if (!c) throw new Error('nothing to choose at the sight in ' + port);
+    await c.click(); await page.waitForTimeout(200);
+    if (!await page.evaluate(p => !!window.__emp.state().sights[p], port)) throw new Error('the sight in ' + port + ' was not seen');
+    await snap('sight-' + port + '-done');
+    await close();
+  }
   async function voyage(label) {
     for (let guard = 0; guard < 3000; guard++) {
       const s = await st();
-      if (s.phase === 'port') return s;
+      if (s.phase === 'port') { await sightsee(); return await st(); }
       const sheet = await page.evaluate(() => { const ui = window.__emp.ui; return ui.sheet && ui.sheet.kind === 'event' ? (ui.outcome ? 'outcome' : window.__emp.state().pending) : null; });
       if (sheet === 'outcome') { if (!seen.has(label + 'out')) { seen.add(label + 'out'); await snap(label + '-outcome'); } await page.click('#sheetCard button[data-act="continue"]'); continue; }
       if (sheet) {
@@ -160,6 +174,10 @@ fs.mkdirSync(out, { recursive: true });
   await page.waitForTimeout(700);
   await snap('41-ch2-rhodes');
   await open('.person[data-m="bank"]'); await snap('42-ch2-loan'); await page.click('#sheetCard button[data-act="loan"]'); await close();
+  // Aristeia's late husband's workshop, as a storehouse, paid for out of the sea loan
+  await open('#panel button[data-store]'); await snap('41b-ch2-storehouse');
+  await page.click('#sheetCard button[data-act="build"][data-what="lvl"]'); await snap('41c-ch2-storehouse-taken'); await close();
+  if (await page.evaluate(() => window.__emp.state().store.lvl) !== 1) throw new Error('Aristeia’s workshop should be taken');
   await open('.person[data-m="arsenal"]'); await page.click('#sheetCard button[data-act="buy"][data-g="bench"]'); await page.click('#sheetCard button[data-act="buy"][data-g="awning"]'); await snap('43-ch2-arsenal'); await close();
   await hireIf('philon');
   await buyN('stores', 'water', 1); await buyN('stores', 'barley', 1);
@@ -192,6 +210,9 @@ fs.mkdirSync(out, { recursive: true });
   s = await voyage('n4');
   if (s.port !== 'rhodes' || !s.home) throw new Error('expected to be home from Miletus, got ' + JSON.stringify(s));
   await page.waitForTimeout(600); await snap('70-ch2-home');
+  await open('#panel button[data-store]');
+  { const b = await page.$('#sheetCard button[data-act="job"][data-r="purple"]:not([disabled])'); if (b) { await b.click(); await page.waitForTimeout(150); } }
+  await page.evaluate(() => { document.querySelector('#sheetCard').scrollTop = 9999; }); await snap('70b-ch2-workshop'); await close();
   for (const m of ['bank', 'korinna', 'thras', 'works']) {
     await open(`.person[data-m="${m}"]`);
     for (let k = 0; k < 20; k++) { const b = await page.$('#sheetCard .trade button[data-act="sell"]:not([disabled])'); if (!b) break; await b.click(); }
@@ -220,6 +241,8 @@ fs.mkdirSync(out, { recursive: true });
   await page.click('button[data-t="harbour"]');
   await page.waitForTimeout(700);
   await snap('81-ch3-rhodes');
+  { const st3 = await page.evaluate(() => window.__emp.state().store); console.log('storehouse in Chapter III:', JSON.stringify(st3)); if (st3.jobs.length) throw new Error('the dyer should have finished over the winter'); }
+  await open('#panel button[data-store]'); await snap('81b-ch3-storehouse'); await close();
   if (await page.evaluate(() => window.__emp.state().silver) < 150) { await open('.person[data-m="bank"]'); const b = await page.$('#sheetCard button[data-act="loan"]'); if (b) await b.click(); await close(); }   // broke after a bad season: borrow
   await hireIf('euphron', '82-ch3-carpenter');
   await open('.person[data-m="agent"]'); await page.click('#sheetCard button[data-act="freight"][data-f="rd"]'); await page.click('#sheetCard button[data-act="freight"][data-f="rp"]'); await snap('83-ch3-agent'); await close();
@@ -603,6 +626,10 @@ fs.mkdirSync(out, { recursive: true });
   if (voyages < 10) throw new Error('the last page should list all nine voyages and the total: ' + voyages);
   await page.evaluate(() => document.querySelector('#theater .voyages').scrollIntoView()); await snap('384-the-end');
   console.log('chapter IX:', JSON.stringify(await page.evaluate(() => window.__emp.state().summary)));
+  const sights = await page.evaluate(() => Object.keys(window.__emp.state().sights));
+  console.log('sights seen:', sights.length, sights.join(', '));
+  if (sights.length !== 17) throw new Error('every port has something worth seeing, and the voyages pass through all seventeen: ' + sights.length);
+  if (!/young man from Cyrene/.test(await page.textContent('#theater .voyages'))) throw new Error('the last page should remember the book of wonders');
   console.log('errors:', errors.length ? errors.join('\n') : 'none');
   console.log('screenshots:', shots.join(', '));
   await browser.close();

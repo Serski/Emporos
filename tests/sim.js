@@ -12,7 +12,9 @@ const E = new Function(code + `
 return { newGame, begin, buy, sell, haggle, hire, autoPack, setSail, tick, setRow, campAct, sleep, needsRoute, resolveEvent,
   repay, eta, provisions, mouths, holdUsed, holdCells, sellPrice, buyPrice, merchantsAt, MERCHANTS, GOODS, OUT, dockItems,
   atRisk, stockLeft, cargoValue, sailCheck, isCargo, takeLoan, nextChapter, migrate, offer, routeFrom, CHAPTERS, fitted, freeSquares, toll,
-  takeFreight, orderShip, jettisonPlan, SHIP_PRICE, hiresAt, shipTerms, buyShip, changeHull, holdCells, feeOf, dockOf, holdInShape, HULLS, DAYS, fitted, tooSmall, bestSpot, EVENTS, takeFare, campOdds, roomFor, hasDeck, flipItem, warGoods, warValue, bribeOf, runPatrol };`)();
+  takeFreight, orderShip, jettisonPlan, SHIP_PRICE, hiresAt, shipTerms, buyShip, changeHull, holdCells, feeOf, dockOf, holdInShape, HULLS, DAYS, fitted, tooSmall, bestSpot, EVENTS, takeFare, campOdds, roomFor, hasDeck, flipItem, warGoods, warValue, bribeOf, runPatrol,
+  SIGHTS, SIGHT_PAY, seeSight, sightsSeen, needItem, STORE, RECIPES, LOCK_PRICE, buildStore, storeGood, takeGood, startJob, finishJobs, storeLeaving, storeHome, recoverGoods, fenceWaiting, fenceAsk,
+  storeUsed, storeRoom, storeValue, storable, theftChance, canMake, roughSea, woundLines, woundCrew, wants, openVisit, stow, addItem, countGood };`)();
 
 // Each strategy: what to carry out and home, who to hire, and what to do when things go wrong.
 const STRATEGIES = {
@@ -961,5 +963,162 @@ for (const fill of [20, 50]) {
   E.OUT.length = 0;
   console.log(ok ? 'An old wide-Tyche save with ' + s.items.filter(i => i.where === 'hold').length + ' things aboard loads as ' + (t.hull === 'medium' ? 'the new Tyche' : 'the old shape, for now') + ', with nothing lost: ok' : 'FAIL: an old wide-Tyche save should load without losing cargo');
   if (!ok) failed = true;
+}
+// ---- Side stories in every port, the storehouse in Rhodes, and its workshop ----
+console.log('-- Side stories, the storehouse and the workshop --');
+{
+  let bad = 0;
+  const check = (ok, msg) => { if (!ok) { console.log('FAIL: ' + msg); failed = true; bad++; } return ok; };
+  const say = (label, from) => console.log(label + ': ' + (bad === from ? 'ok' : 'FAILED'));
+  const CH = { rhodes: 1, halic: 1, kos: 2, miletus: 2, delos: 3, piraeus: 3, corinth: 4, corcyra: 4, croton: 5, taras: 5, kydonia: 6, syracuse: 6, paphos: 7, kition: 7, sidon: 8, tyre: 8, alexandria: 9 };
+  const at = (port, ch, silver) => { const s = E.newGame(5150); E.begin(s); s.ch = ch; s.port = port; s.phase = 'port'; E.openVisit(s, port); s.silver = silver == null ? 500 : silver; return s; };
+  const copy = s => JSON.parse(JSON.stringify(s));
+  // Every port has something worth seeing, and every choice there tells a story once, costs what it says, and only once.
+  let from = bad, choices = 0;
+  check(Object.keys(E.SIGHTS).length === Object.keys(CH).length && Object.keys(CH).every(p => E.SIGHTS[p]), 'every port should have something worth seeing');
+  for (const p in CH) for (const c of E.SIGHTS[p].choices(at(p, CH[p]))) {
+    const s = at(p, CH[p]); E.stow(s, 'incense'); E.stow(s, 'wine');
+    const before = s.silver, r = E.seeSight(s, c.id);
+    check(r.ok && r.lines.length > 0 && r.lines.every(l => typeof l === 'string' && l.length > 20 && !/undefined|NaN|\[object/.test(l)), p + ': ' + c.id + ' should tell a story');
+    check(!!s.sights[p] && s.sights[p].ch === CH[p] && !E.seeSight(s, c.id).ok, p + ': a sight should be seen only once');
+    check(Number.isFinite(s.silver) && s.silver >= 0 && (!c.price || before - s.silver >= c.price), p + ': ' + c.id + ' should cost what it says');
+    check(E.SIGHTS[p].text(s).every(l => typeof l === 'string' && l.length > 20), p + ': the story should read');
+    choices++;
+  }
+  { const s = at('corcyra', 4); check(!E.seeSight(s, 'pour').ok && !s.sights.corcyra, 'pouring wine to Poseidon with no wine aboard should be refused'); }
+  { const s = at('rhodes', 1, 3); check(!E.seeSight(s, 'give').ok && s.silver === 3 && !s.sights.rhodes, 'a gift you cannot afford should be refused'); }
+  { const s = at('alexandria', 9, 0); for (const p of ['rhodes', 'halic', 'kos', 'delos', 'tyre', 'sidon']) s.sights[p] = { ch: 1 };
+    check(E.seeSight(s, 'tell').ok && s.silver === 6 * E.SIGHT_PAY, 'the young man at the Museum should pay for six sights'); }
+  { const s = at('taras', 5); E.seeSight(s, 'measure'); s.port = 'rhodes'; s.home = true; const before = s.silver; E.storeHome(s);
+    check(s.silver === before + 15 && s.flags.lysippos === 'paid', 'Aristokles should pay for the measurements of the Zeus of Taras'); }
+  say(`Sights: ${Object.keys(E.SIGHTS).length} ports, ${choices} choices, each told once`, from);
+  // The storehouse: Aristeia's workshop from Chapter II, a loft from III, a yard from V, and a lock.
+  from = bad;
+  {
+    const s = at('rhodes', 1);
+    check(!E.buildStore(s, 'lvl').ok, 'no storehouse before Chapter II');
+    s.ch = 2; const net = s.netStart;
+    check(E.buildStore(s, 'lvl').ok && s.store.lvl === 1 && s.silver === 460 && s.netStart === net - 40, 'the workshop should cost 40, and not count as a loss');
+    check(!E.buildStore(s, 'lvl').ok, 'no loft before Chapter III');
+    for (let k = 0; k < 14; k++) E.addItem(s, 'purple', 'dock');
+    let n = 0; while (E.storeGood(s, 'purple').ok) n++;
+    check(n === 12 && E.storeUsed(s) === 12 && E.storeRoom(s) === 12, 'the workshop should hold twelve squares');
+    E.addItem(s, 'horse', 'dock'); check(!E.storeGood(s, 'horse').ok, 'no horses in Aristeia’s workshop');
+    check(E.wants(s, 'korinna').includes('purple'), 'Korinna should buy out of the storehouse');
+    const onQuay = E.countGood(s, 'purple'), inStore = s.store.goods.purple;
+    for (let k = 0; k < 3; k++) E.sell(s, 'korinna', 'purple');
+    check(E.countGood(s, 'purple') === onQuay - 2 && s.store.goods.purple === inStore - 1, 'sales should come off the quay first, then out of the storehouse');
+    check(E.takeGood(s, 'purple').ok && s.store.goods.purple === inStore - 2 && E.countGood(s, 'purple') === 1, 'goods should come out of the storehouse onto the quay');
+    const t = copy(s), keep = E.sailCheck(t).keep.length; E.setSail(t);
+    check(keep === 1 && t.store.goods.purple === s.store.goods.purple + 1 && !t.items.some(i => i.g === 'purple'), 'what is left on the quay in Rhodes should go back into the storehouse when she sails');
+    s.ch = 3; check(E.buildStore(s, 'lvl').ok && E.storeRoom(s) === 24 && !E.buildStore(s, 'lvl').ok, 'a loft in Chapter III, and no yard yet');
+    s.ch = 5; check(E.buildStore(s, 'lvl').ok && E.storeRoom(s) === 40 && !E.buildStore(s, 'lvl').ok, 'a yard in Chapter V, and nothing bigger');
+    check(E.buildStore(s, 'lock').ok && s.store.lock && !E.buildStore(s, 'lock').ok, 'one lock');
+  }
+  say('The storehouse: rent, room, upgrades, selling out of it, and leftovers carried back', from);
+  // Thieves, while the ship is away, and the man in the wide hat.
+  from = bad;
+  {
+    const base = at('rhodes', 3); E.buildStore(base, 'lvl');
+    for (let k = 0; k < 6; k++) { E.addItem(base, 'purple', 'dock'); E.storeGood(base, 'purple'); }
+    const N = 4000, rate = (mod, ch) => { let r = 0; for (let k = 0; k < N; k++) { const t = copy(base); t.seed = 1 + k * 7919; t.ch = ch || 3; mod(t); E.storeLeaving(t); if (t.store.robbed) r++; } return r / N; };
+    const open = rate(() => {}), locked = rate(t => { t.store.lock = true; }), hound = rate(t => { t.store.goods.hound = 1; }), early = rate(() => {}, 2), poor = rate(t => { t.store.goods = { purple: 1 }; });
+    console.log(`Storehouse thefts per voyage: no lock ${pct(open * N, N)}, locked ${pct(locked * N, N)}, a hound at the door ${pct(hound * N, N)}, in Chapter II ${pct(early * N, N)}, with one skein in it ${pct(poor * N, N)}`);
+    check(Math.abs(open - 0.2) < 0.03 && Math.abs(locked - 0.06) < 0.02 && hound === 0 && early === 0 && poor === 0, 'thefts should come about one voyage in five without a lock, one in sixteen with one, and never with a hound, in Chapter II, or for almost nothing');
+    let t; for (let seed = 1; ; seed++) { t = copy(base); t.seed = seed; E.storeLeaving(t); if (t.store.robbed) break; }
+    const took = Object.values(t.store.robbed.goods).reduce((a, b) => a + b, 0);
+    check(took >= 1 && took <= 3 && t.store.goods.purple === 6 - took && !t.store.robbed.told, 'thieves should take what two men can carry, and nobody should know yet');
+    t.home = true; E.storeHome(t);
+    check(t.store.robbed.told && E.fenceWaiting(t), 'Aristeia should tell them when they come home, and the man in the wide hat should turn up');
+    { const u = copy(t), ask = E.fenceAsk(u); check(E.recoverGoods(u, 'buy').ok && u.store.goods.purple === 6 && u.silver === t.silver - ask && !E.fenceWaiting(u), 'buying the goods back should work'); }
+    { let caught = 0, escaped = 0;
+      for (let k = 0; k < 400; k++) { const u = copy(t); u.seed = 3 + k * 104729; E.recoverGoods(u, 'wardens');
+        if (u.store.robbed.done === 'caught') { caught++; check(u.store.goods.purple === 6, 'the wardens should give the goods back'); } else { escaped++; check(u.store.goods.purple === 6 - took && u.store.robbed.done === 'escaped', 'or he gets away with them'); } }
+      check(caught > 0 && escaped > 0, 'the wardens should sometimes catch him, and sometimes not'); }
+    { const u = copy(t); E.recoverGoods(u, 'leave'); check(u.store.robbed.done === 'left' && !E.recoverGoods(u, 'buy').ok, 'letting the goods go should be final'); }
+    { const u = copy(t); u.store.goods.hound = 1; E.storeLeaving(u); check(u.store.robbed.done === 'gone' && !E.fenceWaiting(u), 'the man in the wide hat should be gone when the ship sails'); }
+  }
+  say('Thefts, and the man in the wide hat', from);
+  // The workshop: jobs are done when the ship comes home, or over the winter; a bigger storehouse does more at once.
+  from = bad;
+  {
+    const s = at('rhodes', 2); E.buildStore(s, 'lvl');
+    check(!E.startJob(s, 'books').ok && !E.startJob(s, 'purple').ok, 'no books before Chapter III, and no dyeing without wool');
+    E.addItem(s, 'wool', 'dock'); const silver = s.silver;
+    check(E.startJob(s, 'purple').ok && s.silver === silver - E.RECIPES.purple.fee && !E.countGood(s, 'wool'), 'the dyer should take the wool, and his fee');
+    E.addItem(s, 'tarwool', 'dock'); check(!E.startJob(s, 'purple').ok, 'one job at a time in a small workshop');
+    s.home = true; E.storeHome(s);
+    check(s.store.goods.purple === 2 && !s.store.jobs.length, 'two skeins of purple when the ship comes home');
+    s.ch = 6; E.buildStore(s, 'lvl');
+    E.addItem(s, 'quince', 'dock'); E.addItem(s, 'quince', 'dock'); E.addItem(s, 'hybla', 'dock');
+    check(E.startJob(s, 'quinces').ok && E.startJob(s, 'purple').ok && !E.startJob(s, 'books').ok, 'two jobs at once with a loft, and no more');
+    s.phase = 'summary'; s.summary = {}; E.nextChapter(s);
+    check(s.ch === 7 && s.store.goods.melimela === 3 && s.store.goods.purple === 4 && !s.store.jobs.length, 'jobs started at the end of a voyage should be done before the next');
+    check(E.wants(at('kition', 7), 'hanno').length === 0 && E.offer(s, 'korinna').buys.melimela > 0, 'somebody should buy quinces in honey');
+    const u = at('rhodes', 4); E.buildStore(u, 'lvl');
+    for (let k = 0; k < 12; k++) { E.addItem(u, 'salt', 'dock'); E.storeGood(u, 'salt'); }
+    for (let k = 0; k < 3; k++) E.addItem(u, 'papyrus', 'dock');
+    check(E.startJob(u, 'books').ok, 'Aristeides’s students should copy books onto papyrus');
+    E.finishJobs(u); check(E.countGood(u, 'scrolls') === 2 && !u.store.goods.scrolls, 'when the storehouse is full, the work should go on the quay');
+  }
+  say('The workshop: dyeing, copying and cooking', from);
+  // Running round the altar on Delos, or wine for Poseidon: rough water breaks about half as much. Diktynna's net saves a life.
+  from = bad;
+  {
+    const broken = blessed => { let n = 0; for (let k = 0; k < 300; k++) { const s = E.newGame(100 + k); if (blessed) s.flags.blessed = 'delos'; for (let j = 0; j < 4; j++) E.addItem(s, 'cups', 'hold'); n += E.roughSea(s, 0.5).length; } return n; };
+    const plain = broken(false), lucky = broken(true);
+    check(lucky > plain * 0.4 && lucky < plain * 0.6, 'a blessing should halve what rough water breaks: ' + lucky + ' against ' + plain);
+    let deaths = 0, saved = 0;
+    for (let k = 0; k < 400; k++) {
+      const a = E.newGame(700 + k), b = E.newGame(700 + k);
+      for (const s of [a, b]) s.voyage = { day: 'r_symi' };
+      b.flags.net = true;
+      E.woundLines(a, E.woundCrew(a, 3)); E.woundLines(b, E.woundCrew(b, 3));
+      if (a.lost.length) { deaths++; if (b.lost.length === a.lost.length - 1 && b.flags.net === 'used') saved++; }
+      else check(b.flags.net === true, 'the net should wait for a man who needs it');
+    }
+    check(deaths > 0 && saved === deaths, 'Diktynna’s net should save the first man who would have died');
+  }
+  say('The blessing for the voyage, and Diktynna’s net', from);
+  // A whole game, played the smart way, but stopping in every port to see the sight, and using the storehouse in Rhodes.
+  if (ONLY.includes(9)) {
+    from = bad;
+    const realSail = E.setSail, realRepay = E.repay, stats = { jobs: 0, recovered: 0 };
+    const side = (s, when) => {
+      const G = E.SIGHTS[s.port];
+      if (G && !s.sights[s.port]) { const c = G.choices(s).find(c => (!c.price || s.silver >= c.price) && (!c.need || E.needItem(s, c.need))); if (c && !E.seeSight(s, c.id).ok) throw new Error('could not see the sight in ' + s.port); }
+      if (s.port !== 'rhodes' || s.ch < 2) return;
+      if (E.fenceWaiting(s)) { E.recoverGoods(s, s.silver >= E.fenceAsk(s) + 100 ? 'buy' : 'wardens'); stats.recovered++; }
+      if (!s.store.lvl && s.silver >= 150) E.buildStore(s, 'lvl');
+      if (!s.store.lvl) return;
+      if (s.ch >= 3 && !s.store.lock && s.silver >= 200) E.buildStore(s, 'lock');
+      const up = E.STORE[s.store.lvl + 1]; if (up && s.ch >= up.from && s.silver >= up.price + 400) E.buildStore(s, 'lvl');
+      for (const g of Object.keys(s.store.goods)) if (!E.countGood(s, g)) for (let k = 0; k < 20 && s.store.goods[g]; k++) { const m = seller(s, g, 'sell'); if (!m || !E.sell(s, m, g).ok) break; }
+      if (when !== 'home') return;
+      for (const it of s.items.filter(i => E.isCargo(i) && E.storable(i.g))) E.storeGood(s, it.g);   // whatever Rhodes would not buy, put away for another season
+      if (s.ch >= 4) { for (let k = 0; k < 3 && s.silver > 100; k++) E.buy(s, 'alexandrian', 'papyrus'); if (E.startJob(s, 'books').ok) stats.jobs++; }
+    };
+    const fullGame = seed => {
+      const s = E.newGame(seed);
+      playChapterOne(s); E.nextChapter(s); summerOn(s, SUMMER.smart, [], 'smart'); E.nextChapter(s); autumnOn(s, AUTUMN.smart, 'smart'); E.nextChapter(s);
+      springOn(s, SPRING.smart, 'smart'); E.nextChapter(s); summer5On(s, SUMMER5.smart, 'smart'); E.nextChapter(s); autumn6On(s, AUTUMN6.smart, 'smart'); E.nextChapter(s);
+      spring7On(s, SPRING7.smart, 'smart'); E.nextChapter(s); summer8On(s, SUMMER8.smart, 'smart'); E.nextChapter(s); autumn9On(s, AUTUMN9.smart, 'smart');
+      E.OUT.length = 0;
+      return s;
+    };
+    const total = s => s.history.concat([s.summary]).reduce((a, h) => a + h.profit, 0);
+    const G = Math.max(8, Math.round(GAMES / 10)), plain = [], sided = [];
+    for (let k = 0; k < G; k++) plain.push(fullGame(41000 + k * 7919));
+    E.setSail = s => { if (s.phase === 'port' && !s.home) side(s, 'leaving'); return realSail(s); };
+    E.repay = s => { if (s.phase === 'port' && s.home) side(s, 'home'); return realRepay(s); };
+    try { for (let k = 0; k < G; k++) sided.push(fullGame(41000 + k * 7919)); } finally { E.setSail = realSail; E.repay = realRepay; }
+    const mean = a => Math.round(a.reduce((x, y) => x + y, 0) / a.length);
+    const p0 = mean(plain.map(total)), p1 = mean(sided.map(total)), thefts = sided.reduce((a, s) => a + s.history.concat([s.summary]).filter(h => h.robbed).length, 0);
+    console.log(`A whole game with side trips (${G} games): sights seen ${mean(sided.map(s => E.sightsSeen(s)))} of ${Object.keys(E.SIGHTS).length}, profit over nine voyages ${p1} dr against ${p0} without,` +
+      ` storehouse level ${(sided.reduce((a, s) => a + s.store.lvl, 0) / G).toFixed(1)} worth ${mean(sided.map(s => E.storeValue(s)))} dr at the end, books copied ${stats.jobs}, thefts ${thefts}, recovered or chased ${stats.recovered}`);
+    for (const s of sided) check(E.sightsSeen(s) === Object.keys(E.SIGHTS).length && s.sights.alexandria.pick === 'tell' && Number.isFinite(s.silver) && s.silver >= 0, 'a whole game should see every sight, and end with sensible silver');
+    check(p1 > p0 - 200 && p1 < p0 * 1.25, 'side trips and the storehouse should help a little, not decide the game');
+    say('A whole game with side trips', from);
+  }
 }
 if (failed) process.exit(1);
