@@ -3994,7 +3994,7 @@ const SIGHTS = {
       if (!n) return ['The young man wrote down “the inside of a ship”, looked at it, and rubbed it out. He said Ariston should come back when he had seen something, and that he would still be here, because nobody ever let him go anywhere.'];
       const pay = SIGHT_PAY * n, told = seen.slice(0, 3).map(p => SIGHTS[p].tell);
       s.silver += pay; s.stats.earned += pay; gainRep(s, 'alexandria', 3);
-      return ['Ariston told him about ' + andList(n > 3 ? told.concat([num(n - 3) + ' more besides']) : told) + '. The young man wrote it all down, very fast, in a very small hand, and asked questions until the lamps were lit.',
+      return ['Ariston told him about ' + andList(n > 3 ? told.concat([(n - 3 > 12 ? 'thirteen' : num(n - 3)) + ' more besides']) : told) + '. The young man wrote it all down, very fast, in a very small hand, and asked questions until the lamps were lit.',
         'Then he paid Ariston ' + pay + ' drachmas out of the money the king gave him for books, and said he would put every word of it in his book, and leave out Ariston’s name, because a book of wonders should not have a merchant in it.']
         .concat(n >= 12 ? ['At the gate he stopped, and said that Ariston had seen more of the world than anyone he had met in Alexandria, including the scholars, who had read about all of it and seen none.'] : []);
     } },
