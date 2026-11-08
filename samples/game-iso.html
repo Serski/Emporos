@@ -7920,7 +7920,7 @@ function flatten(c, x0, y0, w, d, pad) {   // a level terrace cut into the hill 
 const CAMPSPEC = {
   symi: {
     seed: 41, high: 15, rocky: u => Math.abs(u - 4) > 38, cove: u => Math.max(0, Math.round((Math.abs(u - 4) - 44) * 0.9)),
-    ship: [-36, 7], fire: [10, 6], glaukos: [-46, 2], swimmer: [36, -12],
+    ship: [-26, 7], fire: [10, 6], glaukos: [-46, 2], swimmer: [36, -12],
     dress(c) {
       const { Wd, at, top, hts } = c, { put, box, face } = Wd, sponge = SPONGE();
       spring(c, -14, 17);
@@ -8026,6 +8026,7 @@ function campWorld(W, H, stop) {
   const c = { Wd, at, top, hts, dist, rocky: P.rocky, seed, used: new Set() };
   // keep the beach clear where the ship lies and the crew sit
   for (const [u, dv, r] of [[P.ship[0], P.ship[1], 14], [P.fire[0], P.fire[1], 5]]) for (let du = -r; du <= r; du++) for (let dd = -4; dd <= 4; dd++) { const [x, y] = at(u + du, dv + dd); c.used.add(x + ',' + y); }
+  for (let u = P.ship[0] - 5; u <= P.ship[0] + 50; u++) if (P.rocky(u) && u <= P.ship[0] + SHIPS.grain.L) console.warn('camp ' + stop + ': rocks under the ship at u=' + u);
   const extra = P.dress(c);
   const pos = ([u, dv]) => { const [x, y] = at(u, dv); return [x, y, top(x, y) + 1]; };
   return { V: Wd.V, OX, OY, at, top, sv, stop, ...extra, beacon: c.beacon,
