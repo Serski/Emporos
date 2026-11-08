@@ -409,7 +409,7 @@ function model(build) {
   let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
   for (const v of Wd.V.values()) { const X = (v.x - v.y) * 2, Y = v.x + v.y - 2 * v.z; x0 = Math.min(x0, X); x1 = Math.max(x1, X + 3); y0 = Math.min(y0, Y); y1 = Math.max(y1, Y + 3); }
   const ox = 1 - x0, oy = 1 - y0, w = x1 - x0 + 3, h = y1 - y0 + 3, R = raster(Wd.V, w, h, ox, oy, true);
-  return { w, h, ox, oy, rgba: R.rgba, depth: R.depth };
+  return { w, h, ox, oy, rgba: R.rgba, depth: R.depth, V: Wd.V };
 }
 function mirrored(Wd0, L) {   // the same builder, with x turned round: a boat built bow to +x comes out bow to -x
   const f = x => L - x;
@@ -699,121 +699,66 @@ function foes() {   // pirates, Illyrian raiders and the king's patrol, all comi
   };
   return SEAKIT.foes;
 }
-function isleModel(v) {   // an island: a lumpy hill of rock and scrub, with a beach, and something of people's on it
-  let m = SEAKIT.isles.get(v); if (m) return m;
-  const R = k => hash(v * 17.3 + k * 2.71), kind = v % 6, r = [9, 12, 6, 13, 10, 7][kind], hMax = [6, 8, 3, 9, 4, 6][kind];
-  const ex = 1 + R(1) * 0.6, ey = 0.8 + R(2) * 0.3, hts = new Map();
-  m = model(Wd => {
-    const g = Wd.newId(), sand = mat('#f6e4b4', 0.14, 0.3), rock = mat('#e6d0a0', 0.18, 0.36), cliff = mat('#d4b888', 0.2, 0.4), scrub = mat('#a8c860', 0.2, 0.42), scrub2 = mat('#8ab454', 0.2, 0.42), grey = M.grey;
-    const hAt = (x, y) => { const d = Math.hypot(x / ex, y / ey) / r + (hash(x * 0.71 + y * 1.37 + v) - 0.5) * 0.14; return d >= 1 ? null : Math.round(hMax * (1 - Math.pow(d, 1.6))) - 1; };
-    const X = Math.ceil(r * ex) + 2, Y = Math.ceil(r * ey) + 2;
-    for (let x = -X; x <= X; x++) for (let y = -Y; y <= Y; y++) { const h = hAt(x, y); if (h == null) continue; hts.set(x + ',' + y, h);
-      for (let z = -1; z <= h; z++) put(x, y, z, z < h ? (z < 1 ? grey : cliff) : h <= 0 ? sand : h <= 1 ? rock : pm(x + y, 3) ? scrub : scrub2, g); }
-    function put(x, y, z, mm, id) { Wd.put(x, y, z, mm, id); }
-    const top = (x, y) => hts.has(x + ',' + y) ? hts.get(x + ',' + y) : null;
-    const spot = (x0, y0, w, d) => { let lo = 99, hi = -9; for (let x = x0; x < x0 + w; x++) for (let y = y0; y < y0 + d; y++) { const h = top(x, y); if (h == null) return null; lo = Math.min(lo, h); hi = Math.max(hi, h); } return [lo, hi]; };
-    const home = (x0, y0, w, d, k) => { const s = spot(x0, y0, w, d); if (!s || s[0] < 1) return; house(Wd, x0, y0, s[0] + 1, w, d, s[1] - s[0] + 3 + Math.floor(R(k) * 2), [M.white, M.white, M.cream, M.blueW][Math.floor(R(k + 1) * 4)], { flat: R(k + 2) < 0.5, alongY: R(k + 3) < 0.5, door: R(k + 4) < 0.5 ? '#3a6ab4' : '#c8483a', seed: R(k + 5) }); };
-    const plant = (x, y, k) => { const h = top(x, y); if (h != null && h >= 1) { if (R(k) < 0.35) Wd.box(x, y, h + 1, 1, 1, 3 + Math.floor(R(k + 1) * 3), M.cypress); else tree(Wd, x, y, h + 1, R(k + 2)); } };
-    if (kind === 0) { const h = top(0, 0); const c = Wd.box(-1, -1, h + 1, 3, 3, 3, M.white); Wd.put(0, 0, h + 4, M.blue, c); Wd.face(0, 1, h + 1, 'l', '#3a6ab4'); Wd.box(2, -2, top(2, -2) + 1, 1, 1, 5, M.cypress); plant(-4, 2, 10); plant(4, 3, 12); }
-    if (kind === 1 || kind === 3) { for (const [x, y, w, d, k] of [[-4, 1, 3, 3, 20], [0, 2, 4, 3, 26], [-1, -3, 3, 3, 32], [3, -1, 3, 3, 38], [-7, -2, 3, 3, 44], [5, 4, 3, 3, 50]]) home(x, y, w, d, k); for (let k = 0; k < 9; k++) plant(Math.round((R(60 + k) - 0.5) * r * ex * 1.4), Math.round((R(70 + k) - 0.5) * r * ey * 1.4), 80 + k * 3); }
-    if (kind === 3) { const h = top(-2, -6); if (h != null) { const tm = Wd.box(-4, -8, h + 1, 6, 4, 1, M.marble); for (const [dx, dy] of [[0, 0], [2, 0], [4, 0], [0, 2], [4, 2], [2, 2]]) Wd.box(-4 + dx + (dx === 4 ? 1 : 0), -8 + dy + (dy === 2 ? 1 : 0), h + 2, 1, 1, 3, M.marble, tm); Wd.box(-4, -8, h + 5, 6, 4, 1, M.marble, tm); for (let x = -4; x < 2; x++) { Wd.put(x, -7, h + 6, M.roof, tm); Wd.put(x, -6, h + 6, M.roof, tm); } } }
-    if (kind === 2) { plant(0, 0, 90); }
-    if (kind === 4) { home(-2, -1, 3, 3, 100); plant(3, -1, 110); plant(-5, 0, 112); smallBoat(Wd, Math.round(r * ex) - 3, 3, '#e8483a', false); }
-    if (kind === 5) { const h = top(0, 0); const lh = Wd.box(-1, -1, h + 1, 3, 3, 7, (x, y, z) => z % 3 === 0 ? M.stoneD : M.white); Wd.box(-1, -1, h + 8, 3, 3, 1, M.stoneD, lh); plant(-3, 2, 120); }
-  });
-  m.meta = { r: Math.round(r * ex), ry: Math.round(r * ey), light: kind === 5 ? [0, 0, (hts.get('0,0') || 0) + 9] : null };
-  SEAKIT.isles.set(v, m);
-  return m;
-}
-function vnoise(x, y, s) {   // smooth value noise, for hills and shorelines
-  const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, h = (a, b) => hash(a * 12.99 + b * 78.23 + s * 37.7), u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
-  return (h(xi, yi) * (1 - u) + h(xi + 1, yi) * u) * (1 - v) + (h(xi, yi + 1) * (1 - u) + h(xi + 1, yi + 1) * u) * v;
-}
-const COASTS = [];
-// Land seen from the sea: beaches and rocks, hills of scrub, fields and olives, villages with a little mole, farms, a temple or a tower on a height.
-// o.dist(x, y) is how far inland a tile is (below 0 is sea), o.each(f) visits the tiles to build, o.hidden(x, y, h) says the sky covers a tile,
-// o.shore lists points on the water's edge where villages may stand, and o.inland(k, r) gives a spot behind the village for its k-th house.
-function landModel(o) {
-  const hit = COASTS.find(c => c.key === o.key); if (hit) return hit.m;
-  const seed = o.seed, b = o.b || 0, hts = new Map(), used = new Set(), people = [];
-  const hAt = (x, y) => { const d = o.dist(x, y); if (d == null || d < 0) return null; const r = o.rocky(x, y); if (!r && d < 3) return 0; return Math.min(Math.floor(d / (r ? 1.3 : 2.6)), Math.floor(1 + vnoise(x / 18, y / 14, seed + 2) * 12 * Math.min(1, d / 16))); };
-  const m = model(Wd => {
-    const W2 = { ...Wd, put: (x, y, z, mm, id) => Wd.put(x - b, y, z, mm, id), get: (x, y, z) => Wd.get(x - b, y, z), face: (x, y, z, sd, c) => Wd.face(x - b, y, z, sd, c),
-      box: (x0, y0, z0, w, d, h, mm, id) => Wd.box(x0 - b, y0, z0, w, d, h, typeof mm === 'function' ? (x, y, z) => mm(x + b, y, z) : mm, id) };
-    const g = Wd.newId(), sand = mat('#f6e4b4', 0.14, 0.3), rock = mat('#e6d0a0', 0.18, 0.36), cliff = mat('#d4b888', 0.2, 0.4), scrub = mat('#a8c860', 0.2, 0.42), scrub2 = mat('#94bc58', 0.2, 0.42), field = mat('#ecd478', 0.16, 0.34), field2 = mat('#dcb860', 0.16, 0.34), path = mat('#f0dcb0', 0.14, 0.3);
-    o.each((x, y) => {
-      const d = o.dist(x, y);
-      if (d != null && d < 0 && d >= -2 && o.rocky(x, y)) { const r = hash(x * 1.3 + y * 7.1 + seed); if (r < 0.45) { const id = Wd.newId(); W2.put(x, y, -1, pm(x + y, 2) ? M.grey : M.greyD, id); if (r < 0.15) W2.put(x, y, 0, M.grey, id); } return; }
-      const h = hAt(x, y); if (h == null || o.hidden(x, y, h)) return;
-      hts.set(x + ',' + y, h);
-      const f = (dx, dy) => { const v = hAt(x + dx, y + dy); return v == null ? -2 : v; }, low = Math.min(f(1, 0), f(0, 1), h);
-      const fld = vnoise(x / 9, y / 7, seed + 4) > 0.62 && h >= 1 && h <= 6, road = pm(x + Math.round(vnoise(y / 9, 1, seed) * 6), 37) === 0;
-      const top = h === 0 ? sand : o.rocky(x, y) && d < 4 ? rock : road ? path : fld ? (pm(x + y, 3) ? field : field2) : pm(x * 3 + y, 5) ? scrub : scrub2;
-      for (let z = Math.min(h, Math.max(-1, low + 1)); z <= h; z++) W2.put(x, y, z, z === h ? top : z < 1 ? M.grey : cliff, g);
-    });
-    const top = (x, y) => hts.has(x + ',' + y) ? hts.get(x + ',' + y) : null;
-    const spot = (x0, y0, w, d) => { let lo = 99, hi = -9; for (let x = x0; x < x0 + w; x++) for (let y = y0; y < y0 + d; y++) { const h = top(x, y); if (h == null || used.has(x + ',' + y)) return null; lo = Math.min(lo, h); hi = Math.max(hi, h); } return hi - lo > 3 ? null : [lo, hi]; };
-    const take = (x0, y0, w, d) => { for (let x = x0 - 1; x <= x0 + w; x++) for (let y = y0 - 1; y <= y0 + d; y++) used.add(x + ',' + y); };
-    for (const [xv, yv, vi] of o.shore) {   // villages, each with a mole and a boat or two
-      const r = k => hash(vi * 9.7 + seed * 3.1 + k * 1.3);
-      if (!o.rocky(xv, yv)) {
-        const mo = Wd.newId(); for (let y = yv - 1; y <= yv + 5; y++) for (const x of [xv, xv + 1]) { W2.put(x, y, 0, M.stone, mo); W2.put(x, y, -1, M.stoneD, mo); }
-        smallBoat(W2, xv + 3, yv + 1, AWN[Math.floor(r(2) * AWN.length)], true); if (r(3) < 0.6) smallBoat(W2, xv - 3, yv + 2, AWN[Math.floor(r(4) * AWN.length)], true);
-        people.push([xv + 0.5, yv + 3, 1]);
+// ---------- the open sea: light wandering over the water in a net of bright lines, as it does through ripples ----------
+const SEATEX = { w: 128, h: 64, n: 30, pw: 160, ph: 80 };
+function seaTex() {   // a seamless, looping water surface, made once: 30 frames of moving light lines, and broad patches to hide the repeat
+  if (SEATEX.frames) return SEATEX;
+  const { w, h, n, pw, ph } = SEATEX, gx = 6, gy = 3, cw = w / gx, ch = h / gy, base = [], TAU = 6.2832;
+  for (let j = 0; j < gy; j++) for (let i = 0; i < gx; i++) base.push([(i + 0.25 + hash(i * 7.1 + j * 3.3) * 0.5) * cw, (j + 0.25 + hash(i * 2.9 + j * 8.7) * 0.5) * ch, hash(i * 5.3 + j * 1.1), 2 + hash(i + j * 9.1) * 2.5]);
+  SEATEX.frames = [];
+  for (let f = 0; f < n; f++) {
+    const a = f / n * Math.PI * 2, pts = base.map(([x, y, q, r]) => [x + Math.cos(a + q * 6.283) * r, y + Math.sin((q < 0.5 ? a : -a) + q * 6.283) * r * 0.5]);
+    const T = new Uint8Array(w * h);
+    for (let y0 = 0; y0 < h; y0++) for (let x0 = 0; x0 < w; x0++) {
+      // bend the cells, so their edges run in waves rather than straight lines (every bend repeats exactly across the tile)
+      const x = pm(x0 + 2.6 * Math.sin(TAU * 2 * y0 / h + 0.5 + a) + 1.4 * Math.sin(TAU * 3 * x0 / w + 1.2 - a), w), y = pm(y0 + 1.3 * Math.sin(TAU * 2 * x0 / w + a) + 0.6 * Math.sin(TAU * 3 * y0 / h + 2.1), h);
+      const ci = Math.floor(x / cw), cj = Math.floor(y / ch); let f1 = 1e9, f2 = 1e9;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const c = ci + di, r = cj + dj, ii = pm(c, gx), jj = pm(r, gy), pt = pts[jj * gx + ii];
+        const dx = x - (pt[0] + (c - ii) * cw), dy = (y - (pt[1] + (r - jj) * ch)) * 2, d = Math.sqrt(dx * dx + dy * dy);
+        if (d < f1) { f2 = f1; f1 = d; } else if (d < f2) f2 = d;
       }
-      for (let k = 0; k < 14; k++) {
-        const w = 3 + (r(10 + k) < 0.4 ? 1 : 0), d = 3, [hx, hy] = o.inland(xv, yv, r(20 + k), r(30 + k)), sp_ = spot(hx, hy, w, d);
-        if (!sp_) continue; take(hx, hy, w, d);
-        house(W2, hx, hy, sp_[0] + 1, w, d, sp_[1] - sp_[0] + 3 + Math.floor(r(40 + k) * 2), [M.white, M.white, M.cream, M.blueW, M.ochre][Math.floor(r(50 + k) * 5)], { flat: r(60 + k) < 0.45, alongY: r(70 + k) < 0.5, door: r(80 + k) < 0.5 ? '#3a6ab4' : '#c8483a', seed: r(90 + k) });
-        if (k % 3 === 0) people.push([hx + w / 2, hy + d + 0.5, sp_[0] + 1]);
-      }
+      // the light lines come and go along their length, as they do on real water
+      const e = f2 - f1, fade = Math.sin(TAU * 2 * x0 / w + TAU * y0 / h + a * 2) * 0.5 + Math.sin(TAU * 3 * y0 / h - TAU * x0 / w + 0.8) * 0.5;
+      T[y0 * w + x0] = fade < -0.45 ? 1 : e < 0.8 && fade > 0.1 ? 3 : e < 1.9 ? 2 : 1;
     }
-    // a temple or a watchtower on the heights now and then
-    const best = new Map();
-    for (const [k, h] of hts) { const [x, y] = k.split(',').map(Number); if (h < 4 || pm(x, 3) || pm(y, 3)) continue; const bk = Math.floor((x - y) / 70); if (hash(bk * 5.3 + seed * 1.7) < 0.3) continue; const s_ = spot(x, y, 5, 4); if (s_ && (!best.has(bk) || s_[0] > best.get(bk)[2])) best.set(bk, [x, y, s_[0]]); }
-    for (const [bk, [x0, y0, z]] of best) {
-      if (!spot(x0, y0, 5, 4)) continue; take(x0, y0, 5, 4);
-      if (hash(bk * 2.9 + seed) < 0.6) { const tm = W2.box(x0, y0, z + 1, 5, 4, 1, M.marble); for (const [dx, dy] of [[0, 0], [2, 0], [4, 0], [0, 3], [2, 3], [4, 3]]) W2.box(x0 + dx, y0 + dy, z + 2, 1, 1, 3, M.marble, tm); W2.box(x0, y0, z + 5, 5, 4, 1, M.marble, tm); for (let x = x0; x < x0 + 5; x++) { W2.put(x, y0 + 1, z + 6, M.roof, tm); W2.put(x, y0 + 2, z + 6, M.roof, tm); W2.face(x, y0 + 3, z + 5, 'l', x % 2 ? '#3a64c8' : '#e8483a'); } }
-      else { const tw = W2.box(x0 + 1, y0, z + 1, 3, 3, 8, (x, y, zz) => zz % 3 === 0 ? M.stoneD : M.stone); for (const [dx, dy] of [[1, 0], [3, 0], [1, 2], [3, 2]]) W2.put(x0 + dx, y0 + dy, z + 9, M.stone, tw); }
-    }
-    // farmhouses out on their own, each with a cypress by the door
-    for (const [k, h] of hts) {
-      const [x, y] = k.split(',').map(Number); if (h < 1 || pm(x, 9) || pm(y, 7)) continue;
-      const r = hash(x * 1.77 + y * 0.53 + seed * 2.3); if (r > 0.3) continue;
-      const sp_ = spot(x, y, 3, 3); if (!sp_) continue; take(x, y, 3, 3);
-      house(W2, x, y, sp_[0] + 1, 3, 3, sp_[1] - sp_[0] + 3, r < 0.15 ? M.white : M.cream, { flat: r < 0.1, alongY: r > 0.2, door: '#8a5a32', seed: r });
-      const c = top(x + 3, y + 3); if (c != null && !used.has((x + 3) + ',' + (y + 3))) W2.box(x + 3, y + 3, c + 1, 1, 1, 4, M.cypress);
-    }
-    // olive groves in rows, and a cypress here and there
-    for (const [k, h] of hts) {
-      const [x, y] = k.split(',').map(Number); if (h < 1 || pm(x, 5) || pm(y, 4) || used.has(k)) continue;
-      const r = hash(x * 0.37 + y * 1.91 + seed); if (vnoise(x / 14, y / 12, seed + 9) < 0.55 || r < 0.35) continue;
-      if (!spot(x - 1, y - 1, 3, 3)) continue; take(x, y, 1, 1);
-      if (r > 0.9) W2.box(x, y, h + 1, 1, 1, 4 + Math.floor(r * 3), M.cypress); else tree(W2, x, y, h + 1, 0.6 + r * 0.4);
-    }
-  });
-  m.meta = { people };
-  COASTS.unshift({ key: o.key, m }); if (COASTS.length > 3) COASTS.pop();
-  return m;
+    SEATEX.frames.push(T);
+  }
+  SEATEX.patch = new Int8Array(pw * ph);
+  for (let y = 0; y < ph; y++) for (let x = 0; x < pw; x++) {
+    const u = x / pw * 6.283, v = y / ph * 6.283, s = Math.sin(u * 2 + Math.sin(v) * 1.5) * 0.5 + Math.sin(v * 3 + u + 1.3) * 0.35 + Math.sin(u * 5 - v * 2 + 0.7) * 0.2;
+    SEATEX.patch[y * pw + x] = s < -0.55 ? -1 : s > 0.62 ? 1 : 0;
+  }
+  return SEATEX;
 }
-function coastModel(seed, b, xa, xb, ys, cut) {   // a shore running along x, out on the far side of the ship
-  const sh = x => ys + Math.round((vnoise(x / 22, 0.5, seed) - 0.5) * 10), shore = [];
-  for (let vi = Math.floor(xa / 40) - 1; vi * 40 <= xb; vi++) { const r = k => hash(vi * 9.7 + seed * 3.1 + k * 1.3); if (r(0) < 0.18) continue; const xv = vi * 40 + Math.floor(r(1) * 16); if (xv > xa + 4 && xv < xb - 4) shore.push([xv, sh(xv), vi]); }
-  return landModel({ key: ['c', seed, b, xa, xb, ys, cut].join(':'), seed, b, shore,
-    dist: (x, y) => sh(x) - y, rocky: x => vnoise(x / 30, 3.5, seed + 1) > 0.6,
-    each: f => { for (let x = xa; x <= xb; x++) for (let y = sh(x) + 2; (x - b) + y >= cut; y--) f(x, y); },
-    hidden: (x, y, h) => (x - b) + y - 2 * h < cut,
-    inland: (xv, yv, a, c) => [xv + Math.round((a - 0.5) * 22), yv - 3 - Math.floor(c * 14)] });
+function shadowOf(m, svx, svy) {   // where a model's shadow falls on the water: each cube slid along the sunlight down to the surface
+  const key = svx.toFixed(1) + ',' + svy.toFixed(1); m.shadows = m.shadows || new Map();
+  let s = m.shadows.get(key); if (s) return s;
+  const cells = new Set();
+  for (const v of m.V.values()) if (v.z >= 0) cells.add(Math.round(v.x + v.z * svx) + ',' + Math.round(v.y + v.z * svy));
+  const pts = [...cells].map(k => k.split(',').map(Number));
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const [a, b] of pts) { const X = (a - b) * 2, Y = a + b; x0 = Math.min(x0, X); x1 = Math.max(x1, X + 3); y0 = Math.min(y0, Y); y1 = Math.max(y1, Y + 1); }
+  const w = x1 - x0 + 1, h = y1 - y0 + 1, ox = -x0, oy = -y0, mask = new Uint8Array(Math.max(1, w * h));
+  for (const [a, b] of pts) { const X = (a - b) * 2 + ox, Y = a + b + oy; mask[Y * w + X + 1] = mask[Y * w + X + 2] = 1; for (let i = 0; i < 4; i++) mask[(Y + 1) * w + X + i] = 1; }
+  s = { w, h, ox, oy, mask }; m.shadows.set(key, s);
+  return s;
 }
-function farShore(seed, vs, umin, umax, cut) {   // a shore straight across the picture, for the title page: land above, sea below
-  const sv = u => vs + Math.round((vnoise(u / 26, 0.5, seed) - 0.5) * 14), shore = [];
-  for (let vi = Math.floor(umin / 34); vi * 34 <= umax; vi++) { const r = k => hash(vi * 9.7 + seed * 3.1 + k * 1.3); if (r(0) < 0.15) continue; const u = vi * 34 + Math.floor(r(1) * 12), v = sv(u); if ((u + v) % 2 === 0) shore.push([(u + v) / 2, (v - u) / 2, vi]); else shore.push([(u + v + 1) / 2, (v + 1 - u) / 2, vi]); }
-  return landModel({ key: ['f', seed, vs, umin, umax, cut].join(':'), seed, shore,
-    dist: (x, y) => sv(x - y) - (x + y), rocky: (x, y) => vnoise((x - y) / 30, 3.5, seed + 1) > 0.62,
-    each: f => { for (let u = umin; u <= umax; u++) for (let v = sv(u) + 2; v >= cut; v--) if (!((u + v) & 1)) f((u + v) / 2, (v - u) / 2); },
-    hidden: (x, y, h) => x + y - 2 * h < cut,
-    inland: (xv, yv, a, c) => { const back = 4 + Math.floor(c * 12), side = Math.round((a - 0.5) * 20); return [xv - back + side, yv - back - side]; } });
-}
+let CLOUDS = null;
+const cloudShapes = () => CLOUDS || (CLOUDS = [0, 1, 2].map(k => {   // white clouds with a blue-grey belly and a black outline, eBoy fashion
+  const w = 46 + k * 12, h = 22 + k * 3, a = new Uint8Array(w * h), n = 3 + k;
+  for (let j = 0; j < n; j++) {
+    const cx = 8 + j * (w - 16) / (n - 1), cy = h * 0.58 - (j % 2) * 3 - (j === 1 ? 2 : 0), rx = (7 + (j % 2) * 3 + hash(k * 3.1 + j) * 3) * 1.15, ry = rx * 0.72;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const dx = (x - cx) / rx, dy = (y - cy) / ry; if (dx * dx + dy * dy <= 1 && y < h - 3) a[y * w + x] = 1; }
+  }
+  const data = new Uint8ClampedArray(w * h * 4), set = (i, c) => { const n2 = parseInt(c.slice(1), 16); data[i * 4] = n2 >> 16 & 255; data[i * 4 + 1] = n2 >> 8 & 255; data[i * 4 + 2] = n2 & 255; data[i * 4 + 3] = 255; };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x, inside = a[i], near = (dx, dy) => { const X = x + dx, Y = y + dy; return X >= 0 && Y >= 0 && X < w && Y < h && a[Y * w + X]; };
+    if (inside) set(i, !near(0, 2) || !near(0, 3) ? '#d4dff0' : !near(0, -2) ? '#ffffff' : '#f6f9ff');
+    else if (near(1, 0) || near(-1, 0) || near(0, 1) || near(0, -1)) set(i, INK);
+  }
+  return { w, h, data, mask: a };
+}));
 const DOLPHIN = sprite(['....KK...', '...KggK..', '.KKgggKKK', 'KgggwwggK', '.KKK.KKK.'], { K: INK, g: '#6a8aa8', w: '#dce8f0' });
 const PIRATE = [person({ skin: '#c88a58', hair: '#1b130e', robe: '#3a3440', style: 'short', beard: 2, hat: 'pilos', hatC: '#a8aeb4' }, 'stand'), person({ skin: '#d8985e', hair: '#2a1d14', robe: '#8a3a2a', style: 'curly', beard: 1 }, 'stand')];
 const ARCHER = person({ skin: '#c88a58', hair: '#1b130e', robe: '#e8e0d0', style: 'short', hat: 'pilos', hatC: '#c9ced3' }, 'stand');
@@ -829,52 +774,53 @@ function drawSeaIso(W, H, t, o) {
   if (SEACACHE.key !== W + 'x' + H) { SEACACHE.key = W + 'x' + H; SEACACHE.cv = document.createElement('canvas'); SEACACHE.cv.width = W; SEACACHE.cv.height = H; SEACACHE.ctx = SEACACHE.cv.getContext('2d'); SEACACHE.img = SEACACHE.ctx.createImageData(W, H); SEACACHE.dep = new Float32Array(W * H); }
   const out = SEACACHE.img.data, dep = SEACACHE.dep;
   const dusk = Math.max(0, Math.min(1, (o.clock - 0.72) / 0.2), Math.min(1, (0.12 - o.clock) / 0.12));
-  const water = mix(WATER, pal.seaTop, Math.min(0.85, dusk * 0.55 + storm * 0.6));
+  const water = mix('#4aa2b6', pal.seaTop, Math.min(0.85, dusk * 0.5 + storm * 0.6));
   const c3 = c => { const n = parseInt(c.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
-  const WA = c3(water), LI = c3(mix(water, '#ffffff', 0.42)), DK = c3(mix(water, '#1a4a9a', 0.22)), WH = [255, 255, 255];
+  const tones = [mix(water, '#1a3a5a', 0.14), water, mix(water, '#ffffff', 0.17), mix(water, '#ffffff', 0.4)].map(c3);
+  const LI = c3(mix(water, '#ffffff', 0.42)), WH = [255, 255, 255];
   const paint = (k, c) => { out[k * 4] = c[0]; out[k * 4 + 1] = c[1]; out[k * 4 + 2] = c[2]; out[k * 4 + 3] = 255; };
+  const shade = (k, f) => { out[k * 4] = out[k * 4] * f; out[k * 4 + 1] = out[k * 4 + 1] * f; out[k * 4 + 2] = out[k * 4 + 2] * (f + 0.06); };
   const isWater = k => dep[k] === -1e9;
   // the water, sliding past: the speed of the ship over it, from the wind
   const sp = o.calm ? (rowing ? 0.7 : 0.08) : ({ fair: 1.6, light: 1.1, head: rowing ? 0.7 : 0.35, gale: 2.4, storm: 1.2 }[o.wind] || 1.2) * (title ? 0.7 : 1);
   SEACACHE.flow = (SEACACHE.flow || 0) + Math.max(0, Math.min(0.1, t - (SEACACHE.t == null ? t : SEACACHE.t))) * sp * 2; SEACACHE.t = t;   // so a change of wind changes the speed, not the place
   const flow = SEACACHE.flow, rough = storm > 0.3 || o.wind === 'gale' || o.wind === 'head';
-  for (let k = 0; k < W * H; k++) { out[k * 4] = WA[0]; out[k * 4 + 1] = WA[1]; out[k * 4 + 2] = WA[2]; out[k * 4 + 3] = 255; }
-  dep.fill(-1e9);
-  { const ox = -2 * flow, oy = -flow, j0 = Math.floor((hz - oy) / 6) - 1, j1 = Math.ceil((H - oy) / 6) + 1;
-    const SH = [[[0, 0], [1, 0], [2, 1], [3, 1]], [[0, 1], [1, 0], [2, 0], [3, 1]], [[0, 0], [1, 0], [2, 0], [3, 1], [4, 1]], [[0, 0], [1, 0]], [[0, 1], [1, 0], [2, 0], [3, 1], [4, 1], [5, 0], [6, 0], [7, 1]]];
-    for (let j = j0; j <= j1; j++) { const st = pm(j, 2) * 5, i0 = Math.floor((-8 - ox - st) / 11) - 1, i1 = Math.ceil((W - ox) / 11) + 1;
-      for (let i = i0; i <= i1; i++) {
-        const r = k => hash(i * 31.7 + j * 57.3 + k * 11.1), kd = r(3);
-        if (o.calm && kd < 0.5) continue;
-        if (r(6) < 0.12 && Math.floor(t * 1.5 + r(7) * 2) % 2) continue;   // some come and go
-        const white = rough ? kd > 0.55 : kd > 0.9, shape = rough && white && kd > 0.8 ? SH[4] : kd < 0.5 ? SH[0] : kd < 0.72 ? SH[1] : kd < 0.88 ? SH[2] : SH[3];
-        const col = white ? WH : kd < 0.72 ? LI : DK, X = Math.round(i * 11 + st + Math.floor(r(1) * 6) + ox), Y = Math.round(j * 6 + Math.floor(r(2) * 3) + oy);
-        for (const [a, b] of shape) { const x = X + a, y = Y + b; if (x >= 0 && x < W && y >= 0 && y < H) paint(y * W + x, col); }
-      } } }
-  // things on the water, each a model or a sprite placed in the world
-  const all = [], seed = o.seed || 3, K = -OY - 8, umin = Math.floor(-OX / 2) - 4, umax = Math.ceil((W - OX) / 2) + 4;
-  const drift = title ? pm((o.scroll || 0) * 0.12, 600) : (o.scroll || 0) * 0.12;
-  const ys = -(mt.HW + 15);   // the shore, out on the far side
-  if (title) {   // the title page holds still: a shore across the top with its villages, open water behind the name, islands about the ship
-    const fs = farShore(seed + 20, Math.round(H * 0.36) - OY, umin - 4, umax + 4, K - 2);
-    all.push(['v', fs, 0, 0, 0, 0, true, -1e6]);
-    for (const [x, y, z] of fs.meta.people) all.push(['p', folk(Math.round(x * 3 + y), null)[0], x, y, z, x % 2 < 1]);
-    for (const [fx, fy, v] of [[0.82, 0.86, 13], [0.04, 0.98, 7], [1.0, 0.6, 22]]) { const u = (fx * W - OX) / 2, vv = fy * H - OY; all.push(['v', isleModel(v), Math.round((u + vv) / 2), Math.round((vv - u) / 2), 0, 0, true]); }
-  } else if (!o.open) {
-    const b = Math.floor(drift / 60) * 60, cm = coastModel(seed, b, umin + ys - 62 + b, umax + ys + 8 + b + 60, ys, K - 2);
-    all.push(['v', cm, b - drift, 0, 0, 0, true, -1e6]);
-    for (const [x, y, z] of cm.meta.people) all.push(['p', folk(Math.round(x * 3 + y), null)[0], x - drift, y, z, x % 2 < 1]);
-    for (let k = Math.floor((drift - 120) / 50); k <= Math.floor((drift + 260) / 50); k++) {   // islands go by on the near side
-      const R = j => hash(k * 7.31 + seed * 3.7 + j * 1.9);
-      if (R(1) < 0.3) continue;
-      const m = isleModel(Math.floor(R(2) * 60)), y = mt.HW + 7 + m.meta.ry + Math.floor(R(4) * 16) + (o.pirate || o.patrol ? 22 : 0), x = k * 50 + Math.floor(R(5) * 16) - drift;
-      all.push(['v', m, x, y, 0, 0, true]);
+  // the sun: its glitter on the water goes from left in the morning to right in the evening, and every shadow falls away from it, long early and late
+  // a shadow falls, for each step up, this far across the picture: to the right in the morning, down at noon, to the left in the evening
+  const sunC = clamp(o.clock, 0, 1), sunLen = 1 + 2 * Math.abs(sunC - 0.5) * 2, dsx = Math.cos(Math.PI * sunC) * sunLen, dsy = (0.3 + 0.7 * Math.sin(Math.PI * sunC)) * sunLen * 0.6;
+  const svx = (dsx / 2 + dsy) / 2, svy = (dsy - dsx / 2) / 2, shine = storm < 0.6;   // the same, as steps across the sea
+  const gx = W * (0.14 + 0.72 * sunC), gy = H * (0.1 + 0.1 * (1 - Math.sin(Math.PI * sunC))), rx = W * 0.22, ry = H * 0.12;
+  const ST = seaTex(), T = ST.frames[Math.floor(t * 12) % ST.n], fxo = Math.round(2 * flow), fyo = Math.round(flow);
+  for (let y = 0; y < H; y++) {
+    const rowT = pm(y + fyo, ST.h) * ST.w, rowP = pm((y + fyo) >> 1, ST.ph) * ST.pw, dy = (y - gy) / ry;
+    for (let x = 0; x < W; x++) {
+      let tn = T[rowT + pm(x + fxo, ST.w)] + ST.patch[rowP + pm((x + fxo) >> 1, ST.pw)];
+      if (shine) { const dx = (x - gx) / rx; if (dx * dx + dy * dy < 0.35) tn++; }
+      const col = tones[tn < 0 ? 0 : tn > 3 ? 3 : tn], k = (y * W + x) * 4; out[k] = col[0]; out[k + 1] = col[1]; out[k + 2] = col[2]; out[k + 3] = 255;
     }
   }
+  dep.fill(-1e9);
+  if (shine) {   // the glitter itself, twinkling
+    const gc = c3(mix('#fffbe0', pal.sun, dusk * 0.8)), f8 = Math.floor(t * 8);
+    for (let k = 0; k < 260; k++) {
+      const a = hash(k * 1.37) * 6.283, r = Math.sqrt(hash(k * 2.71)), X = Math.round(gx + Math.cos(a) * r * rx), Y = Math.round(gy + Math.sin(a) * r * ry);
+      if (hash(k * 0.73 + f8 * 3.1) > 0.75 - r * 0.35) continue;
+      const len = r < 0.35 ? 3 : r < 0.7 ? 2 : 1;
+      for (let q = 0; q < len; q++) if (X + q >= 0 && X + q < W && Y >= 0 && Y < H) paint(Y * W + X + q, r < 0.3 && q === 1 ? WH : gc);
+    }
+  }
+  if (rough) {   // white horses when the wind is up
+    const ox = -2 * flow, oy = -flow, j0 = Math.floor(-oy / 6) - 1, j1 = Math.ceil((H - oy) / 6) + 1, SH = [[0, 1], [1, 0], [2, 0], [3, 1], [4, 1], [5, 0]];
+    for (let j = j0; j <= j1; j++) { const st = pm(j, 2) * 5, i0 = Math.floor((-8 - ox - st) / 11) - 1, i1 = Math.ceil((W - ox) / 11) + 1;
+      for (let i = i0; i <= i1; i++) { const r = k => hash(i * 31.7 + j * 57.3 + k * 11.1); if (r(3) < 0.55) continue; const X = Math.round(i * 11 + st + Math.floor(r(1) * 6) + ox), Y = Math.round(j * 6 + Math.floor(r(2) * 3) + oy);
+        for (const [a2, b2] of SH) { const x = X + a2, y = Y + b2; if (x >= 0 && x < W && y >= 0 && y < H) paint(y * W + x, WH); } } }
+  }
+  // things on the water, each a model or a sprite placed in the world: only the sea out here, no land
+  const all = [], umin = Math.floor(-OX / 2) - 4, umax = Math.ceil((W - OX) / 2) + 4;
+  const drift = title ? pm((o.scroll || 0) * 0.12, 600) : (o.scroll || 0) * 0.12;
   // other boats about their business, and further out, ships
-  const B = boats(), lanes = [['fish', mt.HW + 6, 0.5, 30, -1, 81], ['row', -(mt.HW + 6), 0.4, 140, -1, 82], ['sail', mt.HW + 26, 0.8, 200, 1, 0], ['fish', mt.HW + 40, 0.3, 90, 1, 83]];
+  const B = boats(), lanes = [['fish', mt.HW + 8, 0.5, 30, -1, 81], ['sail', -(mt.HW + 20), 0.6, 150, 1, 0], ['sail', mt.HW + 30, 0.8, 200, 1, 0]];
   if (title) lanes.push(['sail', -(mt.HW + 22), 0.5, 40, -1, 0], ['fish', -(mt.HW + 36), 0.35, 150, 1, 84], ['row', -(mt.HW + 12), 0.3, 220, 1, 85]);
-  if (o.open) lanes.push(['sail', -(mt.HW + 16), 0.6, 60, 1, 0], ['tri', -(mt.HW + 30), 1.4, 10, 1, 0], ['sail', mt.HW + 16, 0.5, 170, -1, 0], ['fish', -(mt.HW + 44), 0.3, 220, -1, 0], ['sail', mt.HW + 34, 0.7, 120, -1, 0], ['tri', mt.HW + 58, 1.1, 260, -1, 0]);
   for (const [kd, y, v, off, dir, rider] of lanes) {
     const span = umax - umin + 90, x = pm(t * v * dir - drift + off, span) + umin + y - 40;
     all.push(['v', B[kd][dir > 0 ? 0 : 1], x, y, 0, dir, false]); if (rider) all.push(['p', folk(rider, null)[0], x + 3, y, 1, dir < 0]);
@@ -922,21 +868,40 @@ function drawSeaIso(W, H, t, o) {
       if (foam && low >= 0) { const py = Y0 + low + 1; if (py >= hz && py < H) { const k = py * W + px_; if (isWater(k) && pm(px_ + fr, 4) !== 0) paint(k, pm(px_ + fr, 7) < 3 ? WH : LI); } }
     }
   };
+  for (const e of all) if (e[0] === 'v') {   // each hull, sail and mast lays its shadow on the water, away from the sun
+    const sh = shadowOf(e[1], svx, svy), X0 = Math.round(sx(e[2], e[3])) - sh.ox, Y0 = Math.round(sy(e[2], e[3], 0)) + 1 - sh.oy;
+    for (let j = 0; j < sh.h; j++) { const py = Y0 + j; if (py < 0 || py >= H) continue; for (let i = 0; i < sh.w; i++) { if (!sh.mask[j * sh.w + i]) continue; const px_ = X0 + i; if (px_ >= 0 && px_ < W) shade(py * W + px_, 0.62); } }
+  }
   all.sort((p, q) => (p[7] != null ? p[7] : p[2] + p[3] + p[4]) - (q[7] != null ? q[7] : q[2] + q[3] + q[4]));
   for (const e of all) if (e[0] === 'v') drawVox(e[1], e[2], e[3], e[4], e[6]); else drawAt(e[1], e[2], e[3], e[4], e[5]);
   // spray at the bow
   if (wake) for (let k = 0; k < 6; k++) { const a = (t * 2 + k / 6) % 1, X = Math.round(sx(mt.L + 1, (k % 2 ? 1 : -1) * (1 + a * 2))) + 2, Y = Math.round(sy(mt.L + 1, 0, bob)) + 2 - Math.round(Math.sin(a * Math.PI) * 3); if (X >= 0 && X < W && Y >= 0 && Y < H) paint(Y * W + X, WH); }
+  // rigging and the pennant, drawn in so the clouds can pass over them
+  const put = (x, y, c) => { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < W && y < H) paint(y * W + x, c3(c)); };
+  const rope = (a, b, c) => { const x0 = sx(a[0], a[1]) + 2, y0 = sy(a[0], a[1], a[2] + bob) + 1, x1 = sx(b[0], b[1]) + 2, y1 = sy(b[0], b[1], b[2] + bob) + 1, n = Math.max(1, Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let i = 0; i <= n; i++) put(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c); };
+  rope(mt.top, mt.bow, '#5a4a40'); rope(mt.top, mt.stern, '#5a4a40');
+  { const X = sx(mt.top[0], mt.top[1]) + 2, Y = sy(mt.top[0], mt.top[1], mt.top[2] + bob); for (let i = 0; i < 7; i++) put(X - 1 - i, Y - 1 + Math.round(Math.sin(t * 6 - i) * (i / 7)), i < 4 ? P.band : mix(P.band, '#2a2850', 0.3)); }
+  if (o.patrol) { const x = mt.L * 0.3 + (1 - o.patrol.near) * 90 + 34, y = mt.HW + 9, X = sx(x, y) + 2, Y = sy(x, y, 8); for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) put(X + 1 + i, Y + j + Math.round(Math.sin(t * 4 + i) * (i / 5)), j === 1 && i > 1 ? '#c9a040' : '#efe3cc'); }
+  // gulls, each with a little shadow on the water
+  for (let k = 0; k < (title ? 6 : 4); k++) {
+    const x = Math.round(((t * (8 + k * 3) + k * 90) % (W + 20)) - 10), y = 10 + k * Math.round(H / 7) + Math.round(Math.sin(t * 1.5 + k) * 3), g = GULL[Math.floor(t * 3 + k) % 2];
+    const dxs = Math.round((svx - svy) * 2 * 8), dys = 16 + Math.round((svx + svy) * 8);
+    for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.data[(j * g.w + i) * 4 + 3]) { const X = x + i + dxs, Y = y + j + dys; if (X >= 0 && Y >= 0 && X < W && Y < H) shade(Y * W + X, 0.7); }
+    for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.data[(j * g.w + i) * 4 + 3]) put(x + i, y + j, INK);
+  }
+  // clouds drifting over, their shadows sliding across the sea and over the ship
+  { const CL = cloudShapes(), nC = storm > 0.3 ? 5 : 3, A = 26, dxs = Math.round((svx - svy) * 2 * A), dys = Math.round(2 * A + (svx + svy) * A), ys = [0.02, 0.2, 0.84, 0.34, 0.94];
+    const cl2 = [];
+    for (let k = 0; k < nC; k++) { const cl = CL[k % 3], v = 3 + k * 1.3 + sp * 1.5, x = Math.round(W + 40 - pm(t * v + k * 137 + 40, W + cl.w + 80)), y = Math.round(H * ys[k]); cl2.push([cl, x, y]); }
+    for (const [cl, x, y] of cl2) for (let jj = 0; jj < Math.ceil(cl.h * 0.7); jj++) { const j = Math.min(cl.h - 1, Math.floor(jj / 0.7)), Y = y + dys + jj; if (Y < 0 || Y >= H) continue; for (let i = 0; i < cl.w; i++) { if (!cl.mask[j * cl.w + i]) continue; const X = x + dxs + i; if (X >= 0 && X < W) shade(Y * W + X, 0.74); } }
+    const grey = storm > 0.3;
+    for (const [cl, x, y] of cl2) for (let j = 0; j < cl.h; j++) for (let i = 0; i < cl.w; i++) { const si = (j * cl.w + i) * 4; if (!cl.data[si + 3]) continue; const X = x + i, Y = y + j; if (X < 0 || Y < 0 || X >= W || Y >= H) continue; const k = Y * W + X; out[k * 4] = grey ? cl.data[si] * 0.72 : cl.data[si]; out[k * 4 + 1] = grey ? cl.data[si + 1] * 0.74 : cl.data[si + 1]; out[k * 4 + 2] = grey ? cl.data[si + 2] * 0.78 : cl.data[si + 2]; out[k * 4 + 3] = 255; }
+  }
   SEACACHE.ctx.putImageData(SEACACHE.img, 0, 0);
   const tint = Math.max(dusk * 0.4, storm * 0.35);
   if (tint > 0) { const c = SEACACHE.ctx; c.globalCompositeOperation = 'source-atop'; c.globalAlpha = tint; c.fillStyle = storm > dusk ? '#4a5660' : mix(pal.skyBot, '#3a2a6a', 0.55); c.fillRect(0, 0, W, H); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
   G.drawImage(SEACACHE.cv, 0, 0);
-  // rigging and pennant, the island lighthouse fires, gulls, wind, rain
-  const dot = (x, y, c) => { G.fillStyle = c; G.fillRect(Math.round(x), Math.round(y), 1, 1); };
-  const ln = (a, b, c, z0) => { const x0 = sx(a[0], a[1]) + 2, y0 = sy(a[0], a[1], a[2] + z0) + 1, x1 = sx(b[0], b[1]) + 2, y1 = sy(b[0], b[1], b[2] + z0) + 1, n = Math.max(1, Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let i = 0; i <= n; i++) if (y0 + (y1 - y0) * i / n >= hz) dot(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c); };
-  ln(mt.top, mt.bow, '#5a4a40', bob); ln(mt.top, mt.stern, '#5a4a40', bob);
-  { const X = sx(mt.top[0], mt.top[1]) + 2, Y = sy(mt.top[0], mt.top[1], mt.top[2] + bob); for (let i = 0; i < 7; i++) dot(X - 1 - i, Y - 1 + Math.round(Math.sin(t * 6 - i) * (i / 7)), i < 4 ? P.band : mix(P.band, '#2a2850', 0.3)); }
-  if (o.patrol) { const x = mt.L * 0.3 + (1 - o.patrol.near) * 90 + 34, y = mt.HW + 9, X = sx(x, y) + 2, Y = sy(x, y, 8); for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) dot(X + 1 + i, Y + j + Math.round(Math.sin(t * 4 + i) * (i / 5)), j === 1 && i > 1 ? '#c9a040' : '#efe3cc'); }
-  for (let k = 0; k < (title ? 6 : 4); k++) { const x = ((t * (8 + k * 3) + k * 90) % (W + 20)) - 10, y = hz + 10 + k * 14 + Math.round(Math.sin(t * 1.5 + k) * 3), g = GULL[Math.floor(t * 3 + k) % 2]; for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.data[(j * g.w + i) * 4 + 3]) dot(x + i, y + j, INK); }
+  // wind and rain
   if (o.wind === 'head' || o.wind === 'gale') for (let k = 0; k < 9; k++) { const x = Math.floor(pm(hash(k * 3) * W - t * (o.wind === 'gale' ? 40 : 24), W + 10)) - 5, y = hz + 6 + Math.floor(hash(k + 4) * (H - hz - 10)); G.fillStyle = '#ffffff'; G.fillRect(x, y, 4, 1); G.fillRect(x + 4, y + 1, 2, 1); }
   if (storm > 0.3) { G.fillStyle = 'rgba(220,228,236,0.6)'; for (let k = 0; k < 60; k++) { const x = (hash(k) * W + t * 40) % W, y = (hash(k + 9) * H + t * 120) % H; G.fillRect(Math.floor(x), Math.floor(y), 1, 3); } }
 }
