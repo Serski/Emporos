@@ -6107,12 +6107,12 @@ function toast(msg, ms) { els.toast.textContent = msg; els.toast.classList.add('
 let nudgeN = 0;
 function nudgeOffStage(wait) {   // once whatever message is showing has gone, say who is not in the picture but has business with you here
   const n = ++nudgeN;
-  if (els.toast.classList.contains('on') && els.toast.textContent.startsWith('Not in the picture:')) els.toast.classList.remove('on');   // last port's news is old news
+  if (els.toast.classList.contains('on') && els.toast.textContent === UI.nudgeText) els.toast.classList.remove('on');   // last port's news is old news
   setTimeout(function go() {
     if (n !== nudgeN || S.phase !== 'port') return;
     if (els.toast.classList.contains('on')) return setTimeout(go, 400);
     const news = offStageNews();
-    if (news) toast(news, 5200);
+    if (news) { UI.nudgeText = news; toast(news, 5200); }
   }, wait || 1200);
 }
 // People with no stall are not in the picture, so when they have business with you, say so.
@@ -6128,7 +6128,7 @@ function offStageNews() {
     else if (!S.home && offer(S, id).freight.some(f => !S.contracts.some(c => c.fid === f.id))) news.push(m.name + ' has crates to carry');
     else if (m.fare && !S.home && !S.contracts.some(c => c.fid === m.fare.id)) news.push(m.name + ' wants passage for his men');
   }
-  return news.length ? 'Not in the picture: ' + listWords(news) + '. Look at the top of the quay list.' : '';
+  return news.length ? listWords(news) + '. Look at the top of the quay list.' : '';
 }
 function tipOnce(key, msg) { if (UI.tips[key] || S.said['tip:' + key]) return; UI.tips[key] = 1; S.said['tip:' + key] = 1; toast(msg); }
 const fmtDays = d => { const r = Math.floor(d * 10) / 10; return r === 1 ? 'one day' : r + ' days'; };
