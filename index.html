@@ -6103,7 +6103,33 @@ const INTROS = {
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* storage may be unavailable */ } }
 function loadSaved() { try { const j = localStorage.getItem(SAVE_KEY); return j ? migrate(JSON.parse(j)) : null; } catch (e) { return null; } }
 let toastT = 0;
-function toast(msg) { els.toast.textContent = msg; els.toast.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => els.toast.classList.remove('on'), 2600); }
+function toast(msg, ms) { els.toast.textContent = msg; els.toast.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => els.toast.classList.remove('on'), ms || 2600); }
+let nudgeN = 0;
+function nudgeOffStage(wait) {   // once whatever message is showing has gone, say who is not in the picture but has business with you here
+  const n = ++nudgeN;
+  if (els.toast.classList.contains('on') && els.toast.textContent.startsWith('Not in the picture:')) els.toast.classList.remove('on');   // last port's news is old news
+  setTimeout(function go() {
+    if (n !== nudgeN || S.phase !== 'port') return;
+    if (els.toast.classList.contains('on')) return setTimeout(go, 400);
+    const news = offStageNews();
+    if (news) toast(news, 5200);
+  }, wait || 1200);
+}
+// People with no stall are not in the picture, so when they have business with you, say so.
+const offStageBusy = id => { const m = MERCHANTS[id]; return wants(S, id).length > 0 || (!S.home && (offer(S, id).freight.some(f => !S.contracts.some(c => c.fid === f.id)) || (!!m.fare && !S.contracts.some(c => c.fid === m.fare.id)))); };
+function offStageNews() {
+  if (S.phase !== 'port') return '';
+  const news = [];
+  for (const id of merchantsAt(S.port, S.ch)) {
+    const m = MERCHANTS[id];
+    if (!m.noStall) continue;
+    const w = wants(S, id);
+    if (w.length) news.push(m.name + ' buys your ' + SHORT[w[0]]);
+    else if (!S.home && offer(S, id).freight.some(f => !S.contracts.some(c => c.fid === f.id))) news.push(m.name + ' has crates to carry');
+    else if (m.fare && !S.home && !S.contracts.some(c => c.fid === m.fare.id)) news.push(m.name + ' wants passage for his men');
+  }
+  return news.length ? 'Not in the picture: ' + listWords(news) + '. Look at the top of the quay list.' : '';
+}
 function tipOnce(key, msg) { if (UI.tips[key] || S.said['tip:' + key]) return; UI.tips[key] = 1; S.said['tip:' + key] = 1; toast(msg); }
 const fmtDays = d => { const r = Math.floor(d * 10) / 10; return r === 1 ? 'one day' : r + ' days'; };
 const timeWord = e => e < 0.35 ? 'by mid-morning' : e < 0.55 ? 'around midday' : e < 0.8 ? 'in the afternoon' : 'just before dark';
@@ -6193,9 +6219,10 @@ function quayPanel() {
     const low = ck.foodDays < ck.days || ck.waterDays < ck.dry;
     h += `<button class="btn primary wide" type="button" data-act="sail">Set sail for ${ck.dest}<small>${low ? 'Low on supplies. ' : ''}Food for ${fmtDays(ck.foodDays)}, water for ${fmtDays(ck.waterDays)}. The voyage takes about ${num(ck.days)} day${ck.days > 1 ? 's' : ''}${ck.route.dry ? (ck.dry >= ck.days ? ', all out of sight of land' : ', ' + num(ck.dry) + ' of them out of sight of land') : ''}.</small></button>`;
   }
-  h += '<h2 class="sec">On the quay</h2><div class="people">';
-  for (const id of merchantsAt(S.port, S.ch)) h += personCard(id);
-  for (const hid of hiresAt(S, S.port)) h += hireCard(hid);
+  const ids = merchantsAt(S.port, S.ch), off = ids.filter(id => MERCHANTS[id].noStall).sort((a, b) => offStageBusy(b) - offStageBusy(a)), hires = hiresAt(S, S.port);   // whoever has business with you first
+  if (off.length || hires.length) h += '<h2 class="sec">Around the harbour</h2><div class="people">' + off.map(personCard).join('') + hires.map(hireCard).join('') + '</div>';   // not in the picture, so first
+  h += '<h2 class="sec">At the stalls</h2><div class="people">';
+  for (const id of ids.filter(id => !MERCHANTS[id].noStall)) h += personCard(id);
   return h + '</div>';
 }
 function buysRows(id, o) {
@@ -6568,7 +6595,7 @@ function onPhase() {
   if (!prev) return;
   els.banner.classList.remove('on'); UI.bannerT = 0;
   UI.queue = []; UI.shownAt = -1e9;
-  if (S.phase === 'port') { banner(PORTS[S.port].name, S.home ? 'Home' : 'In port'); setTab('main'); Snd.arrive(); }
+  if (S.phase === 'port') { banner(PORTS[S.port].name, S.home ? 'Home' : 'In port'); setTab('main'); Snd.arrive(); nudgeOffStage(); }
   else if (S.phase === 'camp') { banner(STOPS[S.camp.stop].name, CAMPS[S.camp.stop].afloat ? 'Night, under sail' : 'Night'); setTab('main'); }
   else if (S.phase === 'sea' && prev.split(':')[0] !== 'sea') setTab('main');
   else if (S.phase === 'summary') { closeSheet(); showSummary(); }
@@ -6702,6 +6729,7 @@ function theaterAct(t, b) {
       6: bigShip(S) ? ['crete', 'Crete is three days away, and Syracuse three more across the open sea. In Kydonia you can hire a Cretan who knows the pirates on that coast.'] : ['slipway6', 'Elpis cannot cross the open sea. Nausikrates still has the new ship, and Antimachos will lend the whole price.'],
       5: bigShip(S) ? ['opensea', 'The last two days to Italy have no beach and no spring. Count the water jars, and think about an awning.'] : ['slipway5', 'Elpis cannot cross the open sea. Nausikrates still has the new ship, and Antimachos will lend the whole price.'] }[S.ch];
     setTimeout(() => { if (S.phase === 'port' && tip) tipOnce(tip[0], tip[1]); }, 900);
+    nudgeOffStage(1500);
   } else if (t === 'continue') { closeTheater(); renderPanel(); }
   else if (t === 'new') { if (b.dataset.armed) { freshGame(); playIntro(); } else { b.dataset.armed = '1'; b.textContent = 'Tap again to start over'; } }
   else if (t === 'again') { freshGame(); playIntro(); }
