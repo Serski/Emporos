@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ports, Flat</title>
+<meta name="description" content="Samples of Rhodes, Piraeus and Syracuse and their merchants in clean, flat pixel art, for Emporos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,wght@0,400;0,600;1,400&family=Pixelify+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --glaze: #16100c; --line: #4b3727; --line-soft: #34261b;
+  --clay: #d97b46; --bone: #f2e6cb; --bone-dim: #bba887; --gold: #eac05a;
+  --font-pixel: "Pixelify Sans", ui-monospace, "Courier New", monospace;
+  --font-story: "Literata", Georgia, "Times New Roman", serif;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; font-variant-ligatures: none; }
+html, body { margin: 0; background: var(--glaze); color: var(--bone); }
+body { font: 16px/1.5 var(--font-story); -webkit-font-smoothing: antialiased; }
+main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 48px; }
+h1 { margin: 0; font: 700 30px/1.1 var(--font-pixel); letter-spacing: 0.03em; }
+.sub { margin: 6px 0 0; font: 500 13px/1.3 var(--font-pixel); color: var(--bone-dim); letter-spacing: 0.08em; text-transform: uppercase; }
+p.lede { max-width: 40em; margin: 14px 0 0; }
+h2 { margin: 30px 0 10px; display: flex; align-items: center; gap: 10px; font: 600 13px/1 var(--font-pixel); letter-spacing: 0.14em; text-transform: uppercase; color: var(--clay); }
+h2::after { content: ""; flex: 1; height: 2px; background: var(--line-soft); }
+figure { margin: 0; }
+.frame { position: relative; max-width: 100%; margin: 0 auto; border: 2px solid var(--line); background: #000; line-height: 0; }
+canvas { display: block; image-rendering: crisp-edges; image-rendering: pixelated; }
+figcaption { max-width: 40em; margin: 10px auto 0; font-size: 15px; color: var(--bone-dim); }
+.frame.cast { margin-top: 10px; }
+.names { display: grid; grid-template-columns: repeat(8, 1fr); margin: 8px auto 0; font: 500 12px/1.2 var(--font-pixel); color: var(--bone-dim); text-align: center; letter-spacing: 0.04em; }
+.names b { display: block; color: var(--bone); font-weight: 600; }
+@media (max-width: 620px) { .names { font-size: 10px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>The ports, flat</h1>
+  <p class="sub">Emporos · art sample · flat, 224 × 126</p>
+  <p class="lede">The game's own flat look, a step bigger and cleaner: people about 22 pixels tall instead of 11, two or three flat shades to each colour, soft colours, no outlines and no dithering.</p>
+
+  <h2>Rhodes</h2>
+  <figure>
+    <div class="frame" id="rhodesBox"><canvas id="rhodes" width="224" height="126" role="img" aria-label="The harbour at Rhodes in flat pixel art: the town and temple on the hill, the Sun-god's feet in the scaffold, Elpis at the quay, and seven merchants standing by their stalls."></canvas></div>
+    <div class="frame cast" id="rhodesCastBox"><canvas id="rhodesCast" width="176" height="32" role="img" aria-label="The seven merchants of Rhodes and Ariston."></canvas></div>
+    <div class="names" id="rhodesNames"><span><b>Thrasyllos</b>wine</span><span><b>Korinna</b>sponges</span><span><b>Aristeia</b>cups</span><span><b>Damagetos</b>arsenal</span><span><b>Myrto</b>stores</span><span><b>Aristokles</b>the statue</span><span><b>Antimachos</b>banker</span><span><b>Ariston</b>you</span></div>
+  </figure>
+
+  <h2>Piraeus</h2>
+  <figure>
+    <div class="frame" id="piraeusBox"><canvas id="piraeus" width="224" height="126" role="img" aria-label="Piraeus in flat pixel art: the ship sheds and a trireme, the Long Walls running to Athens and the Acropolis, Hymettus behind, the garrison on Munichia with its flag, the long stoa, Elpis, and eight merchants by their stalls."></canvas></div>
+    <div class="frame cast" id="piraeusCastBox"><canvas id="piraeusCast" width="176" height="32" role="img" aria-label="The eight traders of Piraeus."></canvas></div>
+    <div class="names" id="piraeusNames"><span><b>Kephisodoros</b>oil</span><span><b>Wardens</b>grain</span><span><b>Philinna</b>vases</span><span><b>Nikanor</b>books</span><span><b>Melitta</b>honey</span><span><b>Timarchos</b>marble</span><span><b>Zeno</b>talk</span><span><b>Glaukippe</b>stores</span></div>
+  </figure>
+
+  <h2>Syracuse</h2>
+  <figure>
+    <div class="frame" id="syracuseBox"><canvas id="syracuse" width="224" height="126" role="img" aria-label="Syracuse in flat pixel art: Etna smoking under its snow, Ortygia with the temple of Athena and its golden shield, the dockyards and a great warship, Tyche at the quay, and seven merchants by their stalls."></canvas></div>
+    <div class="frame cast" id="syracuseCastBox"><canvas id="syracuseCast" width="154" height="32" role="img" aria-label="Seven placeholder traders of Syracuse."></canvas></div>
+    <div class="names" id="syracuseNames" style="grid-template-columns: repeat(7, 1fr)"><span><b>Sikon</b>wheat</span><span><b>Arete</b>cheese</span><span><b>Damon</b>tuna</span><span><b>Kallisto</b>honey</span><span><b>Eumenes</b>wine</span><span><b>Nymphodoros</b>sulphur</span><span><b>Lykon</b>banker</span></div>
+    <figcaption>Chapter VI is not written yet, so these traders are placeholders. Tyche, the bigger ship, lies at the quay.</figcaption>
+  </figure>
+</main>
+<script>
+'use strict';
+// ---------- tools ----------
+const RGBC = new Map();
+function rgb(c) { let v = RGBC.get(c); if (!v) { const n = parseInt(c.slice(1), 16); v = [n >> 16 & 255, n >> 8 & 255, n & 255]; RGBC.set(c, v); } return v; }
+const hx = (r, g, b) => '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+function mix(a, b, t) { const A = rgb(a), B = rgb(b); return hx(Math.round(A[0] + (B[0] - A[0]) * t), Math.round(A[1] + (B[1] - A[1]) * t), Math.round(A[2] + (B[2] - A[2]) * t)); }
+const dk = (c, k) => mix(c, '#3a3060', k), lt = (c, k) => mix(c, '#fff8e8', k);   // soft shadows lean blue-violet, light leans warm
+let G = null;
+function R(x, y, w, h, c) { if (w <= 0 || h <= 0) return; G.fillStyle = c; G.fillRect(Math.floor(x), Math.floor(y), Math.round(w), Math.round(h)); }
+function P(x, y, c) { G.fillStyle = c; G.fillRect(Math.floor(x), Math.floor(y), 1, 1); }
+function line(x0, y0, x1, y1, c) {
+  x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let err = dx + dy; G.fillStyle = c;
+  for (let i = 0; i < 400; i++) { G.fillRect(x0, y0, 1, 1); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
+}
+function canvasOf(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+function spr(w, h, fn) { const c = canvasOf(w, h), prev = G; G = c.getContext('2d'); fn(); G = prev; return c; }
+function flipX(c) { const o = canvasOf(c.width, c.height), g = o.getContext('2d'); g.translate(c.width, 0); g.scale(-1, 1); g.drawImage(c, 0, 0); return o; }
+const hash = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+// ---------- a soft, flat palette ----------
+const K = {
+  sky: ['#93c4e4', '#a9d0ea', '#bfdcee', '#d3e7f0'], sun: '#fff7dc', sunRing: '#f4eed4', cloud: '#ffffff', cloudS: '#dce7f1',
+  far: '#b4c1dc', far2: '#a3b2d2', sea: ['#88c7df', '#70b7d6', '#5ba7cc', '#4c98c1'], wave: '#c2e5f0', seaS: '#4a8fba',
+  hill: '#dfcb98', hillS: '#cdb680', scrub: '#a0ac64', scrubS: '#84944f', cyp: '#4f7b4f', cypS: '#3b5f3e',
+  wallF: '#f4ecdc', wallS: '#dccdb0', roof: '#d47c52', roofS: '#b4603e', win: '#5c4846',
+  stone: '#e6d8b8', stoneL: '#f3e9d2', stoneS: '#cbbb98', stoneJ: '#b9a786', marble: '#fbf8f0', marbleS: '#e2dbca',
+  bronze: '#e2a65a', bronzeS: '#b47a3e', wood: '#b4844f', woodS: '#8a5e38', woodD: '#6a4428', linen: '#f3ead6', linenS: '#dccfb4',
+  quay: '#ebe0c6', quayS: '#ddd0b2', quayJ: '#c9ba98', hull: '#7e5132', hullS: '#5a3822', band: '#c45a3a', rail: '#cf9c62',
+};
+
+// ---------- people: a whole figure about 22 pixels tall, facing a little to the right ----------
+const LOOKS = {
+  thras: { skin: '#c48a58', hair: '#3a281c', style: 'short', beard: 2, robe: '#8b3240', trim: '#ead7ae' },
+  korinna: { skin: '#b97f50', hair: '#24180f', style: 'veil', veil: '#3f6f8e', beard: 0, robe: '#d2b27a', trim: '#8a5a34', f: true },
+  aristeia: { skin: '#cf9a6a', hair: '#bfb7aa', style: 'veil', veil: '#4a4038', beard: 0, robe: '#5a4a3e', trim: '#c8623a', f: true },
+  arsenal: { skin: '#b07a4c', hair: '#5a4632', style: 'bald', beard: 1, robe: '#5f6b4a', trim: '#d9a441' },
+  stores: { skin: '#c99468', hair: '#6b4a2e', style: 'long', beard: 0, robe: '#9a6a3a', trim: '#efe3cc', f: true },
+  works: { skin: '#b88252', hair: '#2d2018', style: 'curly', beard: 2, robe: '#e9dcc0', trim: '#b0773a', hat: 'pilos' },
+  bank: { skin: '#c99a6c', hair: '#d8d2c4', style: 'short', beard: 1, robe: '#2f4a6a', trim: '#e3b453' },
+  ariston: { skin: '#c99062', hair: '#3a2618', style: 'short', beard: 0, robe: '#3f6f8e', trim: '#efe3cc' },
+  kephis: { skin: '#c48a58', hair: '#2a1d14', style: 'short', beard: 2, robe: '#6b7a44', trim: '#e3b453' },
+  warden: { skin: '#b88252', hair: '#bfb7aa', style: 'short', beard: 2, robe: '#efe6d6', trim: '#3f6f8e' },
+  philinna: { skin: '#d0a070', hair: '#1f1712', style: 'veil', veil: '#3a3430', beard: 0, robe: '#c8623a', trim: '#2a2220', f: true },
+  nikanor: { skin: '#c99062', hair: '#3a2618', style: 'short', beard: 1, robe: '#4a4440', trim: '#efe3cc' },
+  melitta: { skin: '#cf9a6a', hair: '#7a4a22', style: 'long', beard: 0, robe: '#e3b453', trim: '#6e3e1a', f: true },
+  timarchos: { skin: '#a8724a', hair: '#3b2c22', style: 'short', beard: 2, robe: '#8a7a64', trim: '#efe3cc' },
+  zeno: { skin: '#a8703f', hair: '#2a1d14', style: 'short', beard: 1, robe: '#6b6458', trim: '#3a3430' },
+  pstores: { skin: '#c99468', hair: '#6b4a2e', style: 'veil', veil: '#8a5a34', beard: 0, robe: '#9a6a3a', trim: '#efe3cc', f: true },
+  sikon: { skin: '#b88252', hair: '#2a1d14', style: 'short', beard: 2, robe: '#c9a050', trim: '#5a3a22' },
+  arete: { skin: '#cf9a6a', hair: '#3a2416', style: 'veil', veil: '#efe6d6', beard: 0, robe: '#6b7a44', trim: '#efe3cc', f: true },
+  damon: { skin: '#a8703f', hair: '#1b130e', style: 'curly', beard: 1, robe: '#3d6b6b', trim: '#efe3cc' },
+  kallisto: { skin: '#d0a070', hair: '#7a3f1e', style: 'long', beard: 0, robe: '#e3b453', trim: '#6e3e1a', f: true },
+  eumenes: { skin: '#c08857', hair: '#4a2f1c', style: 'short', beard: 2, robe: '#6a2a5a', trim: '#e3b453' },
+  nymphodoros: { skin: '#b07a4c', hair: '#5a4632', style: 'bald', beard: 2, robe: '#8a7a64', trim: '#d9a441' },
+  lykon: { skin: '#c99a6c', hair: '#9a9488', style: 'short', beard: 2, robe: '#efe6d6', trim: '#2f4a6a' },
+};
+function person(L, blink) {
+  return spr(18, 26, () => {
+    const o = 2, sk = L.skin, skS = dk(sk, 0.2), hr = L.hair, hrL = lt(hr, 0.2), hrS = dk(hr, 0.2);
+    const rb = L.robe, rbS = dk(rb, 0.22), rbL = lt(rb, 0.16), tr = L.trim, trS = dk(tr, 0.18), fem = !!L.f;
+    // legs and sandals, or the hem of a long chiton
+    if (!fem) { R(6, o + 19, 2, 3, skS); R(10, o + 19, 2, 3, sk); R(6, o + 22, 3, 1, '#6a4a30'); R(10, o + 22, 3, 1, '#8a5e38'); }
+    else { P(7, o + 22, skS); P(8, o + 22, '#6a4a30'); P(11, o + 22, sk); P(12, o + 22, '#8a5e38'); }
+    if (!fem) { R(5, o + 16, 8, 3, rb); R(5, o + 16, 2, 3, rbS); R(12, o + 16, 1, 2, rbL); R(5, o + 18, 8, 1, trS); }
+    else { R(5, o + 16, 8, 3, rb); R(4, o + 19, 10, 3, rb); R(5, o + 16, 2, 3, rbS); R(4, o + 19, 2, 3, rbS); R(12, o + 16, 1, 3, rbL); R(13, o + 19, 1, 2, rbL); R(9, o + 17, 1, 4, rbS); R(4, o + 21, 10, 1, trS); }
+    // the body, a belt, and for the men a cloak's edge across the chest
+    R(5, o + 10, 8, 6, rb); R(5, o + 10, 2, 6, rbS); R(12, o + 11, 1, 5, rbL);
+    if (!fem) for (let k = 0; k < 6; k++) R(6 + k, o + 10 + k, 2, 1, k > 3 ? trS : tr);
+    R(5, o + (fem ? 12 : 15), 8, 1, fem ? tr : rbS);
+    // arms hanging at the sides
+    R(4, o + 10, 1, 3, rbS); R(4, o + 13, 1, 3, skS); P(4, o + 16, skS);
+    R(13, o + 10, 1, 3, rb); R(13, o + 13, 1, 3, sk); P(13, o + 16, sk);
+    // neck and head
+    R(8, o + 9, 3, 1, skS);
+    R(5, o + 3, 7, 5, sk); R(6, o + 8, 5, 1, sk); R(5, o + 3, 1, 5, skS);
+    P(6, o + 5, skS);
+    P(8, o + 5, blink ? skS : '#3a2420'); P(10, o + 5, blink ? skS : '#3a2420');
+    P(10, o + 7, fem ? '#c46a62' : '#9a4a40');
+    const st = L.style;
+    if (st === 'veil') {
+      const v = L.veil, vL = lt(v, 0.2), vS = dk(v, 0.22);
+      R(5, o + 1, 7, 2, v); R(7, o + 1, 3, 1, vL); R(4, o + 2, 1, 1, v); R(3, o + 3, 3, 11, v); R(3, o + 3, 1, 11, vS); P(12, o + 3, v);
+      R(6, o + 3, 6, 1, hr); P(6, o + 4, hr);
+    } else if (st === 'bald') {
+      R(6, o + 2, 5, 1, sk); P(9, o + 2, lt(sk, 0.3)); P(8, o + 3, lt(sk, 0.2)); R(5, o + 4, 1, 3, hr); P(6, o + 3, hr);
+    } else {
+      R(5, o + 1, 7, 2, hr); R(8, o + 1, 3, 1, hrL); R(5, o + 3, 2, 2, hr); P(5, o + 5, hr); P(11, o + 3, hrS);
+      if (st === 'curly') { P(6, o, hr); P(8, o, hr); P(10, o, hrL); P(4, o + 2, hr); P(4, o + 4, hr); }
+      if (st === 'long') { R(3, o + 3, 3, 9, hr); R(3, o + 3, 1, 9, hrS); P(4, o + 12, hrS); }
+    }
+    if (L.f && st !== 'veil') P(6, o + 6, '#e3b453');
+    if (L.f && st === 'veil') P(6, o + 6, '#e3b453');
+    if (L.beard === 1) { R(6, o + 7, 6, 2, hr); P(10, o + 7, '#7a3a30'); P(11, o + 7, hrL); }
+    if (L.beard === 2) { R(6, o + 6, 6, 3, hr); R(7, o + 9, 4, 1, hr); P(10, o + 7, '#5a2a24'); P(11, o + 6, hrL); P(9, o + 6, hrL); }
+    if (L.hat === 'pilos') { const f = '#a07a4a'; R(5, o + 1, 7, 2, f); R(6, o, 5, 1, f); R(7, o - 1, 3, 1, f); P(8, o - 2, lt(f, 0.2)); R(9, o, 2, 2, lt(f, 0.18)); R(5, o + 2, 7, 1, dk(f, 0.2)); }
+  });
+}
+const FIG = {}; for (const id in LOOKS) FIG[id] = [person(LOOKS[id], false), person(LOOKS[id], true)];
+
+// ---------- shared scenery ----------
+const W = 224, H = 126, HZ = 62, SHORE = 70, QY = 96, WL = 88;
+function cloud(x, y, w) { R(x + 3, y, w - 9, 2, K.cloud); R(x + w - 9, y - 1, 5, 1, K.cloud); R(x, y + 2, w, 3, K.cloud); R(x + 1, y + 5, w - 2, 1, K.cloudS); R(x + 4, y - 1, 4, 1, K.cloud); }
+function skyAndSun(sx, sy) {
+  K.sky.forEach((c, i) => R(0, i * 16, W, 16, c)); R(0, 48, W, HZ - 48, K.sky[3]);
+  for (let y = -9; y <= 9; y++) for (let x = -9; x <= 9; x++) { const d = Math.hypot(x, y); if (d <= 6.4) P(sx + x, sy + y, K.sun); else if (d <= 8.6) P(sx + x, sy + y, K.sunRing); }
+}
+function seaBands() { K.sea.forEach((c, i) => R(0, HZ + i * 9, W, 9, c)); R(0, HZ, W, 1, '#c8e6ef'); }
+function house(x, yb, w, h) { R(x, yb - h, w, h, K.wallF); R(x + w, yb - h, 1, h, K.wallS); R(x - 1, yb - h - 2, w + 2, 1, K.roof); R(x - 1, yb - h - 1, w + 2, 1, K.roofS); P(x + 1, yb - h + 1, K.win); if (w > 5) P(x + 4, yb - h + 1, K.win); if (hash(x * 3 + yb) < 0.5) { P(x + w - 2, yb - 2, K.win); P(x + w - 2, yb - 1, K.win); } }
+function cypress(x, yb, h) { R(x, yb - h, 2, h, K.cyp); R(x, yb - h, 1, h, K.cypS); P(x, yb - h - 1, K.cyp); }
+function rowsOfHouses(top, x0, x1, y0, y1, skip) {   // houses in rows down a slope, with the odd cypress
+  for (let yb = y0, r = 0; yb <= y1; yb += 5, r++) for (let x = x0 + (r * 3) % 7 - 3; x < x1; x += 8 + Math.floor(hash(r * 31 + x) * 3)) {
+    const w = 5 + Math.floor(hash(x * 7 + r) * 2);
+    if (Math.max(top(x), top(x + w + 1)) > yb - 1 || (skip && skip(x, yb, w))) continue;
+    if (hash(x + r * 13) < 0.12) { cypress(x + 2, yb, 7); continue; }
+    house(x, yb, w, 4);
+  }
+}
+function seaWall(x0, x1, towers) {
+  R(x0, 63, x1 - x0, 7, K.stone); R(x0, 63, x1 - x0, 1, K.stoneL); R(x0, 66, x1 - x0, 1, K.stoneJ); R(x0, 69, x1 - x0, 1, K.stoneS);
+  for (let x = x0; x < x1; x += 3) R(x, 61, 2, 2, K.stone);
+  for (const tx of towers) { R(tx, 55, 7, 15, K.stone); R(tx + 7, 55, 2, 15, K.stoneL); for (let i = 0; i < 9; i += 3) R(tx + i, 53, 2, 2, i > 6 ? K.stoneL : K.stone); R(tx + 3, 58, 1, 2, K.win); R(tx, 60, 9, 1, K.stoneJ); }
+}
+function flatTemple(x0, yb, w, h, gold) {   // steps, columns, a painted frieze, a pediment
+  const cx = x0 + (w >> 1);
+  R(x0 - 2, yb, w + 4, 1, K.marbleS); R(x0 - 1, yb - 1, w + 2, 1, K.marble); R(x0, yb - 2, w, 1, K.marbleS);
+  R(x0 + 1, yb - 2 - h, w - 2, h, '#d8cdb6');
+  for (let x = x0 + 1; x < x0 + w - 2; x += 4) { R(x, yb - 2 - h, 2, h, K.marble); R(x + 1, yb - 1 - h, 1, h - 1, K.marbleS); }
+  R(x0, yb - 4 - h, w, 2, K.marble); R(x0, yb - 5 - h, w, 1, '#7d9cc6'); R(x0 - 1, yb - 6 - h, w + 2, 1, K.marble);
+  const ph = Math.max(3, Math.round(w / 7));
+  for (let j = 0; j < ph; j++) { const half = Math.round((w / 2 + 1) * (1 - (j + 1) / (ph + 1))); R(cx - half, yb - 7 - h - j, half * 2, 1, j ? K.marble : K.marbleS); P(cx - half - 1, yb - 7 - h - j, K.roof); P(cx + half, yb - 7 - h - j, K.roof); }
+  if (gold) { R(cx - 2, yb - 9 - h - ph, 4, 3, K.bronze); P(cx - 2, yb - 9 - h - ph, K.marble); P(cx + 1, yb - 9 - h - ph, '#fff0b0'); R(cx - 1, yb - 10 - h - ph, 2, 1, K.bronze); return [cx, yb - 10 - h - ph]; }
+}
+function shed(x, yb) {   // a ship shed: a tiled gable, stone piers, a trireme's stern in the dark, a slipway
+  R(x + 1, yb - 13, 14, 13, '#3a2e30'); for (let k = 0; k < 6; k++) P(x + 9 - Math.round(Math.sin(k / 5 * Math.PI) * 3), yb - 11 + k, K.wood); R(x + 3, yb - 5, 9, 1, K.wood);
+  R(x, yb - 13, 1, 13, K.stoneL); R(x + 15, yb - 13, 1, 13, K.stoneS);
+  for (let j = 0; j < 6; j++) { const half = 8 - j; R(x + 8 - half, yb - 14 - j, half * 2, 1, K.roof); P(x + 8 - half, yb - 14 - j, K.roofS); }
+  R(x, yb - 14, 16, 1, K.roofS); R(x + 1, yb, 14, 2, K.stoneS);
+}
+function galley(x0, wl, len, two) {   // a war galley: long, low, black, with a bronze ram and her oars raised
+  R(x0, wl - 5, len, 1, K.rail); R(x0, wl - 4, len, 4, '#2e2628'); for (let x = x0 + 2; x < x0 + len - 2; x += 2) { P(x, wl - 3, '#141012'); if (two) P(x + 1, wl - 1, '#141012'); }
+  for (let k = 0; k < 6; k++) P(x0 - Math.round(Math.sin(k / 5 * Math.PI) * 2), wl - 6 - k, K.woodS);
+  R(x0 + len, wl - 2, 4, 2, K.bronze); P(x0 + len + 4, wl - 1, K.bronzeS); R(x0 + len - 6, wl - 4, 2, 1, '#f6efe2');
+  for (let x = x0 + 6; x < x0 + len - 6; x += 3) line(x, wl - 6, x + 2, wl - 11, '#b89a70');
+}
+function palm(x, yb) { for (let k = 0; k < 9; k++) P(x + Math.round(Math.sin(k / 8) * 1.4), yb - k, k % 2 ? K.woodS : K.wood); const tx = x + 1, ty = yb - 9; for (const [dx, dy] of [[-4, 2], [-3, -1], [0, -2], [3, -1], [4, 2]]) line(tx, ty, tx + dx, ty + dy, dy < 0 ? '#6a9a4a' : '#4e7a3a'); }
+
+// ---------- Rhodes ----------
+const hillY = x => Math.round(30 + 36 * smooth(36, 142, x));
+function rhodesBack() {
+  skyAndSun(192, 18);
+  for (let x = 96; x < W; x++) { const top = Math.round(HZ - (3 + 4 * Math.sin(x * 0.05) + 2 * Math.sin(x * 0.13 + 1)) * smooth(96, 126, x)); R(x, top, 1, HZ - top, K.far); R(x, HZ - 2, 1, 2, K.far2); }
+  seaBands();
+}
+function rhodesLand() {
+  for (let x = 0; x < 142; x++) { const t = hillY(x); R(x, t, 1, SHORE - t, K.hill); }
+  for (let k = 0; k < 40; k++) { const x = Math.floor(hash(k) * 136), y = hillY(x) + 2 + Math.floor(hash(k + 9) * 6); if (y < SHORE - 8) { R(x, y, 3, 1, K.scrub); P(x, y + 1, K.scrubS); P(x + 1, y + 1, K.scrubS); } }
+  flatTemple(7, 29, 28, 8);
+  for (const [x, h] of [[2, 9], [39, 10], [42, 7]]) cypress(x, 29, h);
+  rowsOfHouses(hillY, 0, 140, 38, SHORE - 6, (x, yb) => yb < 42 && x < 46);
+  seaWall(0, 142, [10, 50, 100]);
+  R(30, 64, 5, 6, '#4e3e3e'); R(29, 63, 7, 1, K.stoneL);
+  R(140, 66, 40, 4, K.hill); R(140, 70, 40, 2, K.stoneS);   // the Sun-god's feet, the scaffold, the ramp and the crane
+  for (const x of [147, 158, 171]) R(x, 34, 1, 32, K.woodD);
+  R(150, 57, 18, 9, K.marbleS); R(165, 57, 3, 9, K.marble); R(149, 56, 20, 1, K.marble); R(149, 65, 20, 1, K.marble);
+  for (const fx of [151, 160]) { R(fx, 53, 7, 3, K.bronze); R(fx, 53, 1, 3, K.bronzeS); R(fx + 2, 45, 4, 8, K.bronze); R(fx + 2, 45, 1, 8, K.bronzeS); P(fx + 3, 43, '#6a6470'); P(fx + 3, 44, '#6a6470'); }
+  for (let k = 0; k < 10; k++) R(168, 56 + k, 2 + k, 1, k ? '#c8a272' : '#d8b688');
+  R(146, 38, 27, 1, K.wood); R(146, 47, 27, 1, K.wood); R(145, 34, 1, 32, K.wood); R(173, 34, 1, 32, K.wood);
+  R(178, 24, 1, 42, K.woodS); line(178, 24, 157, 28, K.woodS); R(175, 60, 6, 6, K.wood); R(175, 60, 6, 1, K.rail);
+  R(140, 60, 5, 6, '#9a6446'); R(144, 60, 1, 6, '#b47a52'); R(141, 55, 3, 5, '#8a5a40'); P(142, 63, '#ffb050'); P(141, 64, '#e87a2a');
+  for (const [mx, mt] of [[200, 46], [214, 49]]) { R(mx - 7, 68, 14, 2, K.hull); R(mx - 7, 68, 14, 1, K.rail); R(mx, mt, 1, 68 - mt, K.woodD); R(mx - 5, mt + 2, 11, 1, K.woodD); R(mx - 4, mt + 3, 9, 1, K.linen); }
+  R(178, 70, 46, 2, K.stoneL); R(178, 72, 46, 2, K.stoneS);
+  R(181, 54, 7, 16, K.stone); R(188, 54, 2, 16, K.stoneL); R(181, 51, 9, 3, K.roof); R(182, 50, 7, 1, K.roof); R(181, 53, 9, 1, K.roofS); R(184, 58, 1, 2, K.win);
+  R(0, SHORE, 180, 2, K.seaS); R(178, 74, 46, 1, K.seaS);
+}
+
+// ---------- Piraeus ----------
+const mun = x => Math.round(HZ + 10 - 36 * Math.pow(Math.max(0, 1 - Math.abs(x - 200) / 52), 0.9));
+function piraeusBack() {
+  skyAndSun(34, 18);
+  for (let x = 66; x < W; x++) {   // Hymettus, long and blue
+    const hgt = (3 + 9 * (0.55 + 0.45 * Math.sin(x * 0.035 + 1)) + 2 * Math.sin(x * 0.11)) * smooth(66, 110, x), top = Math.round(HZ - 4 - hgt);
+    const prev = (3 + 9 * (0.55 + 0.45 * Math.sin((x - 1) * 0.035 + 1)) + 2 * Math.sin((x - 1) * 0.11)) * smooth(66, 110, x - 1);
+    R(x, top, 1, HZ - top, hgt >= prev ? '#b8bad8' : '#a6aacc');
+  }
+  for (let dx = -7; dx <= 7; dx++) { const top = Math.round(42 + Math.abs(dx) * 1.7); R(132 + dx, top, 1, HZ - top, dx < 0 ? '#b8b4d4' : '#a8a4c8'); }   // Lykabettos
+  R(0, 57, W, 5, '#d8cca4'); for (let k = 0; k < 30; k++) P(Math.floor(hash(k * 3.3) * W), 58 + Math.floor(hash(k * 1.7) * 3), '#a8ac78');   // the plain
+  for (let x = 86; x < 116; x++) { const dx = Math.abs(x - 101), top = 52 + (dx > 9 ? Math.round((dx - 9) * 1.5) : 0); R(x, top, 1, 58 - top, x > 108 ? '#d0c6aa' : '#e2d9c0'); }   // the Acropolis
+  R(94, 47, 14, 5, '#f2eee4'); for (let i = 0; i < 7; i++) R(95 + i * 2, 48, 1, 4, '#d6cfbf'); R(93, 46, 16, 1, '#f2eee4'); R(96, 45, 10, 1, '#f2eee4'); R(99, 44, 4, 1, '#f2eee4'); R(89, 49, 4, 3, '#ebe5d6');
+  for (let k = 0; k < 40; k++) { const x = 66 + Math.floor(hash(k * 2.9) * 90), y = 56 + Math.floor(hash(k * 5.1) * 3); if (x > 86 && x < 116 && y < 58) continue; R(x, y, 2, 1, '#f2ead8'); P(x, y - 1, '#d48a62'); }
+  for (const [a, b2] of [[[0, 63], [88, 57]], [[22, 64], [96, 58]]]) { line(a[0], a[1], b2[0], b2[1], '#efe6cc'); line(a[0], a[1] + 1, b2[0], b2[1] + 1, '#d0c4a6'); }   // the Long Walls
+  seaBands();
+}
+function piraeusLand() {
+  for (let x = 148; x < W; x++) { const t = mun(x); R(x, t, 1, 74 - t, x > 200 ? K.hillS : K.hill); }   // Munichia
+  rowsOfHouses(mun, 150, W, 44, 70, (x, yb) => yb < 40 && Math.abs(x - 200) < 20);
+  R(186, 30, 28, 5, K.stone); R(186, 30, 28, 1, K.stoneL); for (let x = 186; x < 214; x += 3) R(x, 28, 2, 2, K.stone);   // the king's garrison
+  for (const tx of [181, 210]) { R(tx, 24, 6, 11, K.stone); R(tx + 5, 24, 1, 11, K.stoneL); R(tx, 22, 2, 2, K.stone); R(tx + 4, 22, 2, 2, K.stone); P(tx + 2, 27, K.win); }
+  for (const gx of [192, 204]) { P(gx, 26, '#c48a58'); P(gx, 27, '#a8452e'); line(gx + 1, 24, gx + 1, 28, '#7a7a82'); }
+  for (let k = 0; k < 4; k++) shed(k * 16, 70);   // the ship sheds
+  for (const [hx, w] of [[68, 6], [78, 7], [88, 6]]) house(hx, 70, w, 5);
+  R(96, 70, 54, 2, K.stone); R(97, 62, 52, 8, '#4a3a36'); for (let x = 97; x < 149; x += 3) { R(x, 62, 1, 8, K.marble); }   // the long stoa
+  R(96, 60, 54, 2, K.marble); R(95, 58, 56, 1, K.roof); R(95, 59, 56, 1, K.roofS);
+  R(64, 70, 160, 2, K.stoneL); R(0, 72, W, 2, K.seaS);
+  galley(4, 82, 58, false);
+}
+
+// ---------- Syracuse ----------
+const ort = x => x > 120 ? 999 : Math.round(44 + 22 * smooth(58, 122, x));
+let SHIELD_F = [0, 0];
+function syracuseBack() {
+  skyAndSun(190, 16);
+  for (let x = 20; x <= 190; x++) {   // Etna, smoking under its snow
+    const dx = x - 105, k = 1 - Math.abs(dx) / 85; if (k <= 0) continue;
+    const top = Math.max(26 + (Math.abs(dx) < 3 ? 1 : 0), Math.round(HZ - 2 - 36 * Math.pow(k, 1.5)));
+    for (let y = top; y < HZ; y++) {
+      const snow = y < 35 + Math.round(2 * Math.sin(x * 0.7) + (dx < 0 ? 1 : 0)), lit = dx > (y - top) * 0.15, gully = (x * 3 + y) % 17 === 0 || (x * 5 - y) % 23 === 0;
+      P(x, y, snow ? (lit ? '#ffffff' : '#dbe3ee') : y > HZ - 6 ? '#b8c4d8' : gully ? '#8a93b2' : lit ? '#aab2cc' : '#99a1be');
+    }
+  }
+  R(0, 56, 44, 6, '#bcb69c'); R(0, 56, 44, 1, '#ccc6aa'); R(30, 52, 10, 4, '#d6cfb8'); R(30, 50, 2, 2, '#d6cfb8'); R(38, 50, 2, 2, '#d6cfb8');   // Epipolae and Euryalus
+  for (let x = 160; x < W; x++) { const top = Math.round(HZ - 2 - 5 * smooth(160, 196, x)); R(x, top, 1, HZ - top, '#b2b08e'); P(x, top, '#c4c09c'); }   // Plemmyrion
+  R(200, 52, 9, 3, '#efe6d4'); R(199, 51, 11, 1, '#f6f0e4'); R(201, 50, 7, 1, '#c86a40');   // the Olympieion
+  seaBands();
+}
+function syracuseLand() {
+  for (let x = 0; x < 122; x++) { const t = ort(x); R(x, t, 1, SHORE - t, K.hill); }   // Ortygia
+  SHIELD_F = flatTemple(8, 44, 34, 9, true);   // Athena, with the gilded shield sailors steer by
+  flatTemple(78, ort(86) + 1, 18, 6);   // Apollo
+  rowsOfHouses(ort, 0, 120, 50, SHORE - 6, (x, yb, w) => (yb < 50 && x < 48) || (yb < 56 && x + w > 74 && x < 100));
+  seaWall(0, 122, [12, 54, 100]);
+  R(24, 66, 10, 4, '#7ac0dc'); R(23, 66, 1, 4, K.stoneL); R(34, 66, 1, 4, K.stoneL); for (const rx of [26, 29, 32]) { line(rx, 66, rx - 1, 61, '#5a8a3a'); P(rx - 2, 60, '#8ab85a'); P(rx, 60, '#8ab85a'); }   // the spring of Arethusa
+  palm(18, 63); palm(112, ort(112));
+  for (let k = 0; k < 3; k++) shed(122 + k * 16, 70);   // the dockyards
+  R(170, 70, 54, 2, K.stoneL); R(0, 72, W, 2, K.seaS);
+  galley(168, 82, 50, true);
+}
+
+// ---------- the ships ----------
+function ship(big) {   // Elpis, or Tyche: longer, with a cabin aft and a little sail over the bow
+  const x1 = big ? 96 : 72, mx = big ? 50 : 39, yd = big ? 24 : 20, wl = 48;
+  const top = x => Math.round(wl - (big ? 9 : 8) - 5 * Math.pow(1 - smooth(4, 18, x), 1.5) - 3 * Math.pow(smooth(x1 - 16, x1, x), 2));
+  const c = spr(x1 + 8, 54, () => {
+    R(mx, 4, 2, top(mx + 1) - 4, K.woodD); R(mx + 1, 4, 1, top(mx + 1) - 4, K.woodS);
+    R(mx - yd + 1, 8, yd * 2, 1, K.woodS); R(mx - yd + 3, 9, yd * 2 - 4, 2, K.linen); R(mx - yd + 3, 11, yd * 2 - 4, 1, K.linenS); for (let x = mx - yd + 7; x < mx + yd - 1; x += 7) R(x, 9, 1, 3, K.woodS);
+    if (big) { const fx = x1 - 12, ft = top(fx); for (let k = 0; k < 16; k++) P(fx + Math.round(k * 0.5), ft - k, K.woodD); R(fx + 2, ft - 15, 11, 1, K.woodS); R(fx + 3, ft - 14, 9, 2, K.linen); }
+    for (let x = 4; x <= x1; x++) {
+      const t = top(x), b = x < 9 ? wl - (9 - x) : x > x1 - 3 ? wl - (x - (x1 - 3)) * 2 : wl;
+      for (let y = t; y <= b; y++) { const d = y - t; P(x, y, d === 0 ? K.rail : d <= 2 ? (big ? '#4a7ea4' : K.band) : d === 3 ? K.hullS : y >= wl - 1 ? '#3e2818' : (d % 3 === 0 ? K.hullS : K.hull)); }
+    }
+    const t5 = top(5); for (const [x, y] of [[5, t5 - 1], [4, t5 - 2], [3, t5 - 3], [3, t5 - 4], [3, t5 - 5], [4, t5 - 6], [5, t5 - 7], [6, t5 - 7], [7, t5 - 6]]) { P(x, y, K.hull); P(x + 1, y, K.rail); }   // the goose-neck over the stern
+    R(x1 + 1, top(x1) - 4, 1, 5, K.hull); P(x1 + 2, top(x1) - 5, K.rail);
+    const ex = x1 - 9, ey = top(ex) + 1; R(ex, ey, 3, 2, '#f6efe2'); P(ex + 1, ey, '#2a1c1c'); P(ex + 1, ey + 1, '#2a1c1c');
+    if (big) { const ct = top(22); R(16, ct - 5, 15, 5, K.wood); R(15, ct - 6, 17, 1, K.rail); R(20, ct - 4, 2, 2, '#3a2418'); R(26, ct - 4, 2, 2, '#3a2418'); }
+    for (let k = 0; k < (big ? 7 : 4); k++) R(mx + 5 + k * 3, top(mx + 5 + k * 3) - 2, 2, 2, '#c8783e');
+    const hx = big ? 8 : 14; R(hx, top(hx) - 5, 3, 4, '#7a5a3a'); R(hx, top(hx) - 7, 3, 2, '#b07a4c'); R(hx - 1, top(hx) - 8, 5, 1, '#8a6a44');
+    const sx = mx + 15; R(sx, top(sx) - 6, 3, 5, '#9a6a3a'); R(sx, top(sx) - 8, 3, 2, '#c48a58'); R(sx, top(sx) - 9, 3, 1, '#2a1d14');
+    line(mx + 1, 5, x1 + 2, top(x1) - 5, K.woodD); line(mx, 5, 6, top(4) - 6, K.woodD);
+    line(11, top(11) - 2, 4, top(11) + 11, K.woodS); R(3, top(11) + 9, 2, 3, K.woodS);   // the steering oar
+  });
+  return { c, x1, mx, top };
+}
+const BOAT = [0, 1].map(f => spr(14, 8, () => { R(1, 5, 12, 2, K.hull); R(1, 5, 12, 1, K.rail); P(0, 4, K.hull); P(13, 4, K.hull); R(6, 2, 2, 3, '#c8623a'); R(6, 0, 2, 2, '#c48a58'); line(f ? 5 : 8, 4, f ? 2 : 11, 7, K.woodD); }));
+const GULL = [0, 1].map(f => spr(7, 3, () => { if (f) { P(0, 1, '#ffffff'); P(1, 0, '#ffffff'); P(2, 1, '#ffffff'); P(3, 1, '#ffffff'); P(4, 1, '#ffffff'); P(5, 0, '#ffffff'); P(6, 1, '#ffffff'); } else { P(0, 0, '#ffffff'); P(1, 1, '#ffffff'); P(2, 2, '#ffffff'); P(3, 2, '#ffffff'); P(4, 2, '#ffffff'); P(5, 1, '#ffffff'); P(6, 0, '#ffffff'); } }));
+
+// ---------- wares ----------
+function goods(kind, x, y) {   // flat little wares on a table top at y
+  const amph = (ax, c) => { R(ax, y - 6, 3, 5, c); P(ax + 1, y - 7, c); P(ax + 1, y - 1, c); R(ax, y - 6, 1, 5, dk(c, 0.2)); P(ax - 1, y - 6, dk(c, 0.2)); P(ax + 3, y - 6, c); };
+  if (kind === 'wine') { amph(x + 1, '#c8723e'); amph(x + 5, '#b8683a'); R(x + 9, y - 2, 3, 2, '#2a2220'); P(x + 9, y - 2, '#4a4240'); }
+  if (kind === 'sponge') { for (const [sx, sy] of [[0, 0], [3, 0], [1, -2]]) { R(x + 1 + sx, y - 2 + sy, 3, 2, '#e0b048'); P(x + 2 + sx, y - 1 + sy, '#b88a30'); } R(x + 7, y - 2, 5, 2, '#b08a52'); R(x + 7, y - 3, 5, 1, '#7a3a52'); }
+  if (kind === 'cups') for (const [ux, uy] of [[1, 0], [5, 0], [9, 0], [3, -2], [7, -2]]) { R(x + ux, y - 2 + uy, 3, 1, '#2a2220'); P(x + ux + 1, y - 1 + uy, '#2a2220'); P(x + ux + 2, y - 2 + uy, '#5a524a'); }
+  if (kind === 'bolt') { R(x + 1, y - 2, 9, 1, K.wood); R(x + 1, y - 1, 9, 1, K.woodS); line(x + 10, y - 5, x + 10, y, K.woodD); line(x + 10, y - 5, x + 3, y - 2, '#e8e0c8'); }
+  if (kind === 'stores') { R(x + 1, y - 4, 4, 4, '#d8b478'); R(x + 1, y - 4, 1, 4, '#b8945a'); P(x + 2, y - 5, '#a8844e'); R(x + 7, y - 5, 4, 5, '#dcae78'); R(x + 7, y - 5, 1, 5, '#b8885a'); R(x + 8, y - 6, 2, 1, '#dcae78'); }
+  if (kind === 'works') { R(x + 1, y - 4, 5, 4, K.marble); R(x + 5, y - 4, 1, 4, K.marbleS); R(x + 7, y - 1, 5, 1, '#f2e8cc'); R(x + 9, y - 4, 1, 3, K.bronze); }
+  if (kind === 'bank') { for (const [sx, n] of [[1, 2], [4, 4], [7, 3]]) for (let k = 0; k < n; k++) R(x + sx, y - 1 - k, 2, 1, k % 2 ? '#c8ced4' : '#eef0f2'); R(x + 10, y - 5, 1, 5, K.bronze); R(x + 8, y - 5, 5, 1, K.bronze); }
+  if (kind === 'oil') { amph(x + 1, '#d4ae6a'); amph(x + 5, '#c4a05e'); R(x + 9, y - 1, 3, 1, '#8a5e38'); P(x + 9, y - 2, '#6a7a32'); P(x + 10, y - 2, '#8a9a42'); }
+  if (kind === 'wheat') { for (const sx of [1, 6]) { R(x + sx, y - 4, 4, 4, '#d8b478'); R(x + sx, y - 4, 1, 4, '#b8945a'); R(x + sx, y - 5, 4, 1, '#f0d070'); } R(x + 10, y - 3, 2, 3, K.bronze); }
+  if (kind === 'vase') { R(x + 1, y - 5, 4, 5, '#e0965a'); R(x + 2, y - 6, 2, 1, '#e0965a'); R(x + 1, y - 3, 4, 1, '#2a2220'); R(x + 7, y - 4, 4, 4, '#2a2220'); R(x + 7, y - 5, 4, 1, '#2a2220'); P(x + 8, y - 3, '#e0965a'); P(x + 10, y - 3, '#e0965a'); }
+  if (kind === 'scrolls' || kind === 'talker') { for (let k = 0; k < (kind === 'talker' ? 2 : 4); k++) { R(x + 1 + k * 3, y - 2 - (k % 2), 3, 2, '#f2e8cc'); P(x + 1 + k * 3, y - 2 - (k % 2), '#8a6a44'); } if (kind === 'talker') { R(x + 9, y - 3, 2, 3, '#c8783e'); } }
+  if (kind === 'hymhoney') { for (const sx of [1, 5]) { R(x + sx, y - 4, 3, 4, '#e2c48e'); R(x + sx, y - 5, 3, 1, '#e8b030'); } R(x + 9, y - 3, 3, 3, '#f0b830'); P(x + 10, y - 2, '#b8781c'); }
+  if (kind === 'marble') { R(x + 1, y - 6, 7, 6, K.marble); R(x + 7, y - 6, 1, 6, K.marbleS); R(x + 1, y - 6, 7, 1, '#ffffff'); R(x + 9, y - 1, 3, 1, '#9aa0a8'); }
+  if (kind === 'cheese') { for (const [sx, sy] of [[1, 0], [5, 0], [3, -2]]) { R(x + sx, y - 2 + sy, 4, 2, '#e8d48a'); R(x + sx, y - 1 + sy, 4, 1, '#c8a050'); } R(x + 9, y - 2, 3, 2, '#f8eec0'); }
+  if (kind === 'tuna') { R(x + 1, y - 2, 10, 2, '#4a5a7a'); R(x + 2, y - 1, 8, 1, '#d8e0e6'); P(x, y - 3, '#3a4a6a'); P(x, y - 1, '#3a4a6a'); P(x + 9, y - 2, '#141418'); R(x + 11, y - 2, 1, 2, '#b83a3a'); }
+  if (kind === 'sulphur') { R(x + 1, y - 2, 10, 2, '#b08a52'); for (const [sx, sy] of [[2, -4], [5, -5], [8, -4]]) { R(x + sx, y + sy, 3, 2, '#e8d040'); P(x + sx + 2, y + sy, '#fff080'); } }
+}
+
+// ---------- the three ports ----------
+const PORTS = {
+  rhodes: { back: rhodesBack, land: rhodesLand, big: false, shipX: 70, bol: [70, 152], slot: 32,
+    stalls: [['thras', 'wine'], ['korinna', 'sponge'], ['aristeia', 'cups'], ['arsenal', 'bolt'], ['stores', 'stores'], ['works', 'works'], ['bank', 'bank']], cast: ['thras', 'korinna', 'aristeia', 'arsenal', 'stores', 'works', 'bank', 'ariston'] },
+  piraeus: { back: piraeusBack, land: piraeusLand, boatY: 88, big: false, shipX: 100, bol: [102, 178], slot: 28,
+    stalls: [['kephis', 'oil'], ['warden', 'wheat'], ['philinna', 'vase'], ['nikanor', 'scrolls'], ['melitta', 'hymhoney'], ['timarchos', 'marble'], ['zeno', 'talker'], ['pstores', 'stores']],
+    extras: (g, t) => { if (Math.floor(t * 0.8) % 5 === 0) { P(97, 43, '#fff4c0'); P(97, 42, '#ffe28a'); } R(200, 12, 1, 12, K.woodD); for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) P(199 - i, 12 + j + Math.round(Math.sin(t * 4 - i) * (i / 6)), j === 2 ? '#6a1e2e' : '#8a2a3a'); } },
+  syracuse: { back: syracuseBack, land: syracuseLand, boatY: 86, big: true, shipX: 60, bol: [62, 160], slot: 32,
+    stalls: [['sikon', 'wheat'], ['arete', 'cheese'], ['damon', 'tuna'], ['kallisto', 'hymhoney'], ['eumenes', 'wine'], ['nymphodoros', 'sulphur'], ['lykon', 'bank']],
+    extras: (g, t) => {
+      for (let k = 0; k < 6; k++) { const a = (t * 0.1 + k / 6) % 1, sx = 107 + Math.round(a * 30), sy = 24 - Math.round(a * 18), r = 1 + Math.round(a * 4); for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r) P(sx + i, sy + j, j > r * 0.3 ? '#b8bac4' : '#dcdde2'); }
+      if (Math.floor(t * 0.9) % 4 === 0) { const [x, y] = SHIELD_F; P(x, y - 1, '#ffffff'); P(x - 1, y, '#fff0b0'); P(x + 1, y, '#fff0b0'); }
+    } },
+};
+const SCN = {}, WAVES = [];
+for (const id in PORTS) {
+  const D = PORTS[id], S = SCN[id] = { D, back: spr(W, H, D.back), land: spr(W, H, D.land), ship: ship(D.big) };
+  const half = D.slot / 2, n = D.stalls.length, first = Math.round((W - D.slot * n) / 2 + half);
+  S.cs = D.stalls.map((_, i) => first + i * D.slot);
+  S.quay = spr(W, H, () => {
+    R(0, QY, W, 3, K.quay); R(0, QY, W, 1, lt(K.quay, 0.3)); R(0, QY + 3, W, 1, K.quayJ);
+    R(0, QY + 4, W, H - QY - 4, K.quayS);
+    for (let y = QY + 4, r = 0; y < H; y += 7, r++) { R(0, y + 6, W, 1, K.quayJ); for (let x = (r % 2) * 9; x < W; x += 18) R(x, y, 1, 6, K.quayJ); }
+    for (const bx of D.bol) { R(bx, QY - 3, 3, 4, K.stoneS); R(bx, QY - 3, 3, 1, K.stoneL); }
+    D.stalls.forEach(([sid, kind], i) => {
+      const c = S.cs[i], l = c - half + 2, r = c + half - 3, tw = D.slot - 20;
+      R(l, 99, r - l + 1, 3, K.linen); R(l, 99, r - l + 1, 1, lt(K.linen, 0.4)); R(l, 102, r - l + 1, 1, K.linenS);
+      R(l, 103, 1, 21, K.woodS); R(r, 103, 1, 21, K.woodS);
+      R(l + 2, 113, tw, 2, K.wood); R(l + 2, 115, tw, 1, K.woodD); R(l + 3, 116, 1, 8, K.woodD); R(l + tw, 116, 1, 8, K.woodD);
+      R(l + 2, 124, tw, 1, K.quayJ); R(c + 1, 125, 11, 1, K.quayJ);
+      goods(kind, l + 2, 113);
+    });
+  });
+}
+for (let k = 0; k < 60; k++) { const y = HZ + 2 + Math.floor(hash(k * 2.3) * (QY - HZ - 3)); WAVES.push({ x: hash(k * 5.1) * W, y, len: 2 + Math.floor((y - HZ) / 10), v: 0.6 + (y - HZ) / 16 }); }
+function drawHarbour(g, t, S) {
+  const D = S.D, SH = S.ship;
+  G = g; g.imageSmoothingEnabled = false;
+  g.drawImage(S.back, 0, 0);
+  for (const [cx, cy, w, v] of [[60, 8, 26, 0.6], [140, 22, 18, 0.4], [210, 38, 14, 0.3]]) { const span = W + 40, x = Math.round(((cx - t * v) % span + span) % span) - 30; cloud(x, cy, w); }
+  if (D.extras) D.extras(g, t);
+  for (const w of WAVES) { const x = Math.round(((w.x - t * w.v) % W + W) % W); R(x, w.y, w.len, 1, K.wave); }
+  g.drawImage(S.land, 0, 0);
+  { const x = Math.round(((t * 2.4 + 30) % (W + 30)) - 15); g.drawImage(BOAT[Math.floor(t * 1.5) % 2], x, D.boatY || 74); }
+  const bob = Math.round(Math.sin(t * 1.1) * 0.6), sx = D.shipX, sy = WL - 48 + bob;
+  R(sx + 4, WL + 1, SH.x1 - 2, 1, K.seaS);
+  g.drawImage(SH.c, sx, sy);
+  for (let i = 0; i < 6; i++) P(sx + SH.mx - 1 - i, sy + 4 + Math.round(Math.sin(t * 5 - i) * (i / 6)), i < 3 ? '#d0683e' : '#b84a2e');   // the pennant
+  line(sx + 10, sy + 33, D.bol[0] + 1, QY - 3, K.woodD); line(sx + SH.x1 + 1, sy + SH.top(SH.x1) - 2, D.bol[1] + 1, QY - 3, K.woodD);
+  for (let k = 0; k < 2; k++) { const x = Math.round(((t * (7 + k * 3) + k * 90) % (W + 20)) - 10), y = 14 + k * 12 + Math.round(Math.sin(t * 1.4 + k) * 2); g.drawImage(GULL[Math.floor(t * 3 + k) % 2], x, y); }
+  g.drawImage(S.quay, 0, 0);
+  D.stalls.forEach(([id], i) => { const blink = (Math.floor(t * 10 + i * 7) % 43) === 0; g.drawImage(FIG[id][blink ? 1 : 0], S.cs[i] - 3, 124 - 24); });
+}
+function drawCast(g, t, ids) {   // a port's people, in a row
+  G = g; g.imageSmoothingEnabled = false;
+  const w = ids.length * 22;
+  R(0, 0, w, 32, '#dde5ef'); R(0, 27, w, 5, '#cdd7e6');
+  ids.forEach((id, i) => { const blink = (Math.floor(t * 10 + i * 11) % 37) === 0; R(i * 22 + 7, 27, 11, 1, '#b8c4d8'); g.drawImage(FIG[id][blink ? 1 : 0], i * 22 + 2, 3); });
+}
+// ---------- running, at a whole number of screen pixels to the art pixel ----------
+function fitCanvas(cv, box, cap, names) {
+  const dpr = window.devicePixelRatio || 1, avail = Math.min(box.parentElement.clientWidth - 4, cap || 960) * dpr;
+  const k = Math.max(1, Math.floor(avail / cv.width));
+  cv.style.width = cv.width * k / dpr + 'px'; cv.style.height = cv.height * k / dpr + 'px';
+  box.style.width = cv.width * k / dpr + 4 + 'px';
+  if (names) names.style.width = cv.width * k / dpr + 'px';
+}
+const ids = ['rhodes', 'piraeus', 'syracuse'], $ = id => document.getElementById(id);
+function fitAll() { for (const id of ids) { fitCanvas($(id), $(id + 'Box')); fitCanvas($(id + 'Cast'), $(id + 'CastBox'), 880, $(id + 'Names')); } }
+addEventListener('resize', fitAll); fitAll();
+const still = new URLSearchParams(location.search).has('still') || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+function frame(now) {
+  const t = still ? 12 : now / 1000;
+  for (const id of ids) { drawHarbour($(id).getContext('2d'), t, SCN[id]); drawCast($(id + 'Cast').getContext('2d'), t, PORTS[id].cast || PORTS[id].stalls.map(s => s[0])); }
+  if (!still) requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -79,9 +79,8 @@ The history of the period is real and stays in the background: the siege of Rhod
 - `index.html` is the same game wrapped as a standalone page. It is generated, so don't edit it by hand.
 - `tools/build.mjs` creates `index.html` from `src/game.html`.
 - `tests/sim.js` plays Chapters I to IV in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
-- `samples/rhodes-detailed.html` is an art sample, not part of the game: the harbour at Rhodes and a merchant close up, drawn at 320 × 180 art pixels with shading ramps, coloured outlines and dithering. Open it in a browser. `samples/before-after.png` puts it beside the harbour as the game draws it now.
-- `samples/rhodes-flat.html` is a third art sample, closest to the game as it is: the same flat look, a step bigger and cleaner, at 224 × 126, with the merchants as whole figures about 22 pixels tall standing by their stalls, and a row of the Rhodes cast.
-- `samples/rhodes-painterly.html` is a second art sample, a step further: the harbour and the stall at 400 × 225, every pixel lit from the shape of what it shows, then brought down to one 64-colour palette with ordered dithering. Still drawn in code.
+- `samples/ports-detailed.html` and `samples/ports-flat.html` are art samples, not part of the game. Each draws Rhodes, Piraeus and Syracuse in one style: detailed at 320 × 180 with shading ramps, coloured outlines and dithering, with a merchant close up; or flat at 224 × 126, the game's own look a step bigger, with each port's merchants as whole figures. Syracuse belongs to Chapter VI, which is not written yet, so its traders are placeholders. `samples/before-after.png` puts the detailed Rhodes beside the harbour as the game draws it now.
+- `samples/rhodes-painterly.html` is an earlier experiment with lit, painterly pixels at 400 × 225, kept for reference.
 - `tests/play.js` plays all four chapters in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
 
 Inside `src/game.html`, the rules sit between `// ===== ENGINE START =====` and `// ===== ENGINE END =====` and never touch the page. That is what lets `tests/sim.js` run them on their own. All the art and sound is drawn and synthesized in code.

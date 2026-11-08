@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rhodes, Redrawn</title>
-<meta name="description" content="A sample of the harbour at Rhodes drawn in denser, more detailed pixel art, for Emporos.">
+<title>The Ports, Redrawn</title>
+<meta name="description" content="Samples of Rhodes, Piraeus and Syracuse drawn in denser, more detailed pixel art, for Emporos.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,wght@0,400;0,600;1,400&family=Pixelify+Sans:wght@400;500;600;700&display=swap">
@@ -42,14 +42,26 @@ ul.notes li { margin: 4px 0; }
 </head>
 <body>
 <main>
-  <h1>Rhodes, redrawn</h1>
-  <p class="sub">Emporos · art sample · spring, 290 BC</p>
-  <p class="lede">The same harbour as the game, drawn at about two and a half times the pixels, with shading ramps, coloured outlines, dithering and texture. Everything is still drawn in code.</p>
+  <h1>The ports, redrawn</h1>
+  <p class="sub">Emporos · art sample · detailed, 320 × 180</p>
+  <p class="lede">Three harbours in the same style: about two and a half times the game's pixels, with shading ramps, coloured outlines, dithering and texture. Everything is still drawn in code.</p>
 
-  <h2>The harbour</h2>
+  <h2>Rhodes</h2>
   <figure>
     <div class="frame" id="harbourBox"><canvas id="harbour" width="320" height="180" role="img" aria-label="The harbour at Rhodes in the morning: the city and the temple of Apollo on the hill, the bronze Sun-god going up in his scaffolding, Elpis moored at the quay, and seven stalls along the front."></canvas></div>
-    <figcaption>320 × 180 art pixels, against about 130 × 107 in the game now. The houses, the stalls, the ship and the people all have room for light and shadow.</figcaption>
+    <figcaption>Home. The Sun-god's feet in their scaffold, Elpis at the quay, and the seven merchants of Rhodes.</figcaption>
+  </figure>
+
+  <h2>Piraeus</h2>
+  <figure>
+    <div class="frame" id="piraeusBox"><canvas id="piraeus" width="320" height="180" role="img" aria-label="Piraeus, the harbour of Athens: the ship sheds with triremes inside, a trireme moored in front, the Long Walls running across the plain to Athens, the Parthenon on the Acropolis, Hymettus behind, the king's garrison on Munichia, the long stoa, Elpis, and eight stalls."></canvas></div>
+    <figcaption>Chapter III. The ship sheds and a trireme, the Long Walls running up to Athens, the Parthenon on the Acropolis, Hymettus behind, the king's garrison and its flag on Munichia, the long market stoa, and the eight traders of Piraeus.</figcaption>
+  </figure>
+
+  <h2>Syracuse</h2>
+  <figure>
+    <div class="frame" id="syracuseBox"><canvas id="syracuse" width="320" height="180" role="img" aria-label="Syracuse: Etna smoking under its snow, the island city of Ortygia with the temple of Athena and its golden shield, the dockyards and a great warship, Tyche at the quay, and seven stalls."></canvas></div>
+    <figcaption>Chapter VI, not written yet, so its traders are placeholders: wheat, cheese, tuna, Hyblaean honey, wine, sulphur from Etna, and a banker. Etna smokes under its snow, the golden shield on Athena's temple catches the sun, and Tyche, the bigger ship, lies at the quay.</figcaption>
   </figure>
 
   <h2>A merchant up close</h2>
@@ -169,9 +181,10 @@ const W = 320, H = 180, HZ = 90, SHORE = 102, QY = 141, GY = 176, WL = 131;
 const waterTop = new Int16Array(W).fill(HZ);   // the first row of open water in each column, for reflections and waves
 
 const skyAt = (x, y) => rampAt(SKY, y / (HZ - 1), x, y, 0.38);
+let SUN = [266, 24];
 function paintSky() {
   for (let y = 0; y < HZ; y++) for (let x = 0; x < W; x++) P(x, y, skyAt(x, y));
-  const sx = 266, sy = 24;   // the morning sun, with rings of dithered glow
+  const sx = SUN[0], sy = SUN[1];   // the sun, with rings of dithered glow
   for (let y = sy - 20; y <= sy + 20; y++) for (let x = sx - 20; x <= sx + 20; x++) {
     const d = Math.hypot(x - sx, y - sy);
     if (d <= 5.2) P(x, y, d < 3.9 ? '#fffef7' : '#fff6d4');
@@ -202,13 +215,15 @@ const CLOUDS = [
   { s: cloudSprite([[0, 8, 5], [8, 5, 7], [18, 7, 6], [26, 9, 4]]), x: 222, y: 58, v: 0.35 },
 ];
 
-function paintSea() {   // the far shore of Asia across the strait, and the water
+function farAsia() {   // the far shore of Asia across the strait
   for (let x = 0; x < W; x++) {
     const f = smooth(110, 190, x), hb = Math.round(HZ - (3 + 12 * fbm(x / 40, 4)) * f), lit = fbm((x + 1) / 40, 4) < fbm(x / 40, 4);
     for (let y = hb; y < HZ; y++) P(x, y, (y - hb) / Math.max(1, HZ - hb) > 0.55 && bay(x, y) < 0.5 ? '#b9cfdd' : lit ? '#adc4d6' : '#9eb7cc');
     const hf = Math.round(HZ - (1 + 5 * fbm(x / 15, 8)) * f), lf = fbm((x + 1) / 15, 8) < fbm(x / 15, 8);
     for (let y = hf; y < HZ; y++) P(x, y, lf ? '#9fb9cc' : '#8faabf');
   }
+}
+function paintWater() {
   for (let y = HZ; y < H; y++) {
     const t = Math.pow((y - HZ) / (QY - HZ), 0.85);
     for (let x = 0; x < W; x++) P(x, y, rampAt(SEA, t, x, y, 0.4));
@@ -271,13 +286,14 @@ function house(x, yb, w, h, wall, roof, kind, r) {
     R(x, top, w, 1, wallS);
   }
 }
-function temple(cx, yb) {   // Apollo on the acropolis: steps, nine columns, a pediment and a red roof
-  const w = 46, x0 = cx - 23, top = yb - 21, M = MARBLE;
+function temple(cx, yb) { templeAt(cx, yb, 46, 21, 9); }
+function templeAt(cx, yb, w, tall, n, gold) {   // steps, columns, a painted frieze, a pediment and a red roof
+  const x0 = cx - (w >> 1), top = yb - tall, M = MARBLE;
   for (let s = 0; s < 3; s++) { const y = yb - 2 * s - 2, ins = 3 - s; R(x0 - ins, y, w + ins * 2, 1, M[1]); R(x0 - ins, y + 1, w + ins * 2, 1, M[3]); P(x0 - ins + w + ins * 2 - 1, y, M[0]); }
   R(x0 + 1, top + 1, w - 2, yb - 7 - top, M[4]); R(x0 + 1, top + 1, w - 2, 2, M[5]);
-  R(cx - 3, yb - 15, 6, 9, '#7a6a5a'); R(cx - 2, yb - 14, 4, 8, '#54463c'); P(cx + 1, yb - 14, '#6a5a4c');
-  for (let i = 0; i < 9; i++) {
-    const x = Math.round(x0 + 1 + i * (w - 5) / 8), hgt = yb - 8 - top;
+  if (tall > 15) { R(cx - 3, yb - 15, 6, 9, '#7a6a5a'); R(cx - 2, yb - 14, 4, 8, '#54463c'); P(cx + 1, yb - 14, '#6a5a4c'); }
+  for (let i = 0; i < n; i++) {
+    const x = Math.round(x0 + 1 + i * (w - 5) / (n - 1)), hgt = yb - 8 - top;
     R(x, top + 2, 1, hgt, M[3]); R(x + 1, top + 2, 1, hgt, M[1]); R(x + 2, top + 2, 1, hgt, M[0]);
     P(x, top + 3 + (i % 3) * 3, M[4]);
     R(x - 1, top + 1, 5, 1, M[0]); R(x, top + 2, 3, 1, M[2]); R(x - 1, yb - 7, 5, 1, M[2]);
@@ -285,14 +301,15 @@ function temple(cx, yb) {   // Apollo on the acropolis: steps, nine columns, a p
   R(x0 - 1, top - 2, w + 2, 3, M[1]); R(x0 - 1, top, w + 2, 1, M[3]);
   for (let x = x0 - 1; x < x0 + w + 1; x++) { const k = (x - x0 + 4) % 4; R(x, top - 5, 1, 3, k === 0 ? M[4] : k === 1 ? M[3] : M[1]); }
   R(x0 - 2, top - 6, w + 4, 1, M[0]);
-  const ph = 7;
+  const ph = Math.max(4, Math.round(w / 6.5));
   for (let j = 0; j < ph; j++) {
     const half = Math.round((w / 2 + 2) * (1 - (j + 1) / (ph + 1)));
     R(cx - half, top - 7 - j, half * 2, 1, j === 0 ? M[2] : M[3]);
     P(cx - half, top - 7 - j, M[1]); P(cx - half - 1, top - 7 - j, '#c4683a'); P(cx + half - 1, top - 7 - j, M[0]); P(cx + half, top - 7 - j, '#e08a58');
   }
   for (let i = -4; i <= 4; i += 4) P(cx + i, top - 9, M[4]);   // figures in the pediment
-  P(cx - 1, top - 8 - ph, M[0]); P(cx, top - 8 - ph, M[0]); P(cx - 1, top - 9 - ph, M[1]);
+  if (gold) { R(cx - 2, top - 9 - ph, 4, 4, BRONZE[1]); R(cx - 1, top - 10 - ph, 2, 6, BRONZE[1]); P(cx + 1, top - 9 - ph, BRONZE[0]); P(cx - 2, top - 7 - ph, BRONZE[3]); P(cx, top - 8 - ph, BRONZE[0]); }   // a gilded shield on the gable
+  else { P(cx - 1, top - 8 - ph, M[0]); P(cx, top - 8 - ph, M[0]); P(cx - 1, top - 9 - ph, M[1]); }
   P(x0 - 3, top - 7, M[0]); P(x0 + w + 2, top - 7, M[0]);
 }
 function wallRun(x0, x1, top, bot) {   // the sea wall: coursed blocks, crenellations, and damp at the foot
@@ -447,21 +464,27 @@ function reflect(land, sea) {
 }
 
 // ---------- the ship ----------
-function makeElpis() {
-  const w = 108, h = 78, wl = 66, x0 = 14, x1 = 94;
-  const top = x => Math.round(wl - 11 - 8 * Math.pow(1 - smooth(x0, x0 + 26, x), 1.6) - 6 * Math.pow(smooth(x1 - 26, x1, x), 2));
+function makeShip(big) {
+  const w = big ? 142 : 108, h = 78, wl = 66, x0 = 14, x1 = x0 + (big ? 108 : 80), mx = x0 + (big ? 48 : 36), yd = big ? 34 : 28;
+  const top = x => Math.round(wl - (big ? 13 : 11) - 8 * Math.pow(1 - smooth(x0, x0 + 26, x), 1.6) - 6 * Math.pow(smooth(x1 - 26, x1, x), 2));
   const bot = x => x < x0 + 10 ? Math.round(wl - (x0 + 10 - x) * 0.9) : x > x1 - 8 ? Math.round(wl - (x - (x1 - 8)) * 2.1) : wl;
+  const t0 = top(x0);
   const body = spr(w, h, () => {
     // the steering oar, behind the hull
-    for (let k = 0; k < 18; k++) { const x = Math.round(24 - k * 0.75), y = top(24) - 2 + k; P(x, y, WOOD[2]); P(x + 1, y, WOOD[4]); }
-    R(10, wl - 4, 3, 5, WOOD[3]); R(10, wl - 4, 1, 5, WOOD[1]);
+    for (let k = 0; k < 18; k++) { const x = Math.round(x0 + 10 - k * 0.75), y = top(x0 + 10) - 2 + k; P(x, y, WOOD[2]); P(x + 1, y, WOOD[4]); }
+    R(x0 - 4, wl - 4, 3, 5, WOOD[3]); R(x0 - 4, wl - 4, 1, 5, WOOD[1]);
     // mast and furled sail
-    R(50, 4, 1, wl - 14, WOOD[3]); R(51, 4, 1, wl - 14, WOOD[1]); R(49, 3, 4, 2, WOOD[4]); R(50, 2, 2, 1, WOOD[2]);
-    for (let x = 22; x <= 79; x++) { const dy = Math.round(Math.pow((x - 50.5) / 29, 2) * 1.2); P(x, 12 + dy, WOOD[2]); P(x, 13 + dy, WOOD[4]); }
-    for (let x = 24; x <= 77; x++) {
-      const dy = Math.round(Math.pow((x - 50.5) / 29, 2) * 1.2), th = x < 28 || x > 73 ? 2 : 4, fold = (x * 7) % 11 < 2;
+    R(mx, 4, 1, wl - 14, WOOD[3]); R(mx + 1, 4, 1, wl - 14, WOOD[1]); R(mx - 1, 3, 4, 2, WOOD[4]); R(mx, 2, 2, 1, WOOD[2]);
+    for (let x = mx - yd; x <= mx + yd + 1; x++) { const dy = Math.round(Math.pow((x - mx - 0.5) / (yd + 1), 2) * 1.2); P(x, 12 + dy, WOOD[2]); P(x, 13 + dy, WOOD[4]); }
+    for (let x = mx - yd + 2; x <= mx + yd - 1; x++) {
+      const dy = Math.round(Math.pow((x - mx - 0.5) / (yd + 1), 2) * 1.2), th = x < mx - yd + 6 || x > mx + yd - 5 ? 2 : 4, fold = (x * 7) % 11 < 2;
       for (let j = 0; j < th; j++) P(x, 14 + dy + j, j === th - 1 ? '#b3a080' : j === 0 ? (fold ? '#d8c8a8' : '#f6ecd8') : fold ? '#cbb994' : '#e6d8ba');
       if (x % 8 === 3) for (let j = 0; j < th; j++) P(x, 14 + dy + j, '#6a4a30');
+    }
+    if (big) {   // the little foremast, raked over the bow, with its sail furled
+      const fx = x1 - 14, ft = top(fx);
+      for (let k = 0; k < 24; k++) { P(fx + Math.round(k * 0.55), ft - k, WOOD[3]); P(fx + 1 + Math.round(k * 0.55), ft - k, WOOD[1]); }
+      for (let x = fx + 4; x <= fx + 22; x++) { P(x, ft - 21, WOOD[4]); P(x, ft - 20, x % 6 === 1 ? '#6a4a30' : '#ece0c6'); P(x, ft - 19, '#c8b694'); }
     }
     // the hull, strake by strake
     for (let x = x0; x <= x1; x++) {
@@ -471,7 +494,7 @@ function makeElpis() {
         let c;
         if (d === 0) c = '#cfa06a';
         else if (d === 1) c = '#5a3a24';
-        else if (d <= 3) c = d === 2 ? '#c8623a' : '#a8452e';
+        else if (d <= 3) c = d === 2 ? (big ? '#4a7ea4' : '#c8623a') : (big ? '#2f5f86' : '#a8452e');
         else if (d === 4) c = '#5a3a26';
         else if (d === 5) c = '#2e1e16';
         else if (y >= wl - 1) c = y === wl ? '#1e1618' : '#2e2424';
@@ -482,35 +505,42 @@ function makeElpis() {
       }
     }
     // the goose-neck over the stern and the stem post at the bow
-    const neck = [[16, 47], [15, 46], [14, 45], [13, 43], [12, 41], [12, 39], [12, 37], [13, 35], [14, 34], [16, 33], [18, 33], [19, 34], [20, 35]];
-    for (const [x, y] of neck) { P(x, y, WOOD[2]); P(x + 1, y, WOOD[1]); P(x, y + 1, WOOD[3]); }
-    P(20, 36, WOOD[1]); P(21, 36, '#e8d2a0'); P(19, 35, '#2a1a12');
+    const neck = [[2, 0], [1, -1], [0, -2], [-1, -4], [-2, -6], [-2, -8], [-2, -10], [-1, -12], [0, -13], [2, -14], [4, -14], [5, -13], [6, -12]];
+    for (const [dx, dy] of neck) { const x = x0 + dx, y = t0 + dy; P(x, y, WOOD[2]); P(x + 1, y, WOOD[1]); P(x, y + 1, WOOD[3]); }
+    P(x0 + 6, t0 - 11, WOOD[1]); P(x0 + 7, t0 - 11, '#e8d2a0'); P(x0 + 5, t0 - 12, '#2a1a12');
     for (let y = top(x1) - 6; y <= top(x1); y++) { P(x1 + 1, y, WOOD[2]); P(x1 + 2, y, WOOD[1]); }
     P(x1 + 2, top(x1) - 7, WOOD[0]); P(x1 + 1, top(x1) - 7, WOOD[2]);
     // the eye on the bow, to see the way
     const ex = x1 - 12, ey = top(x1 - 12) + 2;
     R(ex, ey, 5, 3, '#f4ecdc'); P(ex, ey, '#a8452e'); P(ex + 4, ey, '#a8452e'); P(ex, ey + 2, '#a8452e'); P(ex + 4, ey + 2, '#a8452e');
     R(ex + 2, ey, 2, 3, '#1a1416'); P(ex + 2, ey, '#4a4a5a'); R(ex - 1, ey - 1, 7, 1, '#2a1a1a');
+    if (big) {   // the cabin aft, with a window
+      const cx0 = x0 + 16, ct = top(cx0 + 8);
+      for (let x = cx0; x < cx0 + 18; x++) { R(x, ct - 7, 1, 7, x > cx0 + 14 ? WOOD[1] : x === cx0 ? WOOD[4] : WOOD[2]); }
+      R(cx0 - 1, ct - 8, 20, 1, WOOD[0]); R(cx0 - 1, ct - 7, 20, 1, WOOD[4]);
+      R(cx0 + 5, ct - 5, 3, 2, '#2a1a14'); R(cx0 + 11, ct - 5, 3, 2, '#2a1a14');
+    }
     // cargo and crew showing over the rail
-    for (let k = 0; k < 6; k++) { const ax = 56 + k * 3, ay = top(ax) - 3; R(ax, ay, 2, 3, k % 2 ? '#c8783e' : '#b8683a'); P(ax + 1, ay, '#e09a60'); P(ax, ay - 1, '#8a4a2a'); }
-    R(36, top(36) - 3, 6, 3, '#c9a46a'); R(36, top(36) - 3, 6, 1, '#dcbc84'); P(41, top(36) - 2, '#a8844e');
-    // Glaukos at the steering oar, in a sun hat
-    const gx = 24, gt = top(24);
+    for (let k = 0; k < (big ? 10 : 6); k++) { const ax = mx + 6 + k * 3, ay = top(ax) - 3; R(ax, ay, 2, 3, k % 2 ? '#c8783e' : '#b8683a'); P(ax + 1, ay, '#e09a60'); P(ax, ay - 1, '#8a4a2a'); }
+    R(mx - 14, top(mx - 14) - 3, 6, 3, '#c9a46a'); R(mx - 14, top(mx - 14) - 3, 6, 1, '#dcbc84'); P(mx - 9, top(mx - 14) - 2, '#a8844e');
+    // the helmsman, in a sun hat
+    const gx = x0 + 10, gt = top(gx);
     R(gx, gt - 6, 4, 6, '#7a5a3a'); R(gx + 3, gt - 6, 1, 6, '#9a7a54'); R(gx + 1, gt - 9, 3, 3, '#b07a4c'); P(gx + 3, gt - 8, '#c8946a'); P(gx + 2, gt - 8, '#1e140f');
     R(gx - 1, gt - 10, 6, 1, '#8a6a44'); R(gx + 1, gt - 11, 3, 1, '#a07a50'); R(gx + 1, gt - 7, 3, 1, '#d8d2c4');
     // a sailor coiling a line amidships
-    const sx = 66, st = top(66) - 3;
+    const sx = mx + 16 + (big ? 20 : 0), st = top(sx) - 3;
     R(sx, st - 6, 4, 6, '#9a6a3a'); R(sx + 3, st - 6, 1, 6, '#b88a52'); R(sx, st - 9, 3, 3, '#c48a58'); P(sx + 2, st - 8, '#d8a678'); P(sx + 1, st - 8, '#1e140f'); R(sx, st - 10, 3, 1, '#2a1d14');
     R(sx + 4, st - 3, 3, 2, '#d8c088'); P(sx + 5, st - 3, '#a8905a');
   }, 0.55);
   // rigging goes on after the outline, so it stays one pixel thin
   paint(body, () => {
     const rope = '#3e2e26';
-    line(51, 4, x1 + 2, top(x1) - 7, rope); line(50, 4, 17, 33, rope);
-    line(50, 5, 22, 12, '#5a4a40'); line(51, 5, 79, 12, '#5a4a40');
-    line(49, 8, 42, top(42) - 1, rope); line(52, 8, 60, top(60) - 1, rope);
+    line(mx + 1, 4, x1 + 2, top(x1) - 7, rope); line(mx, 4, x0 + 3, t0 - 14, rope);
+    line(mx, 5, mx - yd, 12, '#5a4a40'); line(mx + 1, 5, mx + yd + 1, 12, '#5a4a40');
+    line(mx - 1, 8, mx - 8, top(mx - 8) - 1, rope); line(mx + 2, 8, mx + 10, top(mx + 10) - 1, rope);
+    if (big) line(x1 - 14 + 13, top(x1 - 14) - 23, x1 + 2, top(x1) - 7, rope);
   });
-  return { c: body, wl, x0, x1, top };
+  return { c: body, wl, x0, x1, top, mx, stern: x0 + 6 };
 }
 
 // ---------- people ----------
@@ -522,6 +552,23 @@ const LOOKS = {
   stores: { skin: '#c99468', hair: '#6b4a2e', style: 'long', beard: 0, robe: '#9a6a3a', trim: '#efe3cc', ear: true },
   works: { skin: '#b88252', hair: '#2d2018', style: 'curly', beard: 2, robe: '#e9dcc0', trim: '#b0773a', hat: 'pilos' },
   bank: { skin: '#c99a6c', hair: '#d8d2c4', style: 'short', beard: 1, robe: '#2f4a6a', trim: '#e3b453' },
+  // Piraeus, as in the game
+  kephis: { skin: '#c48a58', hair: '#2a1d14', style: 'short', beard: 2, robe: '#6b7a44', trim: '#e3b453' },
+  warden: { skin: '#b88252', hair: '#bfb7aa', style: 'short', beard: 2, robe: '#efe6d6', trim: '#3f6f8e' },
+  philinna: { skin: '#d0a070', hair: '#1f1712', style: 'veil', veil: '#2a2420', beard: 0, robe: '#c8623a', trim: '#1c1612' },
+  nikanor: { skin: '#c99062', hair: '#3a2618', style: 'short', beard: 1, robe: '#3a3430', trim: '#efe3cc' },
+  melitta: { skin: '#cf9a6a', hair: '#7a4a22', style: 'long', beard: 0, robe: '#e3b453', trim: '#6e3e1a', ear: true },
+  timarchos: { skin: '#a8724a', hair: '#3b2c22', style: 'short', beard: 2, robe: '#8a7a64', trim: '#efe3cc' },
+  zeno: { skin: '#a8703f', hair: '#2a1d14', style: 'short', beard: 1, robe: '#6b6458', trim: '#3a3430' },
+  pstores: { skin: '#c99468', hair: '#6b4a2e', style: 'veil', veil: '#8a5a34', beard: 0, robe: '#9a6a3a', trim: '#efe3cc' },
+  // Syracuse: placeholders until Chapter VI is written
+  sikon: { skin: '#b88252', hair: '#2a1d14', style: 'short', beard: 2, robe: '#c9a050', trim: '#5a3a22' },
+  arete: { skin: '#cf9a6a', hair: '#3a2416', style: 'veil', veil: '#efe6d6', beard: 0, robe: '#6b7a44', trim: '#efe3cc' },
+  damon: { skin: '#a8703f', hair: '#1b130e', style: 'curly', beard: 1, robe: '#3d6b6b', trim: '#efe3cc' },
+  kallisto: { skin: '#d0a070', hair: '#7a3f1e', style: 'long', beard: 0, robe: '#e3b453', trim: '#6e3e1a', ear: true },
+  eumenes: { skin: '#c08857', hair: '#4a2f1c', style: 'short', beard: 2, robe: '#6a2a5a', trim: '#e3b453' },
+  nymphodoros: { skin: '#b07a4c', hair: '#5a4632', style: 'bald', beard: 2, robe: '#8a7a64', trim: '#d9a441' },
+  lykon: { skin: '#c99a6c', hair: '#9a9488', style: 'short', beard: 2, robe: '#efe6d6', trim: '#2f4a6a' },
 };
 // A trader from the waist up, as seen over a counter: 7-pixel head, shading from the right.
 function traderSprite(L, blink) {
@@ -628,10 +675,6 @@ function catSprite(f) {
 const CAT = [catSprite(0), catSprite(1)];
 
 // ---------- the stalls ----------
-const STALLS = [
-  { id: 'thras', at: 0.08, goods: 'wine' }, { id: 'korinna', at: 0.22, goods: 'sponge' }, { id: 'aristeia', at: 0.36, goods: 'cups' },
-  { id: 'arsenal', at: 0.5, goods: 'bolt' }, { id: 'stores', at: 0.64, goods: 'stores' }, { id: 'works', at: 0.78, goods: 'works' }, { id: 'bank', at: 0.92, goods: 'bank' },
-];
 const stallX = at => Math.round(14 + at * (W - 28));
 function amph(x, yb, c) {   // a small Rhodian wine jar: 4 wide, 9 tall, handles, a pointed toe
   const r = [lt(c, 0.38), lt(c, 0.15), c, dk(c, 0.22), dk(c, 0.42)];
@@ -663,6 +706,44 @@ function goodsOn(kind, cx, y) {   // y is the counter top
     R(cx - 1, y - 2, 10, 2, '#efe4c4'); R(cx - 1, y - 2, 1, 2, '#c8b890'); R(cx + 8, y - 2, 1, 2, '#c8b890'); line(cx + 1, y - 2, cx + 6, y - 2, '#9a7a5a');
     R(cx + 3, y - 6, 1, 4, BRONZE[2]); P(cx + 3, y - 7, BRONZE[0]); R(cx + 5, y - 5, 2, 3, BRONZE[3]); P(cx + 6, y - 5, BRONZE[1]);
   }
+  if (kind === 'oil') { amph(cx - 10, y, '#d0a868'); amph(cx - 5, y, '#c49a5a'); P(cx - 9, y - 6, '#7a8a3a'); P(cx - 4, y - 6, '#7a8a3a'); R(cx + 2, y - 2, 8, 2, '#8a5a34'); R(cx + 3, y - 3, 6, 1, '#6a5a2a'); for (let i = 0; i < 6; i += 2) { P(cx + 3 + i, y - 3, '#7a8a3a'); P(cx + 4 + i, y - 3, '#5a6a2a'); } }
+  if (kind === 'wheat') {
+    for (const sx of [-11, -4]) { R(cx + sx, y - 6, 6, 6, '#c9a46a'); R(cx + sx + 5, y - 6, 1, 6, '#e0c088'); R(cx + sx, y - 6, 1, 6, '#9a7a48'); R(cx + sx, y - 7, 6, 1, '#e8c860'); R(cx + sx + 1, y - 8, 4, 1, '#f2d878'); P(cx + sx + 3, y - 8, '#c8a040'); }
+    R(cx + 5, y - 4, 6, 4, BRONZE[2]); R(cx + 5, y - 4, 6, 1, BRONZE[1]); R(cx + 10, y - 4, 1, 4, BRONZE[0]); R(cx + 6, y - 5, 4, 1, '#e8c860');
+  }
+  if (kind === 'vase') {   // painted Attic pots: black figures on orange, and orange figures on black
+    vessel(cx - 7, y - 10, [3, 2, 2, 4, 6, 7, 7, 6, 4, 3], ['#f2b47a', '#e0965a', '#d07e46', '#a85e32', '#844626']); for (const [fx, fy] of [[-9, -6], [-7, -6], [-8, -5], [-6, -5]]) P(cx + fx, y + fy, '#1c1612'); R(cx - 10, y - 3, 6, 1, '#1c1612');
+    vessel(cx + 4, y - 8, [7, 6, 6, 5, 4, 3, 2, 4], ['#4a4240', '#2a2220', '#1c1612', '#141010', '#0e0a08']); for (const [fx, fy] of [[1, -6], [3, -6], [2, -5], [5, -6], [6, -5]]) P(cx + fx, y + fy, '#d07e46');
+  }
+  if (kind === 'scrolls' || kind === 'talker') {
+    const n = kind === 'talker' ? 2 : 4;
+    for (let k = 0; k < n; k++) { const sx = cx - 11 + k * 3, sy = y - 2 - (k % 2) * 2; R(sx, sy, 3, 2, '#efe4c4'); P(sx, sy, '#8a6a44'); P(sx, sy + 1, '#6a4a30'); P(sx + 2, sy, '#fff8e4'); }
+    if (kind === 'scrolls') { R(cx + 1, y - 1, 10, 1, '#efe4c4'); R(cx, y - 2, 2, 2, '#c8b890'); R(cx + 10, y - 2, 2, 2, '#c8b890'); for (let i = 2; i < 9; i += 2) P(cx + i, y - 1, '#7a6a5a'); }
+    else { vessel(cx + 6, y - 4, [4, 4, 3, 2], ['#e0a070', '#c8783e', '#a85e32', '#844626']); }
+  }
+  if (kind === 'hymhoney') {
+    for (const sx of [-10, -5]) vessel(cx + sx, y - 6, [3, 4, 5, 5, 4, 3], ['#f0d8a8', '#e2c48e', '#c9a46a', '#a8844e', '#8a6a3a']);
+    R(cx - 11, y - 7, 3, 1, '#e8b030'); R(cx - 6, y - 7, 3, 1, '#e8b030');
+    for (let j = 0; j < 4; j++) for (let i = 0; i < 9; i++) P(cx + 2 + i, y - 4 + j, (i + j * 2) % 3 === 0 ? '#b8781c' : j === 0 ? '#ffd860' : '#f0b830');   // a slab of honeycomb
+  }
+  if (kind === 'marble') {
+    R(cx - 11, y - 8, 12, 8, MARBLE[2]); R(cx - 11, y - 8, 12, 1, MARBLE[0]); R(cx, y - 8, 2, 8, MARBLE[1]); R(cx - 11, y - 1, 12, 1, MARBLE[3]); P(cx - 7, y - 5, MARBLE[3]); P(cx - 4, y - 3, MARBLE[3]);
+    R(cx + 5, y - 2, 6, 1, '#9aa0a8'); R(cx + 4, y - 3, 2, 3, WOOD[2]);
+  }
+  if (kind === 'cheese') {
+    for (const [sx, sy] of [[-11, 0], [-5, 0], [-8, -3]]) { R(cx + sx, y + sy - 3, 6, 3, '#e8d48a'); R(cx + sx, y + sy - 3, 6, 1, '#f6e8a8'); R(cx + sx + 5, y + sy - 3, 1, 3, '#c8a050'); R(cx + sx, y + sy - 1, 6, 1, '#b89040'); }
+    R(cx + 3, y - 3, 6, 3, '#f8eec0'); P(cx + 3, y - 3, '#c8a050'); P(cx + 8, y - 1, '#c8a050'); P(cx + 5, y - 2, '#e8d48a');
+  }
+  if (kind === 'tuna') {   // a great tuna across the board, and steaks cut from another
+    for (let i = 0; i < 18; i++) { const th = i < 3 ? 1 : i > 14 ? 2 : 3; R(cx - 12 + i, y - 1 - th, 1, th, '#4a5a7a'); P(cx - 12 + i, y - 1, '#d8e0e6'); if (i > 3 && i < 14) P(cx - 12 + i, y - 2, '#8a9ab0'); }
+    R(cx - 13, y - 4, 1, 4, '#3a4a6a'); P(cx - 14, y - 5, '#3a4a6a'); P(cx - 14, y - 1, '#3a4a6a'); P(cx + 4, y - 3, '#1a1a22'); P(cx + 5, y - 2, '#c8d0d8');
+    for (const sx of [8, 11]) { R(cx + sx, y - 2, 2, 2, '#b83a3a'); P(cx + sx, y - 2, '#e86a6a'); }
+  }
+  if (kind === 'sulphur') {
+    R(cx - 11, y - 3, 10, 3, '#b08a52'); for (let i = 0; i < 10; i += 2) P(cx - 11 + i, y - 2, '#8a6638');
+    for (const [sx, sy] of [[-10, -5], [-7, -6], [-4, -5], [-8, -4]]) { R(cx + sx, y + sy, 3, 2, '#e8d040'); P(cx + sx + 2, y + sy, '#fff080'); P(cx + sx, y + sy + 1, '#b8a020'); }
+    for (const [sx, sy] of [[3, -2], [6, -3], [8, -2]]) { R(cx + sx, y + sy, 3, 2, '#e0c838'); P(cx + sx + 2, y + sy, '#fff080'); }
+  }
   if (kind === 'bank') {
     for (const [sx, n] of [[-11, 4], [-8, 6], [-5, 3]]) for (let k = 0; k < n; k++) { R(cx + sx, y - 1 - k, 3, 1, k % 2 ? '#b8bec4' : '#dfe3e6'); P(cx + sx + 2, y - 1 - k, '#f6f8fa'); }
     R(cx + 5, y - 9, 1, 9, BRONZE[3]); R(cx + 1, y - 9, 9, 1, BRONZE[2]); P(cx + 5, y - 10, BRONZE[1]);
@@ -691,7 +772,7 @@ function stallFront(cx, L, kind) {   // the counter and its goods, drawn in fron
     for (let j = 2; j < 11; j++) for (let i = -12; i <= 12; i++) {
       const seam = (i + 12) % 5 === 0;
       let c = seam ? WOOD[5] : j === 2 ? WOOD[2] : j >= 9 ? WOOD[4] : (i + 12) % 5 === 4 ? WOOD[2] : WOOD[3];
-      if (kind === 'wine' || kind === 'bank' || kind === 'cups') {   // a cloth over the front, with a border
+      if (kind === 'wine' || kind === 'bank' || kind === 'cups' || kind === 'vase' || kind === 'hymhoney') {   // a cloth over the front, with a border
         c = j === 2 ? dk(L.robe, 0.3) : j === 8 ? L.trim : j > 8 ? dk(L.robe, 0.2) : (i + j) % 4 === 0 && j > 3 ? dk(L.robe, 0.1) : L.robe;
         if (j === 8 && (i + 12) % 3 === 0) c = dk(L.trim, 0.3);
         if (i > 9 && j < 8) c = lt(c, 0.12);
@@ -701,7 +782,7 @@ function stallFront(cx, L, kind) {   // the counter and its goods, drawn in fron
     goodsOn(kind, o, y);
   }, 0.66);
 }
-function quayLayer() {   // paving, the coping along the edge, bollards, and things waiting to be loaded
+function quayLayer(BOL) {   // paving, the coping along the edge, bollards, and things waiting to be loaded
   return spr(W, H, () => {
     R(0, QY - 1, W, 1, '#3a2e34');
     let x = -5;
@@ -730,8 +811,8 @@ function quayLayer() {   // paving, the coping along the edge, bollards, and thi
       if ((j === 0 || j === 2) && (i < 2 || i > pw - 3)) continue;
       P(px + i, py + j, j === 0 ? '#c6dcea' : (i + j) % 4 === 0 ? '#eef6fa' : '#a8c8e0');
     }
-    G.globalAlpha = 0.3; for (const bx of [96, 222]) R(bx - 1, QY + 2, 7, 1, SHADOW); R(133, QY + 2, 14, 1, SHADOW); R(174, QY, 14, 1, SHADOW); G.globalAlpha = 1;
-    for (const bx of [96, 222]) { R(bx, QY - 4, 4, 6, STONE[3]); R(bx + 3, QY - 4, 1, 6, STONE[1]); R(bx, QY - 5, 4, 1, STONE[1]); R(bx - 1, QY - 2, 6, 1, '#b8a070'); R(bx - 1, QY - 1, 6, 1, '#8a7048'); }
+    G.globalAlpha = 0.3; for (const bx of BOL) R(bx - 1, QY + 2, 7, 1, SHADOW); R(133, QY + 2, 14, 1, SHADOW); R(174, QY, 14, 1, SHADOW); G.globalAlpha = 1;
+    for (const bx of BOL) { R(bx, QY - 4, 4, 6, STONE[3]); R(bx + 3, QY - 4, 1, 6, STONE[1]); R(bx, QY - 5, 4, 1, STONE[1]); R(bx - 1, QY - 2, 6, 1, '#b8a070'); R(bx - 1, QY - 1, 6, 1, '#8a7048'); }
     // a coil of rope, an amphora stack, crates, fish baskets and drying nets, at the back of the quay
     for (let k = 0; k < 3; k++) { R(52 + k, QY + 1 - k, 11 - k * 2, 1, k % 2 ? '#a8905a' : '#c8b07a'); } R(54, QY + 2, 7, 1, '#8a7048'); P(57, QY - 1, '#6a5434');
     for (let k = 0; k < 4; k++) { const ax = 134 + k * 3; for (let j = 0; j < 8; j++) P(ax + Math.round(j * 0.25), QY - 6 + j, j < 2 ? '#e09a60' : j < 5 ? '#c8783e' : '#9a5630'); P(ax, QY - 7, '#8a4a2a'); }
@@ -761,72 +842,216 @@ function farShip() {
 }
 const FARSHIP = farShip();
 
-// ---------- put it together ----------
-const H_ = { sky: canvasOf(W, H), sea: canvasOf(W, H), land: canvasOf(W, H), quay: null, ship: null, stalls: [] };
-paint(H_.sky, paintSky);
-paint(H_.sea, paintSea);
-paint(H_.land, () => { paintCity(rng(20)); colossusWorks(226, 100); mole(); });
-reflect(H_.land, H_.sea);
-H_.quay = quayLayer();
-H_.ship = makeElpis();
-for (const s of STALLS) { const cx = stallX(s.at), L = LOOKS[s.id]; s.cx = cx; s.back = stallBack(cx, L); s.front = stallFront(cx, L, s.goods); }
+// ---------- Piraeus ----------
+function longWall(x0, y0, x1, y1) { for (let k = 0; k <= 1; k++) line(x0, y0 + k, x1, y1 + k, k ? '#c8b896' : '#ece2c6'); for (let i = 0; i <= 40; i += 3) { const t = i / 40; P(Math.round(x0 + (x1 - x0) * t), Math.round(y0 + (y1 - y0) * t) - 1, '#e6dab8'); } }
+function piraeusBack() {
+  for (let x = 110; x < W; x++) {   // Hymettus, long and blue, lit from the west
+    const f = smooth(110, 190, x), hb = Math.round(HZ - 4 - (5 + 17 * fbm(x / 60, 31)) * f), lit = fbm(x / 60, 31) > fbm((x - 1) / 60, 31);
+    for (let y = hb; y < HZ; y++) P(x, y, (y - hb) > (HZ - hb) * 0.6 && bay(x, y) < 0.5 ? '#bcc4da' : lit ? '#b0b2ce' : '#9ea0c0');
+  }
+  for (let dx = -8; dx <= 8; dx++) { const top = Math.round(63 + Math.pow(Math.abs(dx) / 8, 1.25) * 20); for (let y = top; y < HZ; y++) P(186 + dx, y, dx < 0 ? '#b6b2cc' : '#a6a2c2'); }   // Lykabettos
+  for (let y = 82; y < HZ; y++) for (let x = 0; x < W; x++) P(x, y, rampAt(['#d2c6a0', '#c8ba92', '#beb088'], (y - 82) / 8, x, y, 0.5));   // the plain
+  for (let k = 0; k < 90; k++) { const x = Math.floor(hash(k * 3.7) * W), y = 83 + Math.floor(hash(k * 5.3) * 6); P(x, y, '#9aa070'); P(x + 1, y, '#8a9060'); }
+  { const far = paint(canvasOf(W, H), () => {
+  for (let x = 124; x < 166; x++) {   // the Acropolis, a long flat rock, far off across the plain
+    const dx = Math.abs(x - 145), top = Math.round(76 + (dx > 15 ? Math.pow(dx - 15, 1.3) * 1.1 : 0) + vnoise(x / 3, 4) * 1.2);
+    for (let y = top; y < 86; y++) P(x, y, x < 131 ? '#ddd2b6' : x > 159 ? '#bcae90' : (y - top) % 3 === 2 ? '#c8baa0' : '#d4c8ac');
+  }
+  templeAt(148, 76, 20, 8, 8);   // the Parthenon
+  R(130, 73, 6, 3, MARBLE[1]); R(130, 73, 6, 1, MARBLE[0]); for (let i = 0; i < 6; i += 2) P(130 + i, 75, MARBLE[3]);   // the gateway
+    G.globalCompositeOperation = 'source-atop'; G.globalAlpha = 0.32; R(0, 0, W, H, '#c4d2e2'); G.globalAlpha = 1; G.globalCompositeOperation = 'source-over';   // hazed with distance
+  }); G.drawImage(far, 0, 0); }
+  for (let k = 0; k < 70; k++) { const x = 88 + Math.floor(hash(k * 2.3) * 120), y = 81 + Math.floor(hash(k * 7.1) * 6); if (x > 118 && x < 170 && y < 84) continue; R(x, y, 2, 1, WALLS[k % WALLS.length]); P(x, y - 1, ROOFS[k % ROOFS.length]); }
+  longWall(0, 91, 116, 83); longWall(34, 92, 126, 84);   // the Long Walls, running up to the city
+  paintWater();
+}
+function shipShed(x, yb) {   // a ship shed: a tiled gable, two stone piers, a trireme's stern in the dark
+  R(x, yb - 15, 15, 15, '#2e2428'); R(x + 2, yb - 13, 11, 13, '#3a2e30');
+  for (let k = 0; k < 7; k++) P(x + 9 - Math.round(Math.sin(k / 6 * Math.PI) * 3), yb - 12 + k, WOOD[2]);
+  R(x + 3, yb - 6, 9, 2, WOOD[3]); R(x + 3, yb - 6, 9, 1, WOOD[2]);
+  for (const px_ of [x, x + 13]) { R(px_, yb - 15, 2, 15, STONE[2]); R(px_ + 1, yb - 15, 1, 15, STONE[0]); }
+  for (let j = 0; j < 7; j++) { const half = 8 - j; R(x + 7 - half, yb - 16 - j, half * 2 + 1, 1, j % 2 ? '#c46440' : '#b0583a'); P(x + 7 + half, yb - 16 - j, '#d8804e'); P(x + 7 - half, yb - 16 - j, '#8a4228'); }
+  R(x - 1, yb - 16, 17, 1, '#8a4228');
+  for (let k = 0; k < 4; k++) R(x + 2, yb + k, 11, 1, k % 2 ? STONE[3] : STONE[2]);   // the slipway, running down into the water
+}
+function warship(x0, wl, len, two) {   // a war galley: long, low, black, with a bronze ram, an eye, and her oars shipped
+  for (let x = x0; x <= x0 + len; x++) {
+    const rise = x < x0 + 8 ? Math.round((x0 + 8 - x) * 0.8) : 0, t = wl - 6 - rise - (x > x0 + len - 6 ? Math.round((x - x0 - len + 6) * 0.5) : 0);
+    for (let y = t; y <= wl; y++) { const d = y - t; P(x, y, d === 0 ? '#b88a58' : d === 1 ? '#3a2a22' : d === 3 && x % 3 === 0 ? '#120c0e' : (two && d === 5 && x % 3 === 1) ? '#120c0e' : y === wl ? '#120e10' : '#2a2226'); }
+  }
+  for (let k = 0; k < 9; k++) { P(x0 - Math.round(k * 0.3) + 1, wl - 7 - k - Math.round(Math.sin(k / 8 * Math.PI) * 2), WOOD[3]); }   // the curled stern
+  R(x0 + len + 1, wl - 1, 5, 2, BRONZE[2]); R(x0 + len + 1, wl - 1, 5, 1, BRONZE[0]); P(x0 + len + 6, wl, BRONZE[3]);   // the ram
+  R(x0 + len - 7, wl - 5, 3, 2, '#f4ecdc'); P(x0 + len - 6, wl - 5, '#120c0e');
+  for (let x = x0 + 10; x < x0 + len - 8; x += 3) line(x, wl - 7, x + 3, wl - 14, '#a88a62');   // oars raised
+}
+function piraeusLand(r) {
+  const mun = x => Math.round(HZ + 16 - 52 * Math.pow(Math.max(0, 1 - Math.abs(x - 288) / 74), 0.9));
+  for (let x = 214; x < W; x++) for (let y = mun(x); y < 106; y++) P(x, y, groundAt(x, y));
+  for (let k = 0; k < 40; k++) { const x = 216 + Math.floor(r() * 104), y = mun(x) + 2 + Math.floor(r() * 8); if (y < 100) blob(x, y, 3, 2, r() < 0.5 ? '#76884a' : '#8a9454', k); }
+  for (let yb = 66; yb <= 104; yb += 5) for (let x = 218 + Math.floor(r() * 5); x < W; x += 10 + Math.floor(r() * 4)) {
+    const w = 6 + Math.floor(r() * 4), h = 4 + Math.floor(r() * 2);
+    if (Math.max(mun(x), mun(x + w + 2)) > yb - 1 || (yb < 62 && Math.abs(x - 286) < 22)) continue;
+    house(x, yb, w, h, WALLS[Math.floor(r() * WALLS.length)], ROOFS[Math.floor(r() * ROOFS.length)], r() < 0.3 ? 'gable' : 'eaves', r);
+  }
+  wallRun(268, 306, 50, 57); towerAt(262, 42, 57); towerAt(302, 42, 57);   // the king's garrison on Munichia
+  for (const gx of [276, 292]) { P(gx, 45, '#c48a58'); R(gx, 46, 1, 2, '#a8452e'); line(gx + 1, 42, gx + 1, 48, '#6a6a72'); }
+  for (let yb = 92; yb <= 98; yb += 6) for (let x = 140 + (yb % 4); x < 214; x += 9 + Math.floor(r() * 3)) house(x, yb, 6 + Math.floor(r() * 3), 4, WALLS[Math.floor(r() * WALLS.length)], ROOFS[Math.floor(r() * ROOFS.length)], 'eaves', r);
+  // the long stoa, where the corn and the wine are sold
+  R(136, 103, 80, 2, STONE[3]); R(136, 103, 80, 1, STONE[1]);
+  R(137, 93, 78, 10, '#4a3a36');
+  for (let x = 138; x < 214; x += 4) { R(x, 93, 1, 10, MARBLE[3]); R(x + 1, 93, 1, 10, MARBLE[0]); }
+  R(136, 91, 80, 2, MARBLE[1]); R(136, 92, 80, 1, MARBLE[3]);
+  for (let j = 0; j < 3; j++) R(135 + j, 88 + j, 82 - j * 2, 1, j === 0 ? '#d07448' : j === 1 ? '#bd5c35' : '#9a4a2a');
+  for (let x = 136; x < 216; x += 2) P(x, 89, '#a84c2e');
+  // the ship sheds, row after row, and a trireme in front of them
+  for (let k = 0; k < 6; k++) shipShed(2 + k * 15, 101);
+  for (let x = 95; x < 136; x++) for (let y = 98; y < 104; y++) P(x, y, groundAt(x, y));
+  for (const [hx, w] of [[96, 7], [106, 8], [118, 6], [127, 7]]) house(hx, 102, w, 5, WALLS[(hx >> 2) % WALLS.length], ROOFS[(hx >> 3) % ROOFS.length], 'eaves', r);
+  wallRun(92, W, 101, 106);
+  for (let x = 0; x < W; x++) waterTop[x] = x < 92 ? 105 : 106;
+}
+function piraeusAfterReflect() { paint(SC.piraeus.land, () => warship(10, 114, 96, false)); }
+function piraeusExtras(g, t) {
+  if (Math.floor(t * 0.8) % 5 === 0) { P(139, 66, '#fff4c0'); P(139, 65, '#ffe28a'); }   // the bronze Athena's spear catches the sun
+  R(287, 26, 1, 16, WOOD[3]);
+  for (let i = 0; i < 9; i++) for (let j = 0; j < 4; j++) { const dy = Math.round(Math.sin(t * 4 - i * 0.8) * (i / 9) * 1.4); P(286 - i, 26 + j + dy, j === 3 ? '#5a1a2a' : '#8a2a3a'); }   // the king's flag
+  P(285, 28, '#e3b453'); P(284, 28, '#e3b453');
+}
+
+// ---------- Syracuse ----------
+function syracuseBack() {
+  const ex = 150, half = 104;
+  for (let x = ex - half; x <= ex + half; x++) {   // Etna, smoking under its snow
+    const k = 1 - Math.abs(x - ex) / half; if (k <= 0) continue;
+    const top = Math.max(38 + (Math.abs(x - ex) < 4 ? 1 : 0), Math.round(HZ - 2 - 58 * Math.pow(k, 1.55)));
+    for (let y = top; y < HZ; y++) {
+      const gully = vnoise2(x / 2.2, y / 10, 41), snowLine = 50 + vnoise(x / 5, 42) * 7 + (x < ex ? 2 : 0), lit = x > ex + (y - top) * 0.1;
+      let c;
+      if (y < snowLine) c = gully > 0.68 ? (lit ? '#c8d2e2' : '#aebad0') : lit ? '#ffffff' : '#dce4ee';
+      else c = gully > 0.66 ? '#7e88a6' : lit ? '#a2aac4' : '#9098b6';
+      if (y > HZ - 12) c = mix(c, '#b8c6d6', (y - HZ + 12) / 18);
+      P(x, y, c);
+    }
+  }
+  for (let x = 0; x < 92; x++) { const top = Math.round(84 - 2 * vnoise(x / 9, 43)); for (let y = top; y < HZ; y++) P(x, y, y === top ? '#c8c0a4' : '#b4ae96'); }   // the plateau of Epipolae
+  R(64, 78, 18, 6, '#d4ccb4'); R(64, 76, 4, 2, '#d4ccb4'); R(78, 76, 4, 2, '#d4ccb4'); for (let x = 64; x < 82; x += 2) P(x, 77, '#d4ccb4'); R(70, 81, 1, 2, '#8a8070');   // Euryalus
+  for (let x = 232; x < W; x++) { const top = Math.round(HZ - (2 + 7 * smooth(232, 280, x)) - vnoise(x / 8, 44) * 2); for (let y = top; y < HZ; y++) P(x, y, (y - top) < 2 ? '#bcb890' : '#a8a684'); }   // Plemmyrion
+  R(290, 78, 12, 4, '#efe6d4'); for (let x = 290; x < 302; x += 2) P(x, 81, '#c8bea8'); R(289, 77, 14, 1, '#f6f0e4'); R(292, 76, 8, 1, '#c86a40');   // the Olympieion across the harbour
+  paintWater();
+}
+function palm(x, yb) { for (let k = 0; k < 13; k++) { P(x + Math.round(Math.sin(k / 12 * 1.2) * 2), yb - k, k % 2 ? '#7a5a3a' : '#8a6a44'); } const tx = x + 2, ty = yb - 13; for (const [dx, dy] of [[-5, 2], [-3, -1], [0, -2], [3, -1], [5, 2], [-4, 1], [4, 1]]) line(tx, ty, tx + dx, ty + dy, dy < 0 ? '#6a9a4a' : '#4e7a3a'); P(tx, ty, '#3e6a2e'); }
+let SHIELD = [0, 0];
+function syracuseLand(r) {
+  const ort = x => x > 170 ? 999 : Math.round(70 + 5 * fbm(x / 20, 5) + 28 * smooth(96, 176, x));
+  for (let x = 0; x <= 172; x++) for (let y = ort(x); y < SHORE; y++) P(x, y, groundAt(x, y));
+  templeAt(62, ort(62) + 2, 58, 18, 11, true);   // Athena, with the gilded shield sailors steer by
+  SHIELD = [62, ort(62) + 2 - 18 - 9 - Math.max(4, Math.round(58 / 6.5)) + 1];
+  templeAt(124, ort(124) + 3, 30, 12, 6);   // Apollo
+  for (let yb = 74; yb <= SHORE - 6; yb += 5) {
+    let x = Math.floor(r() * 7) - 5;
+    while (x < 172) {
+      const w = 6 + Math.floor(r() * 6), h = 4 + Math.floor(r() * 2), right = x + w + 2;
+      const fits = Math.max(ort(Math.max(0, x)), ort(Math.min(172, right))) <= yb - 1 && right < 173, inTemple = (yb < 84 && right > 30 && x < 94) || (yb < 86 && right > 106 && x < 142);
+      if (fits && !inTemple) { if (r() < 0.1) { cypress(x + 2, yb, 8); x += 6; continue; } house(x, yb, w, h, WALLS[Math.floor(r() * WALLS.length)], ROOFS[Math.floor(r() * ROOFS.length)], r() < 0.3 ? 'gable' : 'eaves', r); }
+      x += w + 2 + (r() < 0.25 ? 1 : 0);
+    }
+  }
+  wallRun(0, 174, SHORE - 8, SHORE);
+  for (const tx of [22, 76, 140]) towerAt(tx, SHORE - 18, SHORE);
+  for (let x = 40; x < 58; x++) { R(x, SHORE - 3, 1, 3, x === 40 || x === 57 ? STONE[1] : '#5aa8cc'); }   // the spring of Arethusa, by the sea
+  for (const rx of [43, 47, 51, 54]) { line(rx, SHORE - 3, rx - 1, SHORE - 8, '#5a8a3a'); P(rx - 2, SHORE - 9, '#7aa84a'); P(rx, SHORE - 9, '#7aa84a'); P(rx - 1, SHORE - 9, '#8ab85a'); }
+  palm(32, SHORE - 9); palm(160, ort(160) + 1);
+  for (let k = 0; k < 4; k++) shipShed(178 + k * 15, 101);   // the dockyards
+  wallRun(238, W, 101, 106);
+  for (let x = 0; x < W; x++) waterTop[x] = x < 175 ? SHORE : x < 238 ? 105 : 106;
+}
+function syracuseAfterReflect() { paint(SC.syracuse.land, () => warship(236, 113, 72, true)); }
+function syracuseExtras(g, t) {
+  for (let k = 0; k < 10; k++) {   // smoke from the crater, leaning away on the wind
+    const a = ((t * 0.12 + k / 10) % 1), sx = 151 + Math.round(a * 40 + Math.sin(t * 0.7 + k) * 2), sy = 36 - Math.round(a * 26), rr = 1 + Math.round(a * 5);
+    for (let j = -rr; j <= rr; j++) for (let i = -rr; i <= rr; i++) if (i * i + j * j <= rr * rr + 0.5 && bay(sx + i, sy + j) < 1.0 - a * 0.75) P(sx + i, sy + j, i - j > rr * 0.4 ? '#e8e6e4' : j > rr * 0.3 ? '#9a98a0' : '#c4c2c4');
+  }
+  if (Math.floor(t * 0.9) % 4 === 0) { const [x, y] = SHIELD; P(x, y - 2, '#fff8d0'); P(x - 1, y - 1, '#ffe8a0'); P(x + 1, y - 1, '#ffe8a0'); P(x, y - 1, '#ffffff'); }   // the shield flashes
+}
+
+// ---------- Rhodes' moving parts ----------
+function rhodesExtras(g, t) {
+  for (let k = 0; k < 9; k++) { const a = ((t * 0.3 + k / 9) % 1), sx = 202 + Math.round(a * 12 + Math.sin(t + k) * 1.5), sy = 82 - Math.round(a * 30), r = 1 + Math.round(a * 3); for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + 0.5 && bay(sx + i, sy + j) < 1.05 - a * 0.85) P(sx + i, sy + j, i - j > r * 0.4 ? '#e8e4de' : j > r * 0.3 ? '#a8a09a' : '#c8c2bc'); }
+  R(259, 70, 1, 8, WOOD[3]); for (let i = 0; i < 7; i++) for (let j = 0; j < 3; j++) { const dy = Math.round(Math.sin(t * 4 - i * 0.9) * (i / 7) * 1.2); P(258 - i, 70 + j + dy, j === 0 ? '#d0683e' : j === 1 ? '#f2e6cf' : '#a8452e'); }
+  for (let k = 0; k < 4; k++) { const a = t * 1.4 + k * Math.PI / 2; P(250 + Math.round(Math.cos(a) * 3), 95 + Math.round(Math.sin(a) * 3), WOOD[4]); }
+  { const sw = Math.round(Math.sin(t * 0.8) * 1.2), bx = 224 + sw; line(224, 49, bx, 58, '#3a2a22'); R(bx - 2, 58, 5, 3, MARBLE[1]); R(bx - 2, 60, 5, 1, MARBLE[3]); R(bx + 2, 58, 1, 3, MARBLE[0]); }
+  for (let k = 0; k < 3; k++) { const wx = 211 + ((Math.floor(t * 0.7 + k * 1.7) * 5 + k * 11) % 30), wy = [61, 66, 61][k]; R(wx, wy - 3, 2, 3, k === 1 ? '#c8623a' : '#7a6a54'); P(wx, wy - 4, '#c48a58'); P(wx + 1, wy - 4, '#b07a4c'); }
+  g.drawImage(GULLS[1], 158, 64);
+}
+
+// ---------- the three ports ----------
+const PORTS = {
+  rhodes: { sun: [266, 24], back: () => { farAsia(); paintWater(); }, land: () => { paintCity(rng(20)); colossusWorks(226, 100); mole(); }, extras: rhodesExtras, farShip: 82, big: false, shipX: 104, bol: [96, 222], cat: 141,
+    stalls: [['thras', 0.08, 'wine'], ['korinna', 0.22, 'sponge'], ['aristeia', 0.36, 'cups'], ['arsenal', 0.5, 'bolt'], ['stores', 0.64, 'stores'], ['works', 0.78, 'works'], ['bank', 0.92, 'bank']] },
+  piraeus: { sun: [52, 24], back: piraeusBack, land: () => piraeusLand(rng(33)), after: piraeusAfterReflect, extras: piraeusExtras, big: false, shipX: 148, bol: [162, 240], cat: 186,
+    stalls: [['kephis', 0.06, 'oil'], ['warden', 0.19, 'wheat'], ['philinna', 0.32, 'vase'], ['nikanor', 0.45, 'scrolls'], ['melitta', 0.58, 'hymhoney'], ['timarchos', 0.71, 'marble'], ['zeno', 0.84, 'talker'], ['pstores', 0.96, 'stores']] },
+  syracuse: { sun: [262, 20], back: syracuseBack, land: () => syracuseLand(rng(44)), after: syracuseAfterReflect, extras: syracuseExtras, big: true, shipX: 84, bol: [96, 218], cat: 141,
+    stalls: [['sikon', 0.08, 'wheat'], ['arete', 0.22, 'cheese'], ['damon', 0.36, 'tuna'], ['kallisto', 0.5, 'hymhoney'], ['eumenes', 0.64, 'wine'], ['nymphodoros', 0.78, 'sulphur'], ['lykon', 0.92, 'bank']] },
+};
+const SC = {};
+for (const id in PORTS) {
+  const D = PORTS[id];
+  SUN = D.sun; waterTop.fill(HZ);
+  const S = SC[id] = { D, sky: paint(canvasOf(W, H), paintSky), sea: paint(canvasOf(W, H), D.back), land: paint(canvasOf(W, H), D.land) };
+  reflect(S.land, S.sea);
+  if (D.after) D.after();
+  S.wt = waterTop.slice();
+  S.quay = quayLayer(D.bol);
+  S.ship = makeShip(D.big);
+  S.stalls = D.stalls.map(([sid, at, goods]) => { const cx = stallX(at), L = LOOKS[sid]; return { id: sid, at, cx, back: stallBack(cx, L), front: stallFront(cx, L, goods) }; });
+}
 const WAVES = [];
 { const r = rng(3); for (let k = 0; k < 150; k++) { const y = HZ + 3 + Math.floor(Math.pow(r(), 0.7) * (QY - HZ - 3)), d = (y - HZ) / (QY - HZ); WAVES.push({ x: r() * W, y, len: 1 + Math.floor(r() * (1 + d * 5)), v: 0.6 + d * 2.4, ph: r() * 6.28, c: lt(rampAt(SEA, Math.pow(d, 0.85), 0, 0, 0), 0.45 + 0.2 * (1 - d)) }); } }
 
-function drawHarbour(g, t) {
+function drawHarbour(g, t, S) {
+  const D = S.D, wt = S.wt;
   G = g; g.imageSmoothingEnabled = false;
-  g.drawImage(H_.sky, 0, 0);
+  g.drawImage(S.sky, 0, 0);
   for (const c of CLOUDS) { const span = W + c.s.width + 20, x = Math.round(((c.x - t * c.v) % span + span) % span) - c.s.width; g.drawImage(c.s, x, c.y); }
-  g.drawImage(H_.sea, 0, 0);
-  // sun glitter on the water below the sun
-  for (let k = 0; k < 26; k++) { const y = HZ + 2 + Math.floor(hash(k * 3.3) * (QY - HZ - 4)), x = 266 + Math.round((hash(k * 7.1) - 0.5) * (6 + (y - HZ) * 0.35)); if (y >= waterTop[x] && hash(k + Math.floor(t * 3 + k * 0.37)) < 0.5) R(x, y, 1 + (k % 2), 1, '#fffbe6'); }
-  { const fx = Math.round(330 - ((t * 1.6) % 230)); g.drawImage(FARSHIP, fx, 82); }
-  g.drawImage(H_.land, 0, 0);
-  for (const w of WAVES) { const x = Math.round(((w.x - t * w.v + Math.sin(t * 0.9 + w.ph) * 1.5) % W + W) % W); if (w.y > waterTop[x] + 1 && (Math.sin(t * 1.3 + w.ph) > -0.5)) R(x, w.y, w.len, 1, w.c); }
-  // smoke from the furnace, the crane's swinging block, and the men on the scaffold
-  for (let k = 0; k < 9; k++) { const a = ((t * 0.3 + k / 9) % 1), sx = 202 + Math.round(a * 12 + Math.sin(t + k) * 1.5), sy = 82 - Math.round(a * 30), r = 1 + Math.round(a * 3); for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + 0.5 && bay(sx + i, sy + j) < 1.05 - a * 0.85) P(sx + i, sy + j, i - j > r * 0.4 ? '#e8e4de' : j > r * 0.3 ? '#a8a09a' : '#c8c2bc'); }
-  R(259, 70, 1, 8, WOOD[3]); for (let i = 0; i < 7; i++) for (let j = 0; j < 3; j++) { const dy = Math.round(Math.sin(t * 4 - i * 0.9) * (i / 7) * 1.2); P(258 - i, 70 + j + dy, j === 0 ? '#d0683e' : j === 1 ? '#f2e6cf' : '#a8452e'); }   // the flag on the mole tower
-  for (let k = 0; k < 4; k++) { const a = t * 1.4 + k * Math.PI / 2; P(250 + Math.round(Math.cos(a) * 3), 95 + Math.round(Math.sin(a) * 3), WOOD[4]); }   // the treadwheel, turning
-  { const sw = Math.round(Math.sin(t * 0.8) * 1.2), bx = 224 + sw; line(224, 49, bx, 58, '#3a2a22'); R(bx - 2, 58, 5, 3, MARBLE[1]); R(bx - 2, 60, 5, 1, MARBLE[3]); R(bx + 2, 58, 1, 3, MARBLE[0]); }
-  for (let k = 0; k < 3; k++) { const wx = 211 + ((Math.floor(t * 0.7 + k * 1.7) * 5 + k * 11) % 30), wy = [61, 66, 61][k]; R(wx, wy - 3, 2, 3, k === 1 ? '#c8623a' : '#7a6a54'); P(wx, wy - 4, '#c48a58'); P(wx + 1, wy - 4, '#b07a4c'); }
-  // fishing boats, then Elpis and her reflection
+  g.drawImage(S.sea, 0, 0);
+  for (let k = 0; k < 26; k++) { const y = HZ + 2 + Math.floor(hash(k * 3.3) * (QY - HZ - 4)), x = D.sun[0] + Math.round((hash(k * 7.1) - 0.5) * (6 + (y - HZ) * 0.35)); if (x >= 0 && x < W && y >= wt[x] && hash(k + Math.floor(t * 3 + k * 0.37)) < 0.5) R(x, y, 1 + (k % 2), 1, '#fffbe6'); }
+  if (D.farShip) { const fx = Math.round(330 - ((t * 1.6) % 230)); g.drawImage(FARSHIP, fx, D.farShip); }
+  g.drawImage(S.land, 0, 0);
+  for (const w of WAVES) { const x = Math.round(((w.x - t * w.v + Math.sin(t * 0.9 + w.ph) * 1.5) % W + W) % W); if (w.y > wt[x] + 1 && (Math.sin(t * 1.3 + w.ph) > -0.5)) R(x, w.y, w.len, 1, w.c); }
+  if (D.extras) D.extras(g, t, S);
+  // fishing boats, then the ship and her reflection
   for (let k = 0; k < 2; k++) {
-    const dir = k ? -1 : 1, y = [110, 120][k], sp = [3.2, 2.4][k], span = W + 40, x = dir > 0 ? ((t * sp + 60) % span) - 20 : W + 20 - ((t * sp + 140) % span);
+    const dir = k ? -1 : 1, y = [110, 120][k] + (D.big ? 4 : 0), sp = [3.2, 2.4][k], span = W + 40, x = dir > 0 ? ((t * sp + 60) % span) - 20 : W + 20 - ((t * sp + 140) % span);
     const s = BOATS[k][Math.floor(t * 1.6 + k) % 2], img = dir > 0 ? s : (BOATS[k].fl || (BOATS[k].fl = BOATS[k].map(flipX)))[Math.floor(t * 1.6 + k) % 2];
     g.globalAlpha = 0.25; g.drawImage(img, 0, 0, 20, 9, Math.round(x), y + 18, 20, -9); g.globalAlpha = 1;
     g.drawImage(img, Math.round(x), y);
     const f = Math.floor(t * 1.6 + k) % 2, ox = Math.round(x) + (dir > 0 ? 9 : 10);
     line(ox, y + 5, ox + (f ? 4 : -4) * dir * -1, y + 10, WOOD[4]);
   }
-  const S = H_.ship, bob = Math.round(Math.sin(t * 1.1) * 0.6), sx = 104, sy = WL - S.wl + bob;
+  const SH = S.ship, bob = Math.round(Math.sin(t * 1.1) * 0.6), sx = D.shipX, sy = WL - SH.wl + bob;
   for (let k = 0; k < QY - WL - 1; k++) {
     g.globalAlpha = 0.3 * (1 - k / (QY - WL)); const wob = Math.round(Math.sin(t * 2 + k * 0.9) * Math.min(2, k * 0.3));
-    g.drawImage(S.c, 0, S.wl - 1 - k, S.c.width, 1, sx + wob, WL + 1 + k, S.c.width, 1);
+    g.drawImage(SH.c, 0, SH.wl - 1 - k, SH.c.width, 1, sx + wob, WL + 1 + k, SH.c.width, 1);
   }
   g.globalAlpha = 1;
-  g.drawImage(S.c, sx, sy);
-  for (let x = sx + S.x0; x <= sx + S.x1 + 2; x += 1) if ((x + Math.floor(t * 4)) % 5 === 0) P(x, WL + 1, '#cdeaf2');
-  for (let i = 0; i < 9; i++) { const y = sy + 2 + Math.round(Math.sin(t * 5 - i * 0.8) * (i / 9) * 1.3 + i * 0.12); P(sx + 48 - i, y, '#d0683e'); if (i < 5) P(sx + 48 - i, y + 1, '#9a3a2a'); }   // the pennant at the masthead
-  sag(sx + 20, sy + S.top(20) + 1, 98, QY - 4, 4, '#4a3a2c');
-  sag(sx + S.x1 + 2, sy + S.top(S.x1) - 3, 224, QY - 4, 5, '#4a3a2c');
-  // gulls
+  g.drawImage(SH.c, sx, sy);
+  for (let x = sx + SH.x0; x <= sx + SH.x1 + 2; x += 1) if ((x + Math.floor(t * 4)) % 5 === 0) P(x, WL + 1, '#cdeaf2');
+  for (let i = 0; i < 9; i++) { const y = sy + 2 + Math.round(Math.sin(t * 5 - i * 0.8) * (i / 9) * 1.3 + i * 0.12); P(sx + SH.mx - 2 - i, y, '#d0683e'); if (i < 5) P(sx + SH.mx - 2 - i, y + 1, '#9a3a2a'); }   // the pennant at the masthead
+  sag(sx + SH.stern, sy + SH.top(SH.stern) + 1, D.bol[0] + 2, QY - 4, 4, '#4a3a2c');
+  sag(sx + SH.x1 + 2, sy + SH.top(SH.x1) - 3, D.bol[1] + 2, QY - 4, 5, '#4a3a2c');
   for (let k = 0; k < 3; k++) { const span = W + 30, x = Math.round(((t * (8 + k * 3) + k * 110) % span) - 15), y = 18 + k * 13 + Math.round(Math.sin(t * 1.5 + k) * 3); g.drawImage(GULLS[Math.floor(t * (4 + k) + k) % 3], x, y); }
-  g.drawImage(GULLS[1], 158, 64);
-  g.drawImage(H_.quay, 0, 0);
-  // people walking along the back of the quay, behind the stalls
+  g.drawImage(S.quay, 0, 0);
   for (const w of WALKERS) { const span = W + 30, x = w.dir > 0 ? Math.round(((t * w.v + w.x0) % span) - 15) : Math.round(W + 15 - ((t * w.v + w.x0) % span)); const f = Math.floor(t * w.v * 0.42) % 4; g.drawImage(w.dir > 0 ? w.f[f] : w.fl[f], x - 7, 147 - 26); }
-  // the stalls and their traders
-  for (const s of STALLS) {
-    const b = s.back, f = s.front, x = s.cx - 18;
+  for (const s of S.stalls) {
+    const x = s.cx - 18;
     G.globalAlpha = 0.28; R(x + 4, GY, 30, 2, SHADOW); G.globalAlpha = 1;
-    g.drawImage(b, x, GY - 38);
+    g.drawImage(s.back, x, GY - 38);
     const blink = (Math.floor(t * 10 + s.at * 37) % 47) === 0, bob2 = Math.sin(t * 1.2 + s.at * 9) > 0.92 ? -1 : 0;
     g.drawImage(TRADERS[s.id][blink ? 1 : 0], s.cx - 9, GY - 31 + bob2);
-    g.drawImage(f, x, GY - 12);
+    g.drawImage(s.front, x, GY - 12);
   }
-  g.drawImage(CAT[Math.floor(t * 0.7) % 2], 141, GY - 4);
+  g.drawImage(CAT[Math.floor(t * 0.7) % 2], D.cat, GY - 4);
 }
-
 // =====================================================================
 // Thrasyllos at his counter
 // =====================================================================
@@ -1069,13 +1294,13 @@ function fitCanvas(cv, box) {
   cv.style.width = cv.width * k / dpr + 'px'; cv.style.height = cv.height * k / dpr + 'px';
   box.style.width = cv.width * k / dpr + 4 + 'px';   // the frame hugs the picture, and the speech box wraps inside it
 }
-const harbour = document.getElementById('harbour'), stall = document.getElementById('stall');
-function fitAll() { fitCanvas(harbour, document.getElementById('harbourBox')); fitCanvas(stall, document.getElementById('stallBox')); }
+const harbour = document.getElementById('harbour'), stall = document.getElementById('stall'), piraeus = document.getElementById('piraeus'), syracuse = document.getElementById('syracuse');
+function fitAll() { for (const [c, b] of [[harbour, 'harbourBox'], [stall, 'stallBox'], [piraeus, 'piraeusBox'], [syracuse, 'syracuseBox']]) fitCanvas(c, document.getElementById(b)); }
 addEventListener('resize', fitAll); fitAll();
 const still = new URLSearchParams(location.search).has('still') || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 function frame(now) {
   const t = still ? 12 : now / 1000;
-  drawHarbour(harbour.getContext('2d'), t);
+  drawHarbour(harbour.getContext('2d'), t, SC.rhodes); drawHarbour(piraeus.getContext('2d'), t, SC.piraeus); drawHarbour(syracuse.getContext('2d'), t, SC.syracuse);
   if (typeof drawStall === 'function') drawStall(stall.getContext('2d'), t);
   if (!still) requestAnimationFrame(frame);
 }
