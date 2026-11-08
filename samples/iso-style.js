@@ -1059,7 +1059,7 @@ const CAMPSPEC = {
 };
 // The beach runs straight across the picture: a tile is (u, v) = (x - y, x + y) on the screen, and the shore is a line of v.
 function campWorld(W, H, stop) {
-  const P = CAMPSPEC[stop], seed = P.seed, OX = Math.round(W * 0.5), OY = Math.round(H * 0.5), vs0 = Math.round(H * (H > W * 0.8 ? 0.74 : 0.64)) - OY;   // on a phone the story text covers the top, so the beach sits lower
+  const P = CAMPSPEC[stop], seed = P.seed, OX = Math.round(W * 0.5), OY = Math.round(H * 0.5), vs0 = Math.round(H * (H > W * 0.8 ? 0.8 : 0.64)) - OY;   // on a phone the story text covers the top, so the beach sits lower
   const sv = u => vs0 + Math.round(1.6 * Math.sin(u / 11 + seed) + 1.1 * Math.sin(u / 4.7 + 1)) + P.cove(u);
   const dist = (x, y) => sv(x - y) - (x + y), lift = P.lift || (() => 0);
   const hAt0 = (x, y) => { const d = dist(x, y); if (d < 0) return null; const u = x - y, r = P.rocky(u); if (!r && d < 11) return d < 6 ? 0 : 1; return Math.min(Math.floor((d - (r ? 0 : 9)) / (r ? 1.5 : 2.6)) + 1, 2 + Math.floor(vn(x / 15, y / 11, seed) * P.high) + lift(u)); };
@@ -1913,10 +1913,10 @@ Object.assign(CAMPSPEC, {
   },
   nisyros: {   // an island with a hole in the middle, full of steam: the crater behind the beach, yellow with sulphur
     seed: 73, high: 8, rocky: u => Math.abs(u - 4) > 40, cove: u => Math.max(0, Math.round((Math.abs(u - 4) - 46) * 0.9)),
-    mod: (x, y, u, d, h) => { const q = Math.hypot(u - 8, (d - 36) * 1.2); return h == null ? h : d < 16 ? h : q < 9 ? 8 : Math.max(h, Math.round(22 - q * 0.6)); },
-    gmat: (x, y, u, d, h) => Math.hypot(u - 8, (d - 36) * 1.2) < 9 ? (pm(x + y, 3) ? mat('#e8d860', 0.16, 0.34) : mat('#d8c440', 0.16, 0.34)) : null,
+    mod: (x, y, u, d, h) => { const q = Math.hypot(u - 22, (d - 28) * 1.2); return h == null ? h : d < 14 ? h : q < 8 ? 6 : Math.max(h, Math.round(18 - q * 0.6)); },
+    gmat: (x, y, u, d, h) => Math.hypot(u - 22, (d - 28) * 1.2) < 8 ? (pm(x + y, 3) ? mat('#e8d860', 0.16, 0.34) : mat('#d8c440', 0.16, 0.34)) : null,
     ship: [-28, 7], fire: [12, 6], glaukos: null, swimmer: null,
-    dress(c) { const lights = []; litHouses(c, [[34, 16, 4], [-40, 22, 4]], lights); slopeTrees(c, 12, 0.18); const [x, y] = c.at(8, 36); return { lights, steam: [[x, y, 9], [x + 3, y - 2, 9], [x - 2, y + 3, 9]] }; },
+    dress(c) { const lights = []; litHouses(c, [[34, 16, 4], [-40, 22, 4]], lights); slopeTrees(c, 12, 0.18); const [x, y] = c.at(22, 28); return { lights, steam: [[x, y, 7], [x + 3, y - 2, 7], [x - 2, y + 3, 7]] }; },
   },
   astypalaia: {   // two islands holding hands: the beach on the neck between them, and the town on the hill with its lamps lit
     seed: 79, high: 6, rocky: u => Math.abs(u - 4) > 50, cove: u => Math.max(0, Math.round((Math.abs(u - 4) - 52) * 0.9)), lift: u => u < -20 ? Math.round((-20 - u) * 0.35) : u > 36 ? Math.round((u - 36) * 0.4) : 0,
@@ -1963,9 +1963,9 @@ Object.assign(CAMPSPEC, {
     dress(c) { slopeTrees(c, 12, 0.25); return { lights: [], goats: [[30, -30], [44, -31], [56, -29], [20, -30]] }; },
   },
   kythera: {   // under Kythera, where Aphrodite came ashore out of the foam: her temple on the hill above
-    seed: 103, high: 8, rocky: u => Math.abs(u - 4) > 44, cove: u => Math.max(0, Math.round((Math.abs(u - 4) - 48) * 0.9)), mod: (x, y, u, d, h) => h == null ? h : Math.max(h, Math.round(hillAt(24, 44, 26, 18)(u, d))),
+    seed: 103, high: 8, rocky: u => Math.abs(u - 4) > 44, cove: u => Math.max(0, Math.round((Math.abs(u - 4) - 48) * 0.9)), mod: (x, y, u, d, h) => h == null ? h : Math.max(h, Math.round(hillAt(24, 32, 22, 10)(u, d))),
     ship: [-28, 7], fire: [10, 6], glaukos: [-38, 4], swimmer: null,
-    dress(c) { const lights = [], [x, y] = c.at(24, 44); if (c.hts.has(x + ',' + y)) { const z = flatten(c, x - 6, y - 4, 12, 8, 0); templeG(c.Wd, x - 4, y - 2, z + 1, 8, 5, { h: 4 }); lights.push([x + 5, y + 1, z + 3, 12, 0.6]); } spring(c, -10, 16); slopeTrees(c, 12, 0.25); return { lights }; },
+    dress(c) { const lights = [], [x, y] = c.at(24, 30); if (c.hts.has(x + ',' + y)) { const z = flatten(c, x - 6, y - 4, 12, 8, 0); templeG(c.Wd, x - 4, y - 2, z + 1, 8, 5, { h: 4 }); lights.push([x + 5, y + 1, z + 3, 12, 0.6]); } spring(c, -10, 16); slopeTrees(c, 12, 0.25); return { lights }; },
   },
   zakynthos: {   // steep wooded hills, and a spring by the shore that bubbles up black with pitch
     seed: 107, high: 16, rocky: u => Math.abs(u - 4) > 40, cove: u => Math.max(0, Math.round((Math.abs(u - 4) - 44) * 0.9)), lift: u => Math.round(Math.abs(u - 4) * 0.08) + 3,
@@ -2049,7 +2049,7 @@ fitPixels = function (cv, cssW, cssH, cols) {   // Rhodes, the sea and the title
   const camp = cv === els.scene && S && S.phase === 'camp' && S.camp && !!CAMPSPEC[S.camp.stop];
   const ours = camp || (cv === els.scene && !!S) || cv === els.tcanvas;   // every picture in the game is drawn this way now
   if (!ours) return fit0(cv, cssW, cssH, cols);
-  const across = camp ? 200 : 280, dpr = window.devicePixelRatio || 1, dev = Math.max(1, Math.min(Math.round(cssW * dpr / across), Math.round((camp ? 4 : 3) * dpr))), P = dev / dpr, W = Math.ceil(cssW / P), H = Math.ceil(cssH / P);
+  const across = camp ? (cssW < 600 ? 240 : 200) : 280, dpr = window.devicePixelRatio || 1, dev = Math.max(1, Math.min(Math.round(cssW * dpr / across), Math.round((camp ? 4 : 3) * dpr))), P = dev / dpr, W = Math.ceil(cssW / P), H = Math.ceil(cssH / P);
   if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
   const sw = W * P + 'px', sh = H * P + 'px';
   if (cv.style.width !== sw) cv.style.width = sw;
