@@ -7142,9 +7142,10 @@ function house(Wd, x0, y0, z0, w, d, h, wall, o) {
     for (let x = x0; x < x0 + w; x++) for (let y = y0; y < y0 + d; y++) if (x === x0 || y === y0 || x === xF || y === yF) put(x, y, z0 + h, wall, id);
     if (o.seed < 0.35) { for (let x = x0 + 1; x < xF; x++) put(x, y0 + 1, z0 + h, mat('#5ab84a', 0.2, 0.4), id); }
     else if (o.seed < 0.6) { put(x0 + 1, yF - 1, z0 + h, mat('#e8763a'), id); put(xF - 1, yF - 1, z0 + h, mat('#e8763a'), id); put(xF - 1, yF - 1, z0 + h + 1, M.leaf, id); }
+    if (o.terrace && o.seed > 0.55 && w > 3 && d > 3) { const a = mat(AWN[Math.floor(o.seed * 97) % AWN.length], 0.08, 0.18); for (const [px_, py] of [[x0 + 1, yF - 1], [x0 + 3, yF - 1]]) { put(px_, py, z0 + h + 1, M.woodD, id); put(px_, py, z0 + h + 2, M.woodD, id); } for (let x = x0 + 1; x <= x0 + 3; x++) for (let y = yF - 2; y <= yF - 1; y++) put(x, y, z0 + h + 3, (x + y) % 2 ? a : M.linen, id); }
     return;
   }
-  const tile = h3(x0, y0, 4) < 0.5 ? [M.roof, M.roofB] : [M.roofB, M.roofD];
+  const tile = o.roofs ? (h3(x0, y0, 4) < 0.5 ? o.roofs : [o.roofs[1], o.roofs[0]]) : h3(x0, y0, 4) < 0.5 ? [M.roof, M.roofB] : [M.roofB, M.roofD];
   if (!o.alongY) for (let k = 0; y0 + k <= yF - k; k++) for (let x = x0; x <= xF; x++) for (let y = y0 + k; y <= yF - k; y++) {
     put(x, y, z0 + h + k, tile[(y - y0) % 2], id);
     if (x === xF && y > y0 + k && y < yF - k) face(x, y, z0 + h + k, 'r', wall.r);
@@ -7213,17 +7214,18 @@ function colonnade(Wd, x0, sg) {   // a stoa: shops along the back wall, columns
     for (const [y, top] of [[y0, 9], [y0 + 1, 9], [y0 + 2, 8], [y0 + 3, 8], [y0 + 4, 7], [y0 + 5, 7]]) for (let z = 7; z <= top; z++) { put(x, y, z, z === top ? roofs[(y - y0) % 2] : M.roofD, id); if (x === x0 + 11) face(x, y, z, 'r', '#f4ece0'); }
   }
 }
-function block(Wd, x0, y0, bx, by) {   // a block of the lower town: four houses, or two, or a garden with a well
+function block(Wd, x0, y0, bx, by, st) {   // a block of the lower town: four houses, or two, or a garden with a well
   const R = k => h3(bx * 3.1 + 0.5, by * 5.7 + 0.25, k), kind = R(0);
+  st = st || {}; const walls = st.walls || WALL_M, flatP = st.flatP == null ? 0.3 : st.flatP, h0 = st.h0 || 4, hr = st.hr || 5;
   if (kind < 0.12) {
     const g = Wd.newId(); for (let x = x0; x < x0 + 12; x++) for (let y = y0; y < y0 + 11; y++) Wd.put(x, y, 0, pm(x + y, 2) ? M.grass : mat('#a8d068', 0.18, 0.36), g);
-    tree(Wd, x0 + 3, y0 + 3, 1, R(1)); tree(Wd, x0 + 8, y0 + 7, 1, R(2)); tree(Wd, x0 + 9, y0 + 2, 1, R(3));
+    const tr = (x, y, r) => st.garden === 'palm' ? palmT(Wd, x, y, 1, 6) : tree(Wd, x, y, 1, r); tr(x0 + 3, y0 + 3, R(1)); tr(x0 + 8, y0 + 7, R(2)); tr(x0 + 9, y0 + 2, R(3));
     const wl = Wd.box(x0 + 4, y0 + 7, 1, 2, 2, 2, M.stone); Wd.put(x0 + 4, y0 + 7, 2, mat('#3a6ac8'), wl);
     return;
   }
   const cells = kind < 0.32 ? [[0, 0, 7, 11], [7, 0, 5, 11]] : [[0, 0, 6, 5], [6, 0, 6, 5], [0, 5, 6, 6], [6, 5, 6, 6]];
-  cells.forEach(([dx, dy, w, d], k) => house(Wd, x0 + dx, y0 + dy, 1, w, d, (dy ? 4 : 6) + Math.floor(R(10 + k) * 5), WALL_M[Math.floor(R(20 + k) * WALL_M.length)],
-    { flat: R(30 + k) < 0.3, alongY: d > 6 || R(40 + k) < 0.5, door: R(50 + k) < 0.5 ? '#3a6ab4' : '#c8483a', awning: R(60 + k) < 0.5 ? AWN[Math.floor(R(70 + k) * AWN.length)] : null, seed: R(80 + k) }));
+  cells.forEach(([dx, dy, w, d], k) => house(Wd, x0 + dx, y0 + dy, 1, w, d, h0 + (dy ? 0 : 2) + Math.floor(R(10 + k) * hr), walls[Math.floor(R(20 + k) * walls.length)],
+    { flat: R(30 + k) < flatP, alongY: d > 6 || R(40 + k) < 0.5, door: R(50 + k) < 0.5 ? '#3a6ab4' : '#c8483a', awning: R(60 + k) < 0.5 ? AWN[Math.floor(R(70 + k) * AWN.length)] : null, seed: R(80 + k), roofs: st.roofs, terrace: st.terrace }));
 }
 function colossus(Wd, x0, y0, stage) {   // the Sun-god, as far as he has got: feet, then shins, then knees and up
   const { put, box } = Wd;
@@ -8326,6 +8328,125 @@ function drawHalicIso(W, H, t, o) {
 
 // ---------- the other ports: one builder, a harbour against the quay and land behind it, and each place's own landmarks ----------
 M.path = mat('#f0dcb0', 0.14, 0.3);
+// ---------- what makes one port unlike another: the colours of its houses, its quay, the row behind the quay, and what fills the town in front ----------
+const PALS = {
+  ionia: { walls: [M.white, M.white, M.cream, M.blueW, mat('#e4f0ff', 0.12, 0.28)], flatP: 0.35, h0: 4, hr: 4 },
+  attica: { walls: [M.ochre, M.cream, M.pink, mat('#f0e0c8', 0.12, 0.28), mat('#e8d0b0', 0.12, 0.28)], flatP: 0.15, h0: 5, hr: 4 },
+  italy: { walls: [mat('#f4c890', 0.14, 0.3), mat('#e8a878', 0.14, 0.3), mat('#f8dcb0', 0.12, 0.28), mat('#e8b890', 0.14, 0.3), M.cream], roofs: [mat('#c8502a', 0.14, 0.3), mat('#b0421e', 0.14, 0.3)], flatP: 0.08, h0: 4, hr: 4 },
+  corcyra: { walls: [mat('#fff0c0', 0.12, 0.28), mat('#f8e0a8', 0.12, 0.28), mat('#e0f0c8', 0.12, 0.28), M.cream, mat('#ffd8b8', 0.12, 0.28)], roofs: [mat('#d85a3a', 0.14, 0.3), mat('#c04a2e', 0.14, 0.3)], flatP: 0.12, h0: 4, hr: 3 },
+  crete: { walls: [mat('#ecd0a0', 0.14, 0.3), mat('#e0bc88', 0.14, 0.3), M.cream, mat('#f0dcb8', 0.12, 0.28)], flatP: 0.85, h0: 3, hr: 3, terrace: true },
+  cyprus: { walls: [mat('#e8d0a8', 0.14, 0.3), mat('#dcc094', 0.14, 0.3), M.white, mat('#f0e4cc', 0.12, 0.28)], flatP: 0.65, h0: 3, hr: 4, terrace: true },
+  phoenicia: { walls: [mat('#f0d090', 0.14, 0.3), mat('#e4bc78', 0.14, 0.3), mat('#f4dcaa', 0.12, 0.28), mat('#d8b070', 0.14, 0.3), M.cream], flatP: 1, h0: 6, hr: 5, terrace: true },
+  egypt: { walls: [M.white, mat('#fff8e8', 0.1, 0.24), mat('#f4ecd8', 0.12, 0.28), mat('#fffcf4', 0.1, 0.24)], flatP: 1, h0: 4, hr: 3, terrace: true },
+};
+const QUAYS = {
+  stone: [M.pave, M.pave2], dark: [mat('#d4ccbc'), mat('#bcb4a4')], marble: [mat('#fbf8f2'), mat('#e6e0d4')], yellow: [mat('#f2dc9c'), mat('#e2c682')], pale: [mat('#f6eedc'), mat('#e8dcc4')],
+  boards: [mat('#c89a5c', 0.18, 0.36), mat('#b48450', 0.18, 0.36)], sand: [mat('#f0dcb0', 0.14, 0.3), mat('#e4cc9c', 0.14, 0.3)],
+};
+function quayMat(kind, x, y) {
+  const q = QUAYS[kind] || QUAYS.stone;
+  if (y === QB) return kind === 'boards' ? M.woodD : kind === 'sand' ? q[1] : M.kerb;
+  if (kind === 'marble') return pm(Math.floor(x / 2) + Math.floor(y / 2), 2) ? q[0] : q[1];
+  if (kind === 'boards') return pm(x, 7) === 0 ? M.woodD : pm(y, 2) ? q[0] : q[1];
+  if (kind === 'sand') return hash(x * 1.7 + y * 3.1) < 0.4 ? q[1] : q[0];
+  return pm(x, 6) === 0 || pm(y - QB, 6) === 0 ? q[1] : q[0];
+}
+function streetMat(kind, x, y) {
+  if (kind === 'sand') return hash(x * 1.3 + y * 2.9) < 0.35 ? mat('#e4cc9c', 0.14, 0.3) : mat('#eedab0', 0.14, 0.3);
+  if (kind === 'pale') return pm(x + 2 * y, 5) === 0 ? mat('#e8dcc4') : mat('#f4ecd8');
+  return pm(x + 2 * y, 5) === 0 ? M.street2 : M.street;
+}
+// the row of buildings behind the quay
+function frontRow(c, xA, xB, kind, st) {
+  const { Wd } = c, y0 = STOA_Y;
+  if (kind === 'stoa' || !kind) return stoa(Wd, xA, xB);
+  for (let sg = Math.floor(xA / 14); sg * 14 <= xB; sg++) {
+    const x0 = sg * 14 + 2, R = k => h3(sg, 31, k);
+    if (kind === 'warehouses') {   // long storehouses with wide doors, goods stacked outside
+      house(Wd, x0, y0 + 1, 1, 12, 6, 6, R(1) < 0.5 ? M.stoneD : (st.walls || WALL_M)[Math.floor(R(2) * (st.walls || WALL_M).length)], { alongY: false, door: '#3a2418', seed: R(3), roofs: st.roofs });
+      for (const dx of [2, 3, 8, 9]) for (let z = 1; z <= 3; z++) Wd.face(x0 + dx, y0 + 6, z, 'l', '#3a2418');
+      const j = Wd.newId(); for (let i = 0; i < 4; i++) { Wd.put(x0 + 4 + i, y0 + 8, 1, mat('#e8763a', 0.16, 0.34), j); Wd.put(x0 + 4 + i, y0 + 8, 2, mat('#c85a2a'), j); }
+    } else if (kind === 'wall') {   // the town wall behind the quay, gates where the streets go through, towers along it
+      const id = Wd.newId();
+      for (let x = x0 - 2; x < x0 + 12; x++) for (const y of [y0 + 2, y0 + 3]) { const gate = pm(x, 14) < 2; for (let z = gate ? 4 : 1; z <= 6; z++) Wd.put(x, y, z, pm(x + z, 3) ? M.stone : M.stoneD, id); if (y === y0 + 3 && pm(x, 2) === 0) Wd.put(x, y, 7, M.stone, id); }
+      if (pm(sg, 2) === 0) towerB(Wd, x0 + 4, y0, 1, 4, 9, {});
+    } else if (kind === 'trees') {   // a promenade of trees and benches
+      for (let x = x0; x < x0 + 12; x += 4) tree(Wd, x + 1, y0 + 3, 1, R(x));
+      Wd.box(x0 + 3, y0 + 5, 1, 3, 1, 1, M.stoneD); Wd.box(x0 + 8, y0 + 5, 1, 3, 1, 1, M.stoneD);
+    }
+  }
+}
+// what fills one block of the town in front of the quay
+function foreCell(c, x0, y0, bx, by, P) {
+  const st = P.style || {}, mix = st.mix || { blocks: 1 }, R = k => h3(bx * 3.1 + (P.seed || 3), by * 5.7 + 0.25, k);
+  let r = R(0) * Object.values(mix).reduce((a, b) => a + b, 0), kind = 'blocks';
+  for (const [k, w] of Object.entries(mix)) { if (r < w) { kind = k; break; } r -= w; }
+  const { Wd } = c, put = Wd.put, ground = (m, fn) => { for (let x = x0; x < x0 + 12; x++) for (let y = y0; y < y0 + 11; y++) put(x, y, 0, typeof fn === 'function' ? fn(x, y) : m, Wd.newId()); };
+  if (kind === 'blocks') return block(Wd, x0, y0, bx + (P.seed || 3) * 7, by + 11, st);
+  if (kind === 'grid') {   // a planned town: identical blocks in straight rows
+    [[0, 0, 5, 5], [6, 0, 6, 5], [0, 6, 5, 5], [6, 6, 6, 5]].forEach(([dx, dy, w, d], k) => house(Wd, x0 + dx, y0 + dy, 1, w, d, (st.h0 || 5) + (k % 2), st.walls[pm(k + bx + by, 2)], { flat: st.flatP > 0.5, alongY: k === 1 || k === 2, door: '#5a3a2a', seed: h3(bx, by, k), roofs: st.roofs, terrace: st.terrace }));
+    for (let x = x0; x < x0 + 12; x++) for (let y = y0; y < y0 + 11; y++) if (x === x0 + 5 || y === y0 + 5) Wd.put(x, y, 0, M.pave2, Wd.newId());
+    return;
+  }
+  if (kind === 'agora') {   // an open square: a pavement, a statue, awnings over the sellers, people
+    ground(null, (x, y) => (x === x0 || y === y0 || x === x0 + 11 || y === y0 + 10) ? M.pave2 : pm(Math.floor((x - x0) / 2) + Math.floor((y - y0) / 2), 2) ? mat('#fbf6ea') : mat('#ebe2d0'));
+    const sb = Wd.box(x0 + 5, y0 + 4, 1, 2, 2, 2, M.marble); Wd.put(x0 + 5, y0 + 4, 3, M.bronze, sb); Wd.put(x0 + 5, y0 + 4, 4, M.bronze, sb); Wd.put(x0 + 5, y0 + 4, 5, mat('#c87a3a'), sb);
+    for (const [ax, ay] of [[1, 1], [8, 7]]) { const col = mat(AWN[Math.floor(R(ax) * AWN.length)], 0.1, 0.2), aw = Wd.newId(); for (const [dx, dy] of [[0, 0], [2, 0], [0, 2], [2, 2]]) for (let z = 1; z <= 3; z++) put(x0 + ax + dx, y0 + ay + dy, z, M.woodD, aw); for (let dx = 0; dx < 3; dx++) for (let dy = 0; dy < 3; dy++) put(x0 + ax + dx, y0 + ay + dy, 4, (dx + dy) % 2 ? col : M.linen, aw); Wd.box(x0 + ax, y0 + ay + 1, 1, 3, 1, 1, M.wood); }
+    c.people.push([x0 + 3, y0 + 5, 1, 'walk', false], [x0 + 8, y0 + 3, 1, 'basket', true], [x0 + 6, y0 + 8, 1, 'walk', true], [x0 + 2, y0 + 9, 1, 'amphora', false], [x0 + 9, y0 + 5, 1, 'walk', false]);
+    return;
+  }
+  if (kind === 'warehouses') {   // a storehouse and its yard full of jars and sacks
+    house(Wd, x0, y0, 1, 12, 5, 5, R(1) < 0.5 ? M.stoneD : st.walls[0], { alongY: false, door: '#3a2418', seed: R(2), roofs: st.roofs });
+    for (const dx of [2, 3, 7, 8]) for (let z = 1; z <= 3; z++) Wd.face(x0 + dx, y0 + 4, z, 'l', '#3a2418');
+    const jars = Wd.newId(), jar = mat('#e8763a', 0.16, 0.34); for (let i = 0; i < 5; i++) for (let j = 0; j < 2; j++) { put(x0 + 1 + i * 2, y0 + 7 + j * 2, 1, jar, jars); put(x0 + 1 + i * 2, y0 + 7 + j * 2, 2, mat('#c85a2a'), jars); }
+    const sk = Wd.newId(); for (let i = 0; i < 2; i++) Wd.box(x0 + 9 + i, y0 + 6, 1, 1, 3, 1 + i, mat('#f0d8a0', 0.14, 0.3), sk);
+    c.people.push([x0 + 6, y0 + 6, 1, 'sack', false], [x0 + 3, y0 + 6, 1, 'amphora', true]);
+    return;
+  }
+  if (kind === 'garden') {   // trees in rows: palms with a water channel, olives, quinces, pines or planes; now and then a villa among them
+    const g = st.garden || 'olive', palm = g === 'palm';
+    ground(null, (x, y) => palm && y === y0 + 5 ? mat('#5ac0f0', 0.1, 0.2) : palm ? (hash(x * 1.3 + y) < 0.3 ? M.grass : mat('#f0e2c0', 0.14, 0.3)) : pm(x + y, 2) ? M.grass : mat('#a8d068', 0.18, 0.36));
+    const villa = R(1) < 0.3;
+    if (villa) house(Wd, x0 + 6, y0 + 6, 1, 5, 4, 4, st.walls[0], { flat: st.flatP > 0.5, door: '#5a3a2a', seed: R(2), roofs: st.roofs, terrace: st.terrace });
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) {
+      const x = x0 + 1 + i * 3, y = y0 + 1 + j * 4; if (palm && y === y0 + 5) continue; if (villa && x >= x0 + 5 && y >= y0 + 5) continue;
+      if (palm) palmT(Wd, x, y, 1, 5 + (i + j) % 3); else if (g === 'pine') pineT(Wd, x, y, 1, 5 + (i + j) % 2); else if (g === 'cypress' && (i + j) % 2) Wd.box(x, y, 1, 1, 1, 5, M.cypress);
+      else { tree(Wd, x, y, 1, g === 'plane' ? 0.2 : 0.75); if (g === 'quince' && hash(x * 1.9 + y) < 0.7) { put(x + 1, y, 3, mat('#ffd040'), Wd.newId()); put(x - 1, y + 1, 3, mat('#ffd040'), Wd.newId()); } }
+    }
+    c.people.push([x0 + 4, y0 + 3, 1, palm ? 'basket' : 'walk', false]);
+    return;
+  }
+  if (kind === 'workshop') {   // the trade the place is known for: kilns, glass furnaces, copper smelting, dye vats
+    const w = st.workshop || 'pottery';
+    ground(null, (x, y) => hash(x * 2.3 + y * 1.1) < 0.3 ? mat('#c8a878', 0.16, 0.34) : mat('#d8b888', 0.16, 0.34));
+    const dome = (x, y, r, h, a, b) => { const id = Wd.newId(); for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) for (let k = 0; k < h; k++) if (Math.hypot(i, j, k * (r / h) * 1.2) <= r + 0.4) put(x + i, y + j, 1 + k, (i + j + k) % 2 ? a : b, id); Wd.face(x, y + r, 1, 'l', '#2a1410'); c.fires.push([x, y + r + 1, 1, false]); if (hash(x * 0.7 + y * 1.3) < 0.45) c.smokes.push([x, y, 1 + h, hash(x + y), true]); };
+    if (w === 'pottery') {
+      dome(x0 + 2, y0 + 2, 2, 3, mat('#c87a50', 0.18, 0.36), mat('#b0664a', 0.18, 0.36)); dome(x0 + 9, y0 + 6, 2, 3, mat('#c87a50', 0.18, 0.36), mat('#b0664a', 0.18, 0.36));
+      const pots = Wd.newId(); for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) { const col = (i + j) % 3 ? mat('#e8a060', 0.16, 0.34) : mat('#2a2430', 0.1, 0.2); put(x0 + 1 + i * 2, y0 + 7 + j * 2, 1, col, pots); if ((i + j) % 2) put(x0 + 1 + i * 2, y0 + 7 + j * 2, 2, col, pots); }
+      const sh = Wd.newId(); for (const [dx, dy] of [[6, 0], [9, 0], [6, 3], [9, 3]]) for (let z = 1; z <= 3; z++) put(x0 + dx, y0 + dy, z, M.woodD, sh); for (let dx = 6; dx <= 9; dx++) for (let dy = 0; dy <= 3; dy++) put(x0 + dx, y0 + dy, 4, M.roofD, sh);
+    } else if (w === 'glass') {
+      dome(x0 + 3, y0 + 3, 3, 4, mat('#c87a50', 0.18, 0.36), mat('#b0664a', 0.18, 0.36));
+      for (const [dx, dy] of [[8, 1], [8, 4], [10, 2], [7, 8], [10, 8]]) { const id = Wd.newId(); Wd.box(x0 + dx, y0 + dy, 1, 2, 2, 1, M.wood, id); put(x0 + dx, y0 + dy, 2, mat('#5ad0c8', 0.1, 0.2), id); put(x0 + dx + 1, y0 + dy + 1, 2, mat('#3a9ad8', 0.1, 0.2), id); put(x0 + dx + 1, y0 + dy, 2, mat('#9ae08a', 0.1, 0.2), id); }
+    } else if (w === 'copper') {
+      const f = Wd.box(x0 + 2, y0 + 2, 1, 3, 3, 4, mat('#6a5a50', 0.18, 0.36)); Wd.box(x0 + 3, y0 + 3, 5, 1, 1, 4, mat('#5a4a40', 0.18, 0.36), f); Wd.face(x0 + 3, y0 + 4, 1, 'l', '#ff7a20'); c.fires.push([x0 + 3, y0 + 5, 1, true]); c.smokes.push([x0 + 3, y0 + 3, 9, hash(x0 + y0), true]);
+      const ing = Wd.newId(), cu = mat('#d0703a', 0.16, 0.34); for (let i = 0; i < 3; i++) for (let k = 0; k < 2 + (i % 2); k++) { put(x0 + 7 + i, y0 + 2, 1 + k, cu, ing); put(x0 + 7 + i, y0 + 3, 1 + k, cu, ing); }
+      const sl = Wd.newId(); for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) if (i + j < 4) put(x0 + 1 + i, y0 + 7 + j, 1 + (i + j < 2 ? 1 : 0), mat('#3a3440', 0.1, 0.2), sl);
+    } else if (w === 'dye') {
+      for (const dx of [1, 4, 7]) { const id = Wd.newId(); Wd.box(x0 + dx, y0 + 1, 1, 2, 2, 2, M.wood, id); put(x0 + dx, y0 + 1, 2, mat('#6a1a5a'), id); put(x0 + dx + 1, y0 + 2, 2, mat('#8a2a7a'), id); }
+      const sh = Wd.newId(); for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) if (i + j < 5) put(x0 + 8 + (i % 3), y0 + 6 + j, 1 + (i + j < 2 ? 1 : 0), mat(pm(i + j, 2) ? '#f0e4d4' : '#d8c4b0', 0.1, 0.2), sh);
+      const cl = Wd.newId(); for (const dx of [0, 6]) Wd.box(x0 + dx, y0 + 7, 1, 1, 1, 5, M.woodD, cl); for (let dx = 1; dx < 6; dx++) for (let z = 3; z <= 5; z++) put(x0 + dx, y0 + 7, z, mat(dx % 2 ? '#8a2a7a' : '#a83a8a', 0.06, 0.16), cl);
+    }
+    c.people.push([x0 + 5, y0 + 5, 1, 'walk', false], [x0 + 7, y0 + 9, 1, w === 'pottery' ? 'amphora' : 'walk', true]);
+    return;
+  }
+  if (kind === 'palaestra') {   // a sand court with a colonnade on two sides, wrestlers at it all day, a few watching
+    ground(null, (x, y) => hash(x * 1.7 + y) < 0.3 ? mat('#e4cc9c', 0.14, 0.3) : mat('#f4e4bc', 0.14, 0.3));
+    const id = Wd.newId(); for (let x = x0; x < x0 + 12; x++) { if (pm(x - x0, 2) === 0) for (let z = 1; z <= 4; z++) put(x, y0, z, M.marble, id); put(x, y0, 5, M.marble, id); }
+    for (let y = y0; y < y0 + 11; y++) { if (pm(y - y0, 2) === 0) for (let z = 1; z <= 4; z++) put(x0 + 11, y, z, M.marble, id); put(x0 + 11, y, 5, M.marble, id); }
+    c.wrestle.push([x0 + 5, y0 + 5, 1]);
+    c.people.push([x0 + 2, y0 + 2, 1, 'sit', false], [x0 + 9, y0 + 2, 1, 'sit', true], [x0 + 9, y0 + 8, 1, 'walk', true]);
+  }
+}
 // Landmark pieces, built of cubes like everything else.
 function templeG(Wd, x0, y0, z0, w, d, o) {   // steps, a ring of columns round the cella, a frieze, a ridged roof with its pediment to the front
   o = o || {}; const { put, box, face } = Wd, id = Wd.newId(), st = o.stone || M.marble, hc = o.h || 6, roof = o.roof || M.roof, roofD = o.roofD || M.roofD;
@@ -8427,7 +8548,8 @@ function buildPort(P, hullKind, W, H, robes) {
   const topAt = (x, y) => { const k = x + ',' + y; return cut.has(k) ? cut.get(k) : base(x, y); };
   const reserved = [], reserve = (x0, y0, w, d) => reserved.push([x0, y0, w, d]);
   const isRes = (x0, y0, w, d) => reserved.some(([ax, ay, aw, ad]) => x0 < ax + aw && x0 + w > ax && y0 < ay + ad && y0 + d > ay);
-  const c = { Wd, put, get, box, face, topAt, wet, on, seen, beyond, reserve, view: { umin, umax, vmin, vmax, xLo, xHi, yLo, yHi }, ships: [], people: [], flags: [], smokes: [], fires: [], ropes: [] };
+  const c = { Wd, put, get, box, face, topAt, wet, on, seen, beyond, reserve, view: { umin, umax, vmin, vmax, xLo, xHi, yLo, yHi }, ships: [], people: [], flags: [], smokes: [], fires: [], ropes: [], wrestle: [] };
+  const ST = P.style || {};
   c.flatten = (x0, y0, w, d, pad) => {   // a level terrace at the average height of the ground there, cut in or built up
     pad = pad || 0; let s = 0, n = 0; for (let x = x0 - pad; x < x0 + w + pad; x++) for (let y = y0 - pad; y < y0 + d + pad; y++) { s += Math.max(0, topAt(x, y)); n++; }
     const zb = Math.max(1, Math.round(s / n)), id = Wd.newId();
@@ -8438,7 +8560,7 @@ function buildPort(P, hullKind, W, H, robes) {
   // the ground
   const flat = Wd.newId(), land = Wd.newId(), E = P.earth || ['#e8cc98', '#dcbc86'], earth = mat(E[0], 0.16, 0.34), earth2 = mat(E[1], 0.16, 0.34), green = mat(P.green || '#a8c868', 0.18, 0.38), snow = mat('#f4f8ff', 0.1, 0.24), cliff = mat(P.cliff || '#d8bc84', 0.2, 0.4), cliff2 = mat(mix(P.cliff || '#d8bc84', '#2a2850', 0.12), 0.2, 0.4);
   const groundMat = (x, y, h) => {
-    if (y >= QB) return y === QB ? M.kerb : y < STOA_Y ? (pm(x, 6) === 0 || pm(y - QB, 6) === 0 ? M.pave2 : M.pave) : pm(x + 2 * y, 5) === 0 ? M.street2 : M.street;
+    if (y >= QB) return y < STOA_Y ? quayMat(ST.quay, x, y) : streetMat(ST.street, x, y);
     const g = P.ground && P.ground(x, y, h); if (g) return g;
     if (h >= (P.snow || 99)) return snow;
     return pm(x * 7 + y * 3, 11) === 0 ? green : pm(Math.floor(x / 4) + Math.floor(y / 4), 3) ? earth : earth2;
@@ -8454,7 +8576,7 @@ function buildPort(P, hullKind, W, H, robes) {
   // the place's own buildings and landmarks
   P.build(c);
   // houses on whatever ground is left
-  const HS = P.houses || {}, walls = HS.walls || WALL_M, flatP = HS.flat == null ? 0.3 : HS.flat;
+  const HS = P.houses || {}, walls = ST.walls || HS.walls || WALL_M, flatP = ST.flatP != null ? ST.flatP : HS.flat == null ? 0.3 : HS.flat;
   for (let cy = Math.floor(yLo / 7) - 1; cy * 7 < QB - 2; cy++) for (let cx = Math.floor(xLo / 7) - 1; cx * 7 < xHi; cx++) {
     const R = k => h3(cx * 1.7 + (P.seed || 3), cy * 2.3 + 1, k), w = 5 + (R(1) < 0.5 ? 0 : 1), d = 5 + (R(2) < 0.5 ? 0 : 1);
     const x0 = cx * 7 + Math.floor(R(3) * (8 - w)), y0 = cy * 7 + Math.floor(R(4) * (8 - d));
@@ -8464,7 +8586,7 @@ function buildPort(P, hullKind, W, H, robes) {
     if (!ok || hi - lo > 4 || beyond(x0 + w - 1, y0 + d - 1, lo) || !seen(x0, y0, w, d, lo, 14)) continue;
     const z0 = lo + 1, up = hi - lo, kind = R(5);
     if (kind < (HS.trees == null ? 0.1 : HS.trees) && !up) { const tr = HS.tree ? (x, y, z, r) => HS.tree(Wd, x, y, z, r) : (x, y, z, r) => tree(Wd, x, y, z, r); tr(x0 + 1, y0 + 1, z0, R(6)); tr(x0 + w - 2, y0 + d - 2, z0, R(7)); continue; }
-    house(Wd, x0, y0, z0, w, d, up + (HS.h0 || 4) + Math.floor(R(7) * (HS.hr || 4)), walls[Math.floor(R(8) * walls.length)], { flat: R(9) < flatP, alongY: R(10) < 0.45, door: R(11) < 0.5 ? '#3a6ab4' : '#c8483a', awning: R(12) < 0.25 ? AWN[Math.floor(R(13) * AWN.length)] : null, seed: R(14) });
+    house(Wd, x0, y0, z0, w, d, up + (ST.h0 || HS.h0 || 4) + Math.floor(R(7) * (ST.hr || HS.hr || 4)), walls[Math.floor(R(8) * walls.length)], { flat: R(9) < flatP, alongY: R(10) < 0.45, door: R(11) < 0.5 ? '#3a6ab4' : '#c8483a', awning: R(12) < 0.25 ? AWN[Math.floor(R(13) * AWN.length)] : null, seed: R(14), roofs: ST.roofs, terrace: ST.terrace });
   }
   // the harbour: our ship at the quay, and whatever else is in port
   const elpis = buildShip({ ...Wd, put: (x, y, z, m, id) => put(x + 14, y, z, m, id), box: (x0, y0, z0, w, d, h, m, id) => box(x0 + 14, y0, z0, w, d, h, m, id), face: (x, y, z, s, cc) => face(x + 14, y, z, s, cc), get: (x, y, z) => get(x + 14, y, z) }, hullKind);
@@ -8477,8 +8599,8 @@ function buildPort(P, hullKind, W, H, robes) {
   if (P.goods) P.goods(c); else { const jar = mat('#e8763a', 0.16, 0.34), jars = Wd.newId(); for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) { put(4 + i * 2, QB + 3 + j * 2, 1, jar, jars); put(4 + i * 2, QB + 3 + j * 2, 2, mat('#c85a2a'), jars); } const sacks = Wd.newId(); for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) box(14 + i * 2, QB + 3 + j * 2, 1, 2, 2, 1 + ((i + j) % 2), mat('#f0d8a0', 0.14, 0.3), sacks); }
   robes.forEach((robe, i) => stall(Wd, STALL_X(i), QB + 3, robe, i));
   for (let x = -16; x < 120; x += 12) if (on(x, QB + 14, 4)) { if (P.quayTree) P.quayTree(c, x, QB + 14, 1); else tree(Wd, x, QB + 14, 1, h3(x, 3, 2)); }
-  stoa(Wd, Math.max(-22, umin + STOA_Y - 2), Math.min(150, umax + STOA_Y + 8));
-  for (let by = 0; BY + by * 13 <= yHi + 2; by++) for (let bx = Math.floor((xLo - 20) / 14); bx * 14 <= xHi; bx++) { const x0 = bx * 14 + 2, y0 = BY + by * 13; if (seen(x0, y0, 12, 11, 0, 14)) block(Wd, x0, y0, bx + (P.seed || 3) * 7, by + 11); }
+  frontRow(c, Math.max(-22, umin + STOA_Y - 2), Math.min(150, umax + STOA_Y + 8), ST.front, ST);
+  for (let by = 0; BY + by * 13 <= yHi + 2; by++) for (let bx = Math.floor((xLo - 20) / 14); bx * 14 <= xHi; bx++) { const x0 = bx * 14 + 2, y0 = BY + by * 13; if (seen(x0, y0, 12, 11, 0, 14)) foreCell(c, x0, y0, bx, by, P); }
   return { V: Wd.V, ships: c.ships, elpis, c, view: c.view };
 }
 const PCACHE = {};
@@ -8494,7 +8616,8 @@ function drawPortIso(id) {
       const world = buildPort(P, hullKind, W, H, ids.map(m => MERCHANTS[m].look.robe));
       C = PCACHE[id] = { key, world, R: renderWorld(world, W, H), traders: ids.map(m => person(MERCHANTS[m].look, 'stand')), waterKey: null };
       C.cv = document.createElement('canvas'); C.cv.width = W; C.cv.height = H; C.ctx = C.cv.getContext('2d'); C.img = C.ctx.createImageData(W, H); C.dep = new Float32Array(W * H);
-      C.folk = world.c.people.map(([x, y, z, who, flip], i) => [typeof who === 'string' ? (who === 'guard' ? GUARD : who === 'marine' ? MARINE : who === 'sit' ? person(look(3000 + i), 'sit') : folk(3000 + i, null)[0]) : who, x, y, z, flip]);
+      C.folk = world.c.people.map(([x, y, z, who, flip], i) => [typeof who === 'string' ? (who === 'guard' ? GUARD : who === 'marine' ? MARINE : who === 'sit' ? person(look(3000 + i), 'sit') : folk(3000 + i, ['sack', 'amphora', 'basket'].includes(who) ? who : null)[0]) : who, x, y, z, flip]);
+      C.cv2 = document.createElement('canvas'); C.cv2.width = W; C.cv2.height = H; C.ctx2 = C.cv2.getContext('2d');
     }
     const water = mix(P.waterColor || WATER, pal.seaTop, dusk * 0.7);
     if (C.waterKey !== water) { C.water = waterFrames(C.R, W, H, 0, water); C.waterKey = water; }
@@ -8546,10 +8669,13 @@ function drawPortIso(id) {
       all.push(['v', m, x, y, 0, dir]); if (rider) all.push(['p', folk(seed + 870 + rider, null)[0], x + 3, y, 1, dir < 0]);
     }
     if (P.anim) P.anim(t, (sp, x, y, z, flip) => all.push(['p', sp, x, y, z, flip]), W0.c);
+    W0.c.wrestle.forEach(([x, y, z], i) => { const a = Math.sin(t * 3 + i) * 0.6; all.push(['p', folk(seed + 950 + i * 2, null)[Math.floor(t * 4) % 2], x - 1 + a, y, z, false], ['p', folk(seed + 951 + i * 2, null)[Math.floor(t * 4 + 1) % 2], x + 1 + a, y, z, true]); });
     all.sort((p, q) => (p[2] + p[3] + p[4]) - (q[2] + q[3] + q[4]));
     for (const e of all) if (e[0] === 'v') drawVox(e[1], e[2], e[3], e[4], e[5]); else drawAt(e[1], e[2], e[3], e[4], e[5]);
     C.ctx.putImageData(C.img, 0, 0);
     if (dusk > 0) { const g = C.ctx; g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.4 * dusk; g.fillStyle = mix(pal.skyBot, '#3a2a6a', 0.55); g.fillRect(0, 0, W, H); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
+    const mirror = !!ST_(P).mirror, Gout = G;   // a mirrored port is drawn whole, then turned round
+    if (mirror) G = C.ctx2;
     G.drawImage(C.cv, 0, 0);
     const dot = (x, y, cc) => { G.fillStyle = cc; G.fillRect(Math.round(x), Math.round(y), 1, 1); };
     const ln = (a, b, cc) => { const x0 = sx(a[0], a[1]) + 2, y0 = sy(a[0], a[1], a[2]) + 1, x1 = sx(b[0], b[1]) + 2, y1 = sy(b[0], b[1], b[2]) + 1, n = Math.max(1, Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let i = 0; i <= n; i++) dot(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, cc); };
@@ -8560,8 +8686,8 @@ function drawPortIso(id) {
       for (let k = 0; k < 6; k++) dot(X - 1 - k, Y - 2 + Math.round(Math.sin(t * 5 - k + i) * (k / 6)), k < 3 ? cc[0] : cc[1]); });
     for (const [x, y, z, c1, c2, eagle] of W0.c.flags) { const X = sx(x, y) + 2, Y = sy(x, y, z); G.fillStyle = '#5a4a40'; G.fillRect(X, Y - 12, 1, 12); for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) dot(X - 1 - i, Y - 12 + j + Math.round(Math.sin(t * 4 - i) * (i / 6)), eagle ? (j === 1 && i > 1 && i < 5 ? INK : '#f4f0e8') : j === 1 ? c2 : c1); }
     for (const [x, y, z, big] of W0.c.fires) { const X = sx(x, y) + 2, Y = sy(x, y, z), f = Math.floor(t * 8 + x) % 3, r = big ? 2 : 1; G.fillStyle = INK; G.fillRect(X - r - 1, Y - r - 3, 2 * r + 3, r + 4); for (let i = -r; i <= r; i++) for (let j = 0; j < r + 2 - Math.abs(i); j++) dot(X + i, Y - j, j > 0 ? '#ffcf5a' : '#ff7a20'); dot(X - (f === 1 ? 1 : 0), Y - r - 2, '#fff2c0'); }
-    for (const [x, y, z, k0] of W0.c.smokes) { const X0 = sx(x, y) + 2, Y0 = sy(x, y, z), puffs = [];
-      for (let k = 0; k < 4; k++) { const a = (t * 0.22 + k / 4 + (k0 || 0)) % 1; puffs.push([X0 + Math.round(a * 10), Y0 - Math.round(a * 24), 1.4 + a * 2.6]); }
+    for (const [x, y, z, k0, small] of W0.c.smokes) { const X0 = sx(x, y) + 2, Y0 = sy(x, y, z), puffs = [];
+      for (let k = 0; k < (small ? 3 : 4); k++) { const a = (t * 0.22 + k / (small ? 3 : 4) + (k0 || 0)) % 1; puffs.push(small ? [X0 + Math.round(a * 6), Y0 - Math.round(a * 14), 0.8 + a * 1.4] : [X0 + Math.round(a * 10), Y0 - Math.round(a * 24), 1.4 + a * 2.6]); }
       for (const [X, Y, r] of puffs) for (let j = -Math.ceil(r) - 1; j <= Math.ceil(r) + 1; j++) for (let i = -Math.ceil(r) - 1; i <= Math.ceil(r) + 1; i++) if (i * i + j * j <= (r + 1) * (r + 1)) dot(X + i, Y + j, INK);
       for (const [X, Y, r] of puffs) for (let j = -Math.ceil(r); j <= Math.ceil(r); j++) for (let i = -Math.ceil(r); i <= Math.ceil(r); i++) if (i * i + j * j <= r * r) dot(X + i, Y + j, j > r * 0.35 ? '#d8dce8' : '#ffffff'); }
     for (let k = 0; k < 3; k++) { const x = ((t * (9 + k * 3) + k * 100) % (W + 20)) - 10, y = 20 + k * 30 + Math.round(Math.sin(t * 1.5 + k) * 3), g = GULL[Math.floor(t * 3 + k) % 2]; for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.data[(j * g.w + i) * 4 + 3]) dot(x + i, y + j, INK); }
@@ -8571,9 +8697,11 @@ function drawPortIso(id) {
       spots.push({ id: m, kind: 'merchant', x0: X0, x1: X1, y0: Y0, y1: Y1 });
       if (o.wants && o.wants.has(m)) { const X = sx(x0 + 3, QB + 4), Y = sy(x0 + 3, QB + 4, 12) - 8 - Math.floor(t * 2) % 2; for (let j = 0; j < WANT.h; j++) for (let ii = 0; ii < WANT.w; ii++) { const si = (j * WANT.w + ii) * 4; if (WANT.data[si + 3]) dot(X + ii, Y + j, '#' + ((1 << 24) | (WANT.data[si] << 16) | (WANT.data[si + 1] << 8) | WANT.data[si + 2]).toString(16).slice(1)); } }
     });
+    if (mirror) { G = Gout; G.save(); G.translate(W, 0); G.scale(-1, 1); G.drawImage(C.cv2, 0, 0); G.restore(); for (const sp_ of spots) { const a = W - sp_.x1, b = W - sp_.x0; sp_.x0 = a; sp_.x1 = b; } }
     if (o.spots) o.spots.push(...spots);
   };
 }
+const ST_ = P => P.style || {};
 // shapes of ground and water that several ports share
 const basinR = (cx, r) => (x, y) => (x - cx) ** 2 + (y - QB) ** 2 < r * r;   // a half-round harbour against the quay
 const rings = (cx, r, step, cap) => (x, y) => Math.min(cap || 14, 2 * Math.max(0, Math.floor((Math.hypot(x - cx, y - QB) - r) / step)));   // terraces rising away from it
@@ -8586,7 +8714,7 @@ const cone = (cx, cy, r, h) => (x, y) => Math.max(0, h * (1 - Math.hypot(x - cx,
 const greek = { walls: WALL_M };
 const PORTSPEC = {
   kos: {   // the town round its harbour, the Asklepieion climbing the hill on three terraces, Hippocrates' plane tree in the square
-    seed: 11, water: (x, y) => basinR(20, 38)(x, y) || (x >= 62 && y > -10),
+    seed: 11, style: { ...PALS.ionia, quay: 'stone', front: 'stoa', mix: { blocks: 3, garden: 2 }, garden: 'plane' }, water: (x, y) => basinR(20, 38)(x, y) || (x >= 62 && y > -10),
     top: (x, y) => rings(20, 38, 6, 10)(x, y) + ridgeUp(-70, 0.25, 14, 3)(x, y),
     build(c) {
       const { Wd } = c, x0 = -22, y0 = -44;
@@ -8606,21 +8734,22 @@ const PORTSPEC = {
     boats: [[48, 12, '#e8483a'], [-14, 20, '#ffd040'], [66, 24, '#5ab84a']],
   },
   miletus: {   // a city laid out in a grid, a long stoa on the harbour, marble lions looking out to sea, the theatre on its hill, Mount Latmos beyond
-    seed: 13, water: (x, y) => basinR(20, 38)(x, y) || (x >= 62 && y > -20),
-    top: (x, y) => rings(20, 38, 8, 6)(x, y) + ridgeUp(-80, 0.4, 24, 5)(x, y), snow: 22, houses: { walls: WALL_M, flat: 0.45 },
+    seed: 13, style: { ...PALS.ionia, walls: [M.cream, mat('#f2e2c4', 0.12, 0.28), M.white], flatP: 0.1, h0: 5, quay: 'marble', front: 'stoa', mix: { grid: 1 }, mirror: true }, water: (x, y) => (y >= 17 && y < QB && x > -44) || (x >= 66 && y > -40),
+    top: (x, y) => y >= 17 ? 0 : Math.min(8, 2 * Math.floor((17 - y) / 7)) + ridgeUp(-80, 0.4, 24, 5)(x, y), snow: 22, houses: { walls: WALL_M, flat: 0.45 },
     build(c) {
       const { Wd } = c;
-      { const z = c.flatten(-6, -16, 40, 6, 0); stoaB(Wd, -6, -16, z + 1, 40, { wall: '#f4d8a8' }); for (let x = -4; x < 34; x += 6) c.people.push(sp(x, -11, z + 1, 'walk', x % 4)); }
-      for (let k = 0; k < 6; k++) { const x = -34 + k * 3, y = 18 - k, t = c.topAt(x, y); lionC(Wd, x, y, t + 1); c.reserve(x - 1, y - 1, 5, 3); }
+      { const z = c.flatten(-6, 9, 40, 6, 0); stoaB(Wd, -6, 9, z + 1, 40, { wall: '#f4d8a8' }); for (let x = -4; x < 34; x += 6) c.people.push(sp(x, 14, z + 1, 'walk', x % 4)); }
+      for (let k = 0; k < 6; k++) { const x = 42 + k * 4, y = 15, t = c.topAt(x, y); lionC(Wd, x, y, t + 1); c.reserve(x - 1, y - 1, 5, 3); }
       { const cx = -44, cy = -22, dx = 20 - cx, dy = QB - cy, n = Math.hypot(dx, dy), zb = c.topAt(cx, cy) + 1; if (c.seen(cx - 10, cy - 10, 20, 20, zb, 12)) { const seats = theatre(Wd, cx, cy, zb, dx / n, dy / n, c.topAt); seats.forEach((s, i) => { if (hash(i * 2.17) < 0.4) c.people.push(sp(s[0], s[1], s[2], 'sit', i % 2)); }); c.reserve(cx - 12, cy - 12, 24, 24); } }
-      for (const [x, y] of [[-24, 26], [44, -2]]) { const t = c.topAt(x, y); palmT(Wd, x, y, t + 1, 7); c.reserve(x - 2, y - 2, 5, 5); }
+      for (const [x, y] of [[-54, 24], [44, -2]]) { const t = c.topAt(x, y); palmT(Wd, x, y, t + 1, 7); c.reserve(x - 2, y - 2, 5, 5); }
     },
-    ships: [{ xs: 26, xe: 44, yc: 10, hw: 3, zt: 2, hull: mat('#6a4a3a', 0.18, 0.36), band: M.green, post: true, mast: 12, yard: true, cargo: '#e8763a' }, { xs: 66, xe: 84, yc: -6, hw: 3, zt: 2, hull: mat('#5a3a2a', 0.18, 0.36), band: M.yellow, post: true, mast: 11, yard: true }],
-    boats: [[48, 12, '#3a8ad8'], [-14, 20, '#ffffff']],
+    ships: [{ xs: 30, xe: 48, yc: 20, hw: 3, zt: 2, hull: mat('#6a4a3a', 0.18, 0.36), band: M.green, post: true, mast: 12, yard: true, cargo: '#e8763a' }, { xs: 70, xe: 88, yc: -10, hw: 3, zt: 2, hull: mat('#5a3a2a', 0.18, 0.36), band: M.yellow, post: true, mast: 11, yard: true }],
+    boats: [[-36, 19, '#3a8ad8'], [-28, 19, '#ffffff']],
+    moving: [['row', 19, 4, 26, 1.4, 1], ['fish', 21, 52, 80, 1.0, 2]], swim: [[-20, 20, 0], [56, 22, 1.3], [60, 18, 2.1]],
   },
   delos: {   // a small, rocky, holy island: the temples of Apollo, the terrace of lions, the sacred palm, a stoa, and Mount Kynthos with its shrine
-    seed: 17, water: (x, y) => basinR(20, 38)(x, y) || (x >= 58 && y > -34),
-    top: (x, y) => rings(20, 38, 6, 4)(x, y) + cone(-36, -52, 28, 22)(x, y), cliff: '#d8ccb4', earth: ['#e4d4b0', '#d8c4a0'],
+    seed: 17, style: { ...PALS.ionia, flatP: 0.7, quay: 'marble', street: 'pale', front: 'stoa', mix: { agora: 2, blocks: 2 } }, water: (x, y) => (y >= 18 && y < QB && x > -30) || (x >= 58 && y > -34),
+    top: (x, y) => Math.min(4, 2 * Math.floor(Math.max(0, 18 - y) / 8)) + cone(-36, -52, 28, 22)(x, y), cliff: '#d8ccb4', earth: ['#e4d4b0', '#d8c4a0'],
     ground: (x, y, h) => h > 4 && vn(x / 5, y / 5, 17) > 0.55 ? (pm(x + y, 3) ? mat('#a8b868', 0.2, 0.42) : mat('#94a858', 0.2, 0.42)) : h > 4 && hash(x * 1.3 + y * 0.7) < 0.08 ? M.grey : null,
     houses: { walls: [M.white, M.cream, M.white], trees: 0.2 },
     build(c) {
@@ -8631,11 +8760,11 @@ const PORTSPEC = {
       { const z = c.flatten(34, -2, 20, 6, 0); stoaB(Wd, 34, -2, z + 1, 20, {}); }
       { const x = -36, y = -52, t = c.topAt(x, y); if (c.on(x, y, t + 8, 30)) { tholos(Wd, x, y, t + 1, 3); c.reserve(x - 4, y - 4, 9, 9); for (let k = 0; k < 18; k++) { const px = Math.round(-30 + k * 0.4 + Math.sin(k) * 2), py = Math.round(-26 - k * 1.4), pt = c.topAt(px, py); if (pt > 0) Wd.put(px, py, pt, M.path, Wd.newId()); } c.people.push(sp(-28, -34, c.topAt(-28, -34) + 1, 'walk')); } }
     },
-    ships: [{ xs: 26, xe: 42, yc: 10, hw: 3, zt: 2, hull: mat('#7a5a3a', 0.18, 0.36), band: mat('#ff7ab0'), post: true, mast: 11, yard: true }],
-    boats: [[-14, 20, '#3a8ad8']],
+    ships: [{ xs: 30, xe: 46, yc: 22, hw: 3, zt: 2, hull: mat('#7a5a3a', 0.18, 0.36), band: mat('#ff7ab0'), post: true, mast: 11, yard: true }],
+    boats: [[-14, 20, '#3a8ad8'], [-22, 19, '#ffd040']], moving: [['row', 19, -26, -12, 1.2, 1], ['fish', 20, 48, 56, 0.8, 2]], swim: [[-24, 24, 0], [52, 22, 1.3], [62, 10, 2.1]],
   },
   piraeus: {   // the harbour of Athens: ship sheds row after row, the Long Walls running up to the city, the Acropolis, and soldiers on Munichia
-    seed: 19, water: (x, y) => basinR(20, 40)(x, y) || (x >= 64 && y > -14),
+    seed: 19, style: { ...PALS.attica, quay: 'dark', front: 'warehouses', mix: { warehouses: 2, blocks: 2 }, mirror: true }, water: (x, y) => basinR(20, 40)(x, y) || (x >= 64 && y > -14),
     top: (x, y) => rings(20, 40, 8, 4)(x, y) + cone(24, -30, 20, 14)(x, y) + cone(-34, -54, 16, 14)(x, y) + ridgeUp(-110, 0.35, 20, 7)(x, y),
     build(c) {
       const { Wd, put } = c;
@@ -8650,7 +8779,7 @@ const PORTSPEC = {
     boats: [[56, 18, '#e8483a'], [-14, 20, '#ffd040'], [68, 4, '#ffffff']],
   },
   corinth: {   // two harbours and the Isthmus between, a ship dragged across on the diolkos, the old temple of Apollo, and Acrocorinth with Aphrodite on top
-    seed: 23, water: (x, y) => basinR(20, 36)(x, y) || (x >= 62 && y > -10) || (x + y < -78 && x - y < -10),
+    seed: 23, style: { ...PALS.attica, quay: 'stone', front: 'stoa', mix: { workshop: 2, blocks: 3 }, workshop: 'pottery' }, water: (x, y) => basinR(20, 36)(x, y) || (x >= 62 && y > -10) || (x + y < -78 && x - y < -10),
     top: (x, y) => rings(20, 36, 7, 6)(x, y) + cone(-15, -55, 30, 28)(x, y), ground: (x, y, h) => Math.abs((x - y) - (-12 + ((x + y) + 4) * 0.34)) < 2 && x + y < 2 && x + y > -78 ? M.path : null,
     build(c) {
       const { Wd } = c;
@@ -8668,53 +8797,51 @@ const PORTSPEC = {
     boats: [[48, 12, '#3a8ad8'], [-14, 20, '#e8483a']],
   },
   corcyra: {   // a green island, its city on a headland, the temple of Artemis with a painted pediment, the queen's house, and the snowy mountains of Epirus across the strait
-    seed: 29, water: (x, y) => basinR(20, 36)(x, y) || (x >= 60 && y > -40) || (x + y < -58 && x + y > -96),
-    top: (x, y) => x + y <= -96 ? 1 + Math.min(30, (-96 - (x + y)) * 0.7 * (0.7 + 0.6 * vn(x / 12, y / 12, 31))) : rings(20, 36, 6, 8)(x, y), snow: 18, cliff: '#9ab4c8',
+    seed: 29, style: { ...PALS.corcyra, quay: 'boards', front: 'trees', mix: { garden: 3, blocks: 2 }, garden: 'olive', mirror: true }, water: (x, y) => (x >= 6 && x + y > -58) || (x + y < -58 && x + y > -96),
+    top: (x, y) => x + y <= -96 ? 1 + Math.min(30, (-96 - (x + y)) * 0.7 * (0.7 + 0.6 * vn(x / 12, y / 12, 31))) : Math.min(10, 2 * Math.floor(Math.max(0, Math.min(6 - x, x + y + 58)) / 6)), snow: 18, cliff: '#9ab4c8',
     ground: (x, y, h) => x + y <= -96 && h >= 8 && h < 18 ? (pm(x + y, 3) ? mat('#7a9ab4', 0.18, 0.38) : mat('#6a8aa8', 0.18, 0.38)) : null,
     earth: ['#a8c868', '#94bc58'], green: '#7aa848', houses: { walls: WALL_M, trees: 0.25, where: (x, y) => x + y > -58 },
     build(c) {
       const { Wd } = c;
       { const z = c.flatten(-16, -30, 16, 10, 1); templeG(Wd, -14, -28, z + 1, 13, 7, { h: 5, pediment: ['#e8483a', '#3a64c8'], frieze: ['#e8483a', '#ffd040'] }); c.people.push(sp(1, -24, z + 1, 'walk')); }
-      { const z = c.flatten(34, -14, 16, 10, 0); house(Wd, 34, -14, z + 1, 14, 7, 7, mat('#fff2d4', 0.12, 0.28), { alongY: false, door: '#5a3a2a', seed: 0.8 }); for (let x = 34; x < 48; x += 2) for (let k = 1; k <= 5; k++) Wd.put(x, -6, z + k, M.marble, Wd.newId()); c.people.push(sp(40, -4, z + 1, 'guard'), sp(44, -4, z + 1, 'walk', 1)); }
-      for (let k = 0; k < 24; k++) { const x = -60 + Math.floor(hash(k * 3.1) * 80), y = -40 + Math.floor(hash(k * 7.7) * 30); if (x + y > -56 && x + y < -24 && c.topAt(x, y) > 0) Wd.box(x, y, c.topAt(x, y) + 1, 1, 1, 4 + (k % 3), M.cypress); }
+      { const z = c.flatten(-34, -6, 16, 10, 0); house(Wd, -34, -6, z + 1, 14, 7, 7, mat('#fff2d4', 0.12, 0.28), { alongY: false, door: '#5a3a2a', seed: 0.8 }); for (let x = -34; x < -20; x += 2) for (let k = 1; k <= 5; k++) Wd.put(x, 2, z + k, M.marble, Wd.newId()); c.people.push(sp(-28, 4, z + 1, 'guard'), sp(-24, 4, z + 1, 'walk', 1)); }
+      for (let k = 0; k < 24; k++) { const x = -60 + Math.floor(hash(k * 3.1) * 80), y = -40 + Math.floor(hash(k * 7.7) * 30); if (x < 4 && x + y > -56 && x + y < -24 && c.topAt(x, y) > 0) Wd.box(x, y, c.topAt(x, y) + 1, 1, 1, 4 + (k % 3), M.cypress); }
     },
     ships: [{ xs: 26, xe: 44, yc: 10, hw: 3, zt: 2, hull: mat('#5a3a2a', 0.18, 0.36), band: M.green, post: true, mast: 12, yard: true }],
     boats: [[48, 12, '#ffd040'], [-14, 20, '#3a8ad8'], [66, -4, '#e8483a']],
   },
   croton: {   // a low city on a flat shore, the dark pine forests of the Sila behind, Hera's temple alone on its cape, and wrestlers on the sand
-    seed: 31, water: (x, y) => basinR(20, 38)(x, y) || (x < -24 && y > -6 && !ell(-42, 8, 10, 8)(x, y)) || (x >= 62 && y > -10),
-    top: (x, y) => ell(-42, 8, 10, 8)(x, y) ? 4 : rings(20, 38, 9, 4)(x, y) + ridgeUp(-40, 0.35, 22, 13)(x, y),
+    seed: 31, style: { ...PALS.italy, quay: 'sand', street: 'sand', front: 'trees', mix: { blocks: 3, palaestra: 1, garden: 1 }, garden: 'pine' }, water: (x, y) => x + y > -36 && !ell(40, -26, 12, 8)(x, y),
+    top: (x, y) => ell(40, -26, 12, 8)(x, y) ? 4 : x + y <= -36 ? 1 + ridgeUp(-56, 0.4, 22, 13)(x, y) : 0,
     ground: (x, y, h) => h >= 8 ? (pm(x + y, 3) ? mat('#3a6a40', 0.2, 0.42) : mat('#2e5a36', 0.2, 0.42)) : null,
-    houses: { walls: WALL_M, flat: 0.4, where: (x, y) => x + y > -40 },
+    houses: { walls: WALL_M, flat: 0.4, where: (x, y) => x + y < -40 && x + y > -58 },
     build(c) {
       const { Wd } = c;
-      { const z = c.flatten(-50, 2, 16, 12, 0); const tp = templeG(Wd, -48, 4, z + 1, 12, 7, { h: 6, roof: M.bronze, roofD: mat('#e09a3a') }); c.people.push(sp(tp.front[0], tp.front[1], z + 1, 'walk')); }
-      { const z = c.flatten(-12, -14, 12, 8, 0), id = Wd.newId(); for (let x = -12; x < 0; x++) for (let y = -14; y < -6; y++) Wd.put(x, y, z, mat('#f6e4b4', 0.14, 0.3), id); c.palaestra = [-6, -10, z + 1]; c.people.push(sp(-11, -7, z + 1, 'sit'), sp(-2, -13, z + 1, 'sit', 1)); }
+      { const z = c.flatten(33, -31, 14, 10, 0); const tp = templeG(Wd, 35, -29, z + 1, 10, 6, { h: 5, roof: M.bronze, roofD: mat('#e09a3a') }); c.people.push(sp(tp.front[0], tp.front[1], z + 1, 'walk')); }
       for (let k = 0; k < 60; k++) { const x = -70 + Math.floor(hash(k * 3.7) * 120), y = -60 + Math.floor(hash(k * 5.3) * 30); const t = c.topAt(x, y); if (x + y < -42 && t >= 6 && c.on(x, y, t, 10)) pineT(Wd, x, y, t + 1, 6 + (k % 3), true); }
     },
-    anim(t, push, c) { if (!c.palaestra) return; const [x, y, z] = c.palaestra, a = Math.sin(t * 3) * 0.6; push(folk(3101, null)[Math.floor(t * 4) % 2], x - 1 + a, y, z, false); push(folk(3102, null)[Math.floor(t * 4 + 1) % 2], x + 1 + a, y, z, true); },
     ships: [{ xs: 26, xe: 42, yc: 10, hw: 3, zt: 2, hull: mat('#6a4a3a', 0.18, 0.36), band: M.blue, post: true, mast: 11, yard: true }],
     boats: [[48, 12, '#e8483a'], [-40, 20, '#ffffff']],
   },
   taras: {   // the richest city in Italy, on its neck of land between the sea and a lagoon, Poseidon's temple on the high ground, and a bronze boy on a dolphin at the harbour mouth
-    seed: 37, water: (x, y) => (basinR(20, 36)(x, y) || (x >= 62 && y > -14) || (x + y < -46 && x + y > -88)) && !(x >= 56 && x <= 60 && y >= 16 && y <= 22),
-    top: (x, y) => x + y <= -88 ? 2 + 8 * vn(x / 16, y / 16, 41) : (x >= 56 && x <= 60 && y >= 16 && y <= 22) ? 1 : rings(20, 36, 6, 6)(x, y),
+    seed: 37, style: { ...PALS.italy, quay: 'stone', front: 'stoa', mix: { agora: 1, blocks: 3 }, mirror: true }, water: (x, y) => (x >= 34 && x <= 46 && x + y > -88) || (x + y < -46 && x + y > -88) || (x >= 62 && y > -14),
+    top: (x, y) => x + y <= -88 ? 2 + 8 * vn(x / 16, y / 16, 41) : Math.min(8, 2 * Math.floor(Math.max(0, Math.min(x + y + 46, Math.abs(x - 40) - 6, 62 - x)) / 6)),
     ground: (x, y, h) => x + y <= -88 ? (pm(x + y, 4) ? mat('#ecc870', 0.16, 0.34) : mat('#dcb860', 0.16, 0.34)) : null,
     houses: { walls: WALL_M, where: (x, y) => x + y > -46 },
     build(c) {
       const { Wd } = c;
       { const z = c.flatten(-20, -20, 15, 10, 1); templeG(Wd, -18, -18, z + 1, 12, 7, { h: 6, frieze: ['#3a64c8', '#ffffff'] }); c.people.push(sp(-4, -13, z + 1, 'walk')); }
       { const cx = -34, cy = 6, dx = 20 - cx, dy = QB - cy, n = Math.hypot(dx, dy), zb = c.topAt(cx, cy) + 1; if (c.seen(cx - 10, cy - 10, 20, 20, zb, 12)) { theatre(Wd, cx, cy, zb, dx / n, dy / n, c.topAt).forEach((s, i) => { if (hash(i * 3.3) < 0.35) c.people.push(sp(s[0], s[1], s[2], 'sit', i % 2)); }); c.reserve(cx - 12, cy - 12, 24, 24); } }
-      { const x = 58, y = 19, id = Wd.newId(); for (let k = 2; k <= 8; k++) Wd.put(x, y, k, M.marble, id); const b = M.bronze; for (const [dx, dz] of [[-1, 9], [0, 9], [1, 10], [2, 10], [-2, 10], [0, 10]]) Wd.put(x + dx, y, dz, b, id); Wd.put(x, y, 11, b, id); Wd.put(x, y, 12, mat('#c87a3a'), id); c.reserve(54, 14, 8, 10); }
+      { const x = 50, y = 24, id = Wd.newId(); for (let k = 2; k <= 8; k++) Wd.put(x, y, k, M.marble, id); const b = M.bronze; for (const [dx, dz] of [[-1, 9], [0, 9], [1, 10], [2, 10], [-2, 10], [0, 10]]) Wd.put(x + dx, y, dz, b, id); Wd.put(x, y, 11, b, id); Wd.put(x, y, 12, mat('#c87a3a'), id); c.reserve(46, 20, 8, 8); }
     },
-    ships: [{ xs: 26, xe: 44, yc: 10, hw: 3, zt: 2, hull: mat('#5a3a2a', 0.18, 0.36), band: M.yellow, post: true, mast: 12, yard: true, cargo: '#c8a060' }],
-    boats: [[48, 10, '#e8483a'], [-14, 20, '#ffffff'], [-20, -66, '#3a8ad8', false]],
+    ships: [{ xs: 66, xe: 84, yc: 0, hw: 3, zt: 2, hull: mat('#5a3a2a', 0.18, 0.36), band: M.yellow, post: true, mast: 12, yard: true, cargo: '#c8a060' }],
+    boats: [[40, 8, '#e8483a'], [-14, 20, '#ffffff'], [-20, -66, '#3a8ad8', false]], moving: [['fish', 19, -12, 16, 1.0, 2], ['sail', 2, 66, 96, 1.2, 0]], swim: [[30, 22, 0], [40, 0, 1.3], [44, -20, 2.1]],
   },
   kydonia: {   // a harbour town at the head of a wide bay, quince orchards behind, the White Mountains behind those, and long low ships drawn up on a beach with nobody near them
-    seed: 41, water: (x, y) => basinR(20, 40)(x, y) || (x >= 60 && y > -30),
+    seed: 41, style: { ...PALS.crete, quay: 'boards', street: 'sand', front: 'trees', mix: { garden: 2, blocks: 3 }, garden: 'quince', mirror: true }, water: (x, y) => x + y > -30 && x > -20,
     top: (x, y) => x < -18 && y > 10 ? 0 : rings(20, 40, 7, 4)(x, y) + ridgeUp(-74, 0.5, 32, 43)(x, y), snow: 22, cliff: '#e8e4d8',
     ground: (x, y, h) => x + y <= -74 && h > 6 ? (h >= 22 ? null : pm(x * 3 + y, 4) ? mat('#ece8dc', 0.16, 0.34) : mat('#dcd6c6', 0.16, 0.34)) : h > 2 && h < 12 && x + y > -74 && x + y < -26 ? (pm(x + y, 2) ? M.grass : mat('#a8d068', 0.18, 0.36)) : x < -18 && y > 12 && y < QB ? (pm(x + y, 3) ? mat('#f0dcb0', 0.14, 0.3) : mat('#e4cc9c', 0.14, 0.3)) : null,
-    houses: { walls: WALL_M, where: (x, y) => x + y > -26 && !(x < -18 && y > 10) },
+    houses: { walls: WALL_M, where: (x, y) => x + y > -36 && !(x < -18 && y > 10) },
     build(c) {
       const { Wd } = c;
       for (let x = -70; x < 50; x += 5) for (let y = -60; y < -10; y += 5) { const xx = x + (y % 2), t = c.topAt(xx, y); if (xx + y > -72 && xx + y < -28 && t > 1 && c.on(xx, y, t, 6)) { tree(Wd, xx, y, t + 1, 0.4); if (hash(xx * 1.3 + y) < 0.6) Wd.put(xx + 1, y, t + 3, mat('#ffd040'), Wd.newId()); } }
@@ -8724,7 +8851,7 @@ const PORTSPEC = {
     boats: [[48, 12, '#ffd040'], [66, 4, '#3a8ad8']],
   },
   syracuse: {   // the island of Ortygia with the temple of Athena and its gilded shield, the long walls on the hills, Etna smoking far off, and a fallen bronze king on the mole
-    seed: 43, water: (x, y) => (basinR(20, 38)(x, y) || (x >= 14 && y > -42 && y < 2 && !ell(30, -24, 14, 11)(x, y)) || x >= 62) && !(x >= 52 && x <= 58 && y >= 14 && y <= 22),
+    seed: 43, style: { ...PALS.italy, roofs: null, quay: 'stone', front: 'wall', mix: { agora: 1, blocks: 3 } }, water: (x, y) => (basinR(20, 38)(x, y) || (x >= 14 && y > -42 && y < 2 && !ell(30, -24, 14, 11)(x, y)) || x >= 62) && !(x >= 52 && x <= 58 && y >= 14 && y <= 22),
     top: (x, y) => ell(30, -24, 14, 11)(x, y) ? 4 : (x >= 52 && x <= 58 && y >= 14 && y <= 22) ? 1 : rings(20, 38, 7, 6)(x, y) + (x + y < -40 ? 6 : 0) + cone(-30, -40, 24, 28)(x, y), snow: 24, noCap: false,
     build(c) {
       const { Wd } = c;
@@ -8738,8 +8865,8 @@ const PORTSPEC = {
     boats: [[66, 20, '#e8483a'], [-14, 20, '#ffd040']],
   },
   paphos: {   // the goddess's coast: white rocks in the foam, her sanctuary on a hill round a cone of black stone, the town, and the pine-dark mountains of Cyprus
-    seed: 47, water: (x, y) => basinR(20, 36)(x, y) || (x >= 56 && y > -40),
-    top: (x, y) => rings(20, 36, 6, 8)(x, y) + ridgeUp(-62, 0.38, 26, 47)(x, y),
+    seed: 47, style: { ...PALS.cyprus, quay: 'boards', front: 'stoa', mix: { garden: 2, blocks: 3 }, garden: 'cypress' }, water: (x, y) => x + y > -20,
+    top: (x, y) => Math.min(10, 2 * Math.floor(Math.max(0, -20 - (x + y)) / 6)) + ridgeUp(-62, 0.38, 26, 47)(x, y),
     ground: (x, y, h) => h >= 10 ? (pm(x + y, 3) ? mat('#4a7a48', 0.2, 0.42) : mat('#3a6a40', 0.2, 0.42)) : null,
     houses: { walls: WALL_M, where: (x, y) => x + y > -60 },
     build(c) {
@@ -8756,8 +8883,8 @@ const PORTSPEC = {
     boats: [[48, 12, '#3a8ad8'], [-14, 20, '#ffffff']],
   },
   kition: {   // a Phoenician city on a flat shore, flat roofs, the temple of Astarte with two pillars, ships with horses' heads, cedar on the quay, and a pink salt lake full of flamingos behind
-    seed: 53, water: (x, y) => basinR(20, 38)(x, y) || (x >= 58 && y > -20),
-    top: (x, y) => x + y < -40 && x + y > -84 ? 0 : rings(20, 38, 9, 4)(x, y) + ridgeUp(-90, 0.22, 12, 59)(x, y),
+    seed: 53, style: { ...PALS.cyprus, walls: PALS.phoenicia.walls, flatP: 1, quay: 'yellow', street: 'sand', front: 'warehouses', mix: { workshop: 2, blocks: 3 }, workshop: 'copper' }, water: (x, y) => (x >= -24 && x <= 52 && y >= 6) || (x >= 52 && y >= 12 && y <= 22) || (x >= 64 && y > -30),
+    top: (x, y) => x + y < -40 && x + y > -84 ? 0 : (y < 6 ? Math.min(6, 2 * Math.floor((6 - y) / 6)) : 2) + ridgeUp(-90, 0.22, 12, 59)(x, y),
     ground: (x, y, h) => x + y < -40 && x + y > -84 && y < QB ? (pm(x * 3 + y, 7) === 0 ? mat('#ffe4ec', 0.1, 0.2) : mat('#f4b8c4', 0.1, 0.2)) : null,
     earth: ['#ecd4a0', '#e0c48c'], houses: { walls: [M.ochre, M.cream, mat('#f0d8a8', 0.12, 0.28), M.white], flat: 1, where: (x, y) => x + y > -40 },
     build(c) {
@@ -8765,15 +8892,15 @@ const PORTSPEC = {
       { const z = c.flatten(-18, -16, 14, 10, 0), id = Wd.newId(); Wd.box(-16, -14, z + 1, 10, 7, 7, mat('#f0dcb0', 0.14, 0.3), id); Wd.box(-17, -15, z + 8, 12, 9, 1, M.stoneD, id); Wd.face(-11, -8, z + 1, 'l', '#3a2418'); Wd.face(-11, -8, z + 2, 'l', '#3a2418');
         const p = Wd.newId(); for (let k = 1; k <= 8; k++) { Wd.put(-14, -5, z + k, M.bronze, p); Wd.put(-8, -5, z + k, mat('#3ab87a', 0.16, 0.34), p); } c.people.push(sp(-11, -3, z + 1, 'walk')); }
       c.flamingos = []; for (let k = 0; k < 9; k++) { const v = -46 - Math.floor(hash(k * 4.1) * 34), u = -40 + Math.floor(hash(k * 2.9) * 90); c.flamingos.push([(u + v) / 2, (v - u) / 2]); }
-      for (const [xs, yc] of [[26, 10], [-2, 6]]) { const s = ship(Wd, { xs, xe: xs + 16, yc, hw: 3, zt: 2, hull: mat('#4a3a5a', 0.18, 0.36), band: mat('#e8d040'), post: true, mast: 11, yard: true }); c.ships.push(s); const id = Wd.newId(), b = M.wood; for (const [dx, dz] of [[17, 3], [17, 4], [18, 5], [19, 5], [18, 4]]) Wd.put(xs + dx, yc, dz, b, id); }
+      for (const [xs, yc] of [[28, 12], [-20, 14]]) { const s = ship(Wd, { xs, xe: xs + 16, yc, hw: 3, zt: 2, hull: mat('#4a3a5a', 0.18, 0.36), band: mat('#e8d040'), post: true, mast: 11, yard: true }); c.ships.push(s); const id = Wd.newId(), b = M.wood; for (const [dx, dz] of [[17, 3], [17, 4], [18, 5], [19, 5], [18, 4]]) Wd.put(xs + dx, yc, dz, b, id); }
     },
     goods(c) { const { Wd } = c; for (let r = 0; r < 3; r++) { const id = Wd.newId(); for (let x = 2; x < 12; x++) Wd.put(x, QB + 3 + r, 1, x === 2 || x === 11 ? mat('#e8c08a', 0.16, 0.34) : mat('#9a5a2e', 0.18, 0.36), id); if (r < 2) for (let x = 3; x < 11; x++) Wd.put(x, QB + 3 + r, 2, x === 3 || x === 10 ? mat('#e8c08a', 0.16, 0.34) : mat('#8a4a26', 0.18, 0.36), id); } },
     anim(t, push, c) { (c.flamingos || []).forEach(([x, y], i) => push(FLAMINGO, x + Math.sin(t * 0.2 + i) * 0.6, y, 1, i % 2 === 0)); },
-    boats: [[48, 12, '#e8d040'], [66, 4, '#3a8ad8']],
+    boats: [[48, 12, '#e8d040'], [66, 4, '#3a8ad8']], moving: [['row', 19, 26, 50, 1.4, 1], ['fish', 8, -20, 20, 1.0, 2]],
   },
   sidon: {   // a city of glass furnaces under the mountains of Lebanon, roofs one above another, a gate with the king's eagle over it, and a fort on a rock across the harbour mouth
-    seed: 59, water: (x, y) => (basinR(20, 38)(x, y) || (x >= 58 && y > -30)) && !(x >= 56 && x <= 58 && y >= 2 && y <= 26) && !ell(60, -6, 6, 6)(x, y),
-    top: (x, y) => ell(60, -6, 6, 6)(x, y) ? 3 : (x >= 56 && x <= 58 && y >= 2 && y <= 26) ? 1 : rings(20, 38, 5, 12)(x, y) + ridgeUp(-62, 0.45, 30, 61)(x, y), snow: 26,
+    seed: 59, style: { ...PALS.phoenicia, quay: 'yellow', street: 'sand', front: 'wall', mix: { workshop: 2, blocks: 3 }, workshop: 'glass', mirror: true }, water: (x, y) => ((x >= -20 && x <= 50 && y >= 8) || (x >= 51 && x <= 55 && y > -10) || (x >= 51 && y > -10 && y < -2) || (x >= 59 && y > -30)) && !ell(60, -6, 6, 6)(x, y),
+    top: (x, y) => ell(60, -6, 6, 6)(x, y) ? 3 : (x >= 56 && x <= 58 && y >= -2) ? 1 : Math.min(12, 2 * Math.floor(Math.max(0, 8 - y, -20 - x) / 5)) + ridgeUp(-62, 0.45, 30, 61)(x, y), snow: 26,
     ground: (x, y, h) => h >= 12 && h < 26 ? (pm(x + y, 3) ? mat('#2e5a3e', 0.2, 0.42) : mat('#244a34', 0.2, 0.42)) : null,
     houses: { walls: [M.ochre, M.cream, mat('#f0d8a8', 0.12, 0.28), M.white], flat: 1, where: (x, y) => x + y > -62 },
     build(c) {
@@ -8788,7 +8915,7 @@ const PORTSPEC = {
     boats: [[48, 12, '#e8483a'], [-14, 20, '#ffffff']],
   },
   tyre: {   // an island city with walls straight up out of the sea, joined to the shore by Alexander's road, houses of many storeys, the temple of Melqart and its two pillars, and purple cloth drying on the quay
-    seed: 61, water: (x, y) => basinR(20, 38)(x, y) || (x >= 58 && y > -40) || (x + y < -52 && x + y > -92 && Math.abs(x - y + 30) > 3),
+    seed: 61, style: { ...PALS.phoenicia, h0: 7, hr: 6, quay: 'yellow', front: 'wall', mix: { workshop: 2, blocks: 3 }, workshop: 'dye' }, water: (x, y) => basinR(20, 38)(x, y) || (x >= 58 && y > -40) || (x + y < -52 && x + y > -92 && Math.abs(x - y + 30) > 3),
     top: (x, y) => x + y <= -92 ? 2 + 10 * vn(x / 14, y / 14, 63) : x + y <= -52 ? 1 : rings(20, 38, 9, 4)(x, y), quayWall: true,
     houses: { walls: [M.ochre, M.cream, mat('#f0d8a8', 0.12, 0.28), M.white, M.pink], flat: 1, h0: 7, hr: 7, where: (x, y) => x + y > -50 },
     build(c) {
@@ -8806,7 +8933,7 @@ const PORTSPEC = {
     boats: [[48, 12, '#8a2a7a'], [-14, 20, '#ffffff']],
   },
   alexandria: {   // the Great Harbour: Pharos with its tower going up in scaffolding and a fire on top, the long causeway, a flat city of palaces and palms, and the king's grain on the quay
-    seed: 67, water: (x, y) => ((x - y > -26 && x + y > -48) && !(x - y >= -16 && x - y <= -12)) || (x + y < -74),
+    seed: 67, style: { ...PALS.egypt, quay: 'pale', street: 'pale', front: 'stoa', mix: { grid: 3, garden: 2 }, garden: 'palm', mirror: true }, water: (x, y) => ((x - y > -26 && x + y > -48) && !(x - y >= -16 && x - y <= -12)) || (x + y < -74),
     top: (x, y) => x + y <= -48 && x + y > -74 && x - y > -40 ? 2 : (x - y >= -16 && x - y <= -12 && x + y > -48) ? 1 : x - y <= -26 ? 2 : 0,
     noCap: true, cliff: '#e8e0cc', earth: ['#f0e2c0', '#e6d4ac'], terrace: mat('#f4ecd8'),
     houses: { walls: [M.white, M.cream, mat('#f8f0e0', 0.1, 0.24)], flat: 1, trees: 0.3, tree: (Wd, x, y, z) => palmT(Wd, x, y, z, 6) },
