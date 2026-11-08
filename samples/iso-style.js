@@ -906,15 +906,145 @@ function drawSeaIso(W, H, t, o) {
   if (storm > 0.3) { G.fillStyle = 'rgba(220,228,236,0.6)'; for (let k = 0; k < 60; k++) { const x = (hash(k) * W + t * 40) % W, y = (hash(k + 9) * H + t * 120) % H; G.fillRect(Math.floor(x), Math.floor(y), 1, 3); } }
 }
 
+// ---------- Symi: a night on the beach, the ship drawn up, the crew round a fire, sponges drying on the rocks ----------
+function vn(x, y, s) {   // smooth value noise
+  const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, h = (a, b) => hash(a * 12.99 + b * 78.23 + s * 37.7), u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+  return (h(xi, yi) * (1 - u) + h(xi + 1, yi) * u) * (1 - v) + (h(xi, yi + 1) * (1 - u) + h(xi + 1, yi + 1) * u) * v;
+}
+PERSON.sit = ['..KKK..', '.KhhhK.', '.KhssK.', '.KsseK.', '..KsK..', '.KrrrK.', 'KsrrrsK', 'KrRrRrK', 'KrrrrrK', '.KKKKK.'];
+// The beach runs straight across the picture: a tile is (u, v) = (x - y, x + y) on the screen, and the shore is a line of v.
+function symiWorld(W, H) {
+  const OX = Math.round(W * 0.5), OY = Math.round(H * 0.5), vs0 = Math.round(H * (H > W * 0.8 ? 0.74 : 0.64)) - OY, seed = 41;   // on a phone the story text covers the top, so the beach sits lower
+  const sv = u => vs0 + Math.round(1.6 * Math.sin(u / 11) + 1.1 * Math.sin(u / 4.7 + 1)) + Math.max(0, Math.round((Math.abs(u - 4) - 44) * 0.9));   // a cove, the headlands coming forward at each end
+  const rocky = u => Math.abs(u - 4) > 38;
+  const dist = (x, y) => sv(x - y) - (x + y);
+  const hAt = (x, y) => { const d = dist(x, y); if (d < 0) return null; const u = x - y, r = rocky(u); if (!r && d < 11) return d < 6 ? 0 : 1; return Math.min(Math.floor((d - (r ? 0 : 9)) / (r ? 1.5 : 2.6)) + 1, 2 + Math.floor(vn(x / 15, y / 11, seed) * 15)); };
+  const at = (u, dv) => { let v = sv(u) - dv; if ((u + v) & 1) v--; return [(u + v) / 2, (v - u) / 2]; };
+  const Wd = makeWd(), { put, box, face } = Wd, g = Wd.newId(), hts = new Map();
+  const sand = mat('#f0dcb0', 0.14, 0.3), sand2 = mat('#e4cc9c', 0.14, 0.3), peb = mat('#c8c0b0', 0.16, 0.32), rock = mat('#d0c4a8', 0.18, 0.38), rock2 = mat('#bcae94', 0.18, 0.38), cliff = mat('#b4a68a', 0.2, 0.42);
+  const scrub = mat('#8aa858', 0.2, 0.42), scrub2 = mat('#6a9048', 0.2, 0.42), thyme = mat('#a87ab8', 0.16, 0.34), path = mat('#e8d8b4', 0.14, 0.3);
+  const umin = Math.floor(-OX / 2) - 4, umax = Math.ceil((W - OX) / 2) + 4, vmin = -OY - 30;
+  for (let u = umin; u <= umax; u++) for (let v = vmin; v <= sv(u) + 3; v++) {
+    if ((u + v) & 1) continue;
+    const x = (u + v) / 2, y = (v - u) / 2, d = dist(x, y);
+    if (d < 0) { if (d >= -3 && rocky(u) && hash(x * 1.3 + y * 7.1) < 0.5) { const id = Wd.newId(); put(x, y, -1, pm(x + y, 2) ? M.grey : M.greyD, id); if (hash(x * 3.1 + y) < 0.3) put(x, y, 0, M.grey, id); } continue; }
+    const h = hAt(x, y); if (OY + v - 2 * h < -8) continue;
+    hts.set(x + ',' + y, h);
+    const f = (dx, dy) => { const q = hAt(x + dx, y + dy); return q == null ? -2 : q; }, low = Math.min(f(1, 0), f(0, 1), h);
+    const r = rocky(u), sc = vn(x / 7, y / 6, seed + 3), zig = pm(Math.round(u + Math.sin(v / 5) * 6), 31) === 0 && d > 12;
+    const top = h === 0 ? (hash(x * 0.7 + y * 1.9) < 0.18 ? peb : pm(x + y, 3) ? sand : sand2) : h === 1 && !r ? (hash(x + y * 3.3) < 0.4 ? peb : sand2)
+      : zig ? path : sc > 0.6 ? (hash(x * 2.3 + y) < 0.07 ? thyme : pm(x * 3 + y, 4) ? scrub : scrub2) : pm(x + 2 * y, 5) ? rock : rock2;
+    for (let z = Math.min(h, Math.max(-1, low + 1)); z <= h; z++) put(x, y, z, z === h ? top : z < 1 ? M.grey : cliff, g);
+  }
+  const top = (x, y) => hts.has(x + ',' + y) ? hts.get(x + ',' + y) : 0;
+  // the spring above the beach: a spout in a little wall, a stone basin, jars waiting
+  { const [x, y] = at(-14, 17), z = top(x, y) + 1, sp = box(x - 2, y - 1, z, 5, 1, 3, M.stoneD); box(x - 1, y, z, 3, 2, 1, M.stone, sp); for (let i = -1; i < 2; i++) put(i + x, y, z + 1, mat('#5ac0f0', 0.1, 0.2), sp); face(x, y - 1, z + 2, 'l', INK);
+    for (const [dx, dy] of [[3, 1], [4, 0], [3, -1]]) { const jz = top(x + dx, y + dy) + 1, j = Wd.newId(); put(x + dx, y + dy, jz, mat('#e8763a', 0.16, 0.34), j); put(x + dx, y + dy, jz + 1, mat('#c85a2a'), j); } }
+  // the divers' hut, with a lamp at the door, and their sponges drying on the rocks by the water
+  const [hx, hy] = at(40, 13), hz_ = top(hx, hy) + 1;
+  house(Wd, hx, hy, hz_, 5, 4, 4, M.cream, { flat: true, door: '#5a3a2a', seed: 0.2 });
+  const sponge = [mat('#e0b050', 0.2, 0.4), mat('#c89838', 0.2, 0.4), mat('#d8a848', 0.2, 0.4)];
+  for (let k = 0; k < 7; k++) {
+    const [x, y] = at(20 + k * 4, 2 + (k % 3)), z = Math.max(0, top(x, y)) + 1, rk = box(x, y, z, 2 + (k % 2), 2, 1, k % 2 ? M.grey : M.greyD);
+    for (let i = 0; i < 2 + (k % 2); i++) if (hash(k * 3 + i) < 0.8) put(x + i, y + (i % 2), z + 1, sponge[(k + i) % 3], rk);
+  }
+  const [bx, by] = at(52, -6); smallBoat(Wd, bx, by, '#3a8ad8', false);
+  // dry-stone walls holding up terraces on the slope, olives and carobs on them
+  const used = new Set();
+  for (const [k, h] of hts) {
+    const [x, y] = k.split(',').map(Number), u = x - y, d = dist(x, y);
+    if (d > 14 && Math.abs(u - 4) < 40 && pm(Math.round(d), 9) === 0 && hash(x * 0.9 + y * 1.7) < 0.85) { const id = Wd.newId(); put(x, y, h + 1, pm(x, 2) ? M.stone : M.stoneD, id); used.add(k); }
+  }
+  for (const [k, h] of hts) {
+    const [x, y] = k.split(',').map(Number), d = dist(x, y), r = hash(x * 0.37 + y * 1.91 + 5);
+    if (d < 13 || pm(x, 5) || pm(y, 4) || used.has(k) || r > 0.3 || vn(x / 12, y / 9, 77) < 0.45) continue;
+    if (r < 0.05) box(x, y, h + 1, 1, 1, 4, M.cypress); else tree(Wd, x, y, h + 1, 0.6 + r * 0.9);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) used.add((x + i) + ',' + (y + j));
+  }
+  for (const [u, dv, w2] of [[30, 20, 4], [50, 9, 4], [-24, 34, 3]]) { const [x, y] = at(u, dv); if (hts.has(x + ',' + y)) house(Wd, x, y, top(x, y) + 1, w2, 3, 3 + (u % 2 ? 1 : 0), u > 40 ? M.white : M.cream, { flat: true, door: '#5a3a2a', seed: 0.5 }); }
+  { const [x, y] = at(30, 9), z = top(x, y) + 1, rack = Wd.newId(); for (const dx of [0, 6]) box(x + dx, y, z, 1, 1, 4, M.woodD, rack); for (let dx = 0; dx <= 6; dx++) { put(x + dx, y, z + 4, M.woodD, rack); if (dx > 0 && dx < 6) put(x + dx, y, z + 3, sponge[dx % 3], rack); } }
+  { const [x, y] = at(14, 44); if (hts.has(x + ',' + y)) { const z = top(x, y) + 1, sh = box(x, y, z, 3, 3, 3, M.white); put(x + 1, y + 1, z + 3, M.roof, sh); face(x + 1, y + 2, z, 'l', '#3a2418'); } }
+  return { V: Wd.V, OX, OY, at, top, sv,
+    fire: (() => { const [x, y] = at(10, 6); return [x, y, top(x, y)]; })(), lamp: [hx + 2, hy + 4, hz_ + 1],
+    ship: (() => { const [x, y] = at(-36, 7); return [x, y]; })(), glaukos: (() => { const [x, y] = at(-46, 2); return [x, y, top(x, y) + 1]; })(),
+    goats: [[-20, 26], [-6, 40], [40, 30], [18, 34]].map(([u, dv]) => { const [x, y] = at(u, dv); return [x, y, top(x, y) + 1]; }),
+    divers: [[24, 6], [32, 5]].map(([u, dv]) => { const [x, y] = at(u, dv); return [x, y, top(x, y) + 1]; }), swimmer: at(36, -12) };
+}
+const SYMI = { key: null };
+function drawSymiIso(W, H, t) {
+  const kind = shipKind(), key = W + 'x' + H + ':' + kind;
+  if (SYMI.key !== key) {
+    const w = symiWorld(W, H); SYMI.key = key; SYMI.w = w; SYMI.R = raster(w.V, W, H, w.OX, w.OY, false);
+    SYMI.cv = document.createElement('canvas'); SYMI.cv.width = W; SYMI.cv.height = H; SYMI.ctx = SYMI.cv.getContext('2d'); SYMI.img = SYMI.ctx.createImageData(W, H); SYMI.dep = new Float32Array(W * H);
+  }
+  const w = SYMI.w, Rw = SYMI.R, out = SYMI.img.data, dep = SYMI.dep, { OX, OY } = w;
+  const sx = (x, y) => OX + (x - y) * 2, sy = (x, y, z) => OY + x + y - 2 * z;
+  // the water first, the same living surface as at sea, then the island over it
+  const ST = seaTex(), T = ST.frames[Math.floor(t * 8) % ST.n], c3 = c => { const n = parseInt(c.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+  const water = '#3a8aa8', tones = [mix(water, '#1a3a5a', 0.14), water, mix(water, '#ffffff', 0.17), mix(water, '#ffffff', 0.4)].map(c3), drift = Math.round(t * 1.5);
+  for (let y = 0; y < H; y++) { const rowT = pm(y + drift, ST.h) * ST.w, rowP = pm((y + drift) >> 1, ST.ph) * ST.pw; for (let x = 0; x < W; x++) { let tn = T[rowT + pm(x + 2 * drift, ST.w)] + ST.patch[rowP + pm((x + 2 * drift) >> 1, ST.pw)]; const c = tones[tn < 0 ? 0 : tn > 3 ? 3 : tn], k = (y * W + x) * 4; out[k] = c[0]; out[k + 1] = c[1]; out[k + 2] = c[2]; out[k + 3] = 255; } }
+  for (let i = 0; i < W * H; i++) if (Rw.depth[i] > -1e9) { out[i * 4] = Rw.rgba[i * 4]; out[i * 4 + 1] = Rw.rgba[i * 4 + 1]; out[i * 4 + 2] = Rw.rgba[i * 4 + 2]; }
+  dep.set(Rw.depth);
+  const drawAt = (sp, x, y, z, flip) => {
+    const X = Math.round(sx(x, y)) + 2 - (sp.w >> 1), Y = Math.round(sy(x, y, z)) + 2 - sp.h, base = x + y + z + 0.6;
+    for (let j = 0; j < sp.h; j++) for (let i = 0; i < sp.w; i++) { const si = (j * sp.w + (flip ? sp.w - 1 - i : i)) * 4; if (!sp.data[si + 3]) continue; const px_ = X + i, py = Y + j; if (px_ < 0 || py < 0 || px_ >= W || py >= H) continue; const k = py * W + px_, d = base + (sp.h - 1 - j) / 2; if (d < dep[k] - 0.3) continue; dep[k] = Math.max(dep[k], d); out[k * 4] = sp.data[si]; out[k * 4 + 1] = sp.data[si + 1]; out[k * 4 + 2] = sp.data[si + 2]; }
+  };
+  const drawVox = (m, x, y, z) => {
+    const X0 = Math.round(sx(x, y)) - m.ox, Y0 = Math.round(sy(x, y, z)) - m.oy, base = x + y + z;
+    for (let j = 0; j < m.h; j++) { const py = Y0 + j; if (py < 0 || py >= H) continue; for (let i = 0; i < m.w; i++) { const s = j * m.w + i; if (!m.rgba[s * 4 + 3]) continue; const px_ = X0 + i; if (px_ < 0 || px_ >= W) continue; const k = py * W + px_, d = base + m.depth[s]; if (d < dep[k] - 0.3) continue; dep[k] = d; out[k * 4] = m.rgba[s * 4]; out[k * 4 + 1] = m.rgba[s * 4 + 1]; out[k * 4 + 2] = m.rgba[s * 4 + 2]; } }
+  };
+  // the ship drawn up on the sand, bow to the sea; the crew round the fire; Glaukos apart, looking north; the divers
+  const all = [], ship = voyShip(kind, 'furled', false, 0), mt = ship.meta, [fx, fy, fz] = w.fire;
+  all.push(['v', ship, w.ship[0], w.ship[1], 0]);
+  const ring = [[-2, 0], [2, 0], [0, -2], [0, 2], [-1.5, 1.6], [1.6, -1.5]];
+  ring.forEach(([dx, dy], i) => all.push(['p', person(look(150 + i), 'sit'), fx + dx, fy + dy, fz + 1, dx > 0 || dy < 0]));
+  const GL = SYMI.gl || (SYMI.gl = person({ skin: '#c88a58', hair: '#e8e8e8', robe: '#8a6a4a', style: 'short', beard: 2 }, 'stand'));
+  all.push(['p', GL, w.glaukos[0], w.glaukos[1], w.glaukos[2], true]);
+  const DV = SYMI.dv || (SYMI.dv = [person({ skin: '#9a6a42', hair: '#1a1210', robe: '#9a6a42', style: 'short' }, 'stand', 'sack'), person({ skin: '#a87448', hair: '#2a1d14', robe: '#7a5034', style: 'curly' }, 'stand')]);
+  w.divers.forEach(([x, y, z], i) => all.push(['p', DV[i], x, y, z, i === 1]));
+  const GOAT = SYMI.goat || (SYMI.goat = [sprite(['.KK.....', 'KwhK....', '.KwKKKK.', '.KwwwwwK', '..KwwwwK', '..K.K.K.'], { K: INK, w: '#f0ece0', h: '#c8b8a0' }), sprite(['.KK.....', 'KbhK....', '.KbKKKK.', '.KbbbbbK', '..KbbbbK', '..K.K.K.'], { K: INK, b: '#8a5a3a', h: '#c8b8a0' })]);
+  w.goats.forEach(([x, y, z], i) => all.push(['p', GOAT[i % 2], x + (Math.floor(t * 0.3 + i) % 3 === 0 ? 0.5 : 0), y, z, i % 2 === 1]));
+  all.sort((p, q) => (p[2] + p[3] + p[4]) - (q[2] + q[3] + q[4]));
+  for (const e of all) if (e[0] === 'v') drawVox(e[1], e[2], e[3], e[4]); else drawAt(e[1], e[2], e[3], e[4], e[5]);
+  // a diver coming up out of the water with his stone, and the rings he makes
+  { const [x, y] = w.swimmer, up = Math.sin(t * 0.7) > 0.2, X = Math.round(sx(x, y)), Y = Math.round(sy(x, y, 0)); const put = (a, b, c) => { if (a >= 0 && b >= 0 && a < W && b < H) { const k = (b * W + a) * 4, v = c3(c); out[k] = v[0]; out[k + 1] = v[1]; out[k + 2] = v[2]; } };
+    const r = 2 + Math.floor(t * 3) % 4; for (let i = -r * 2; i <= r * 2; i++) { const yy = Math.round(Math.sqrt(Math.max(0, r * r - (i / 2) * (i / 2)))); put(X + i, Y - yy + 1, '#cfeaf2'); put(X + i, Y + yy + 1, '#cfeaf2'); }
+    if (up) { put(X, Y - 1, INK); put(X + 1, Y - 1, INK); put(X - 1, Y, INK); put(X, Y, '#1a1210'); put(X + 1, Y, '#1a1210'); put(X + 2, Y, INK); put(X, Y + 1, '#9a6a42'); put(X + 1, Y + 1, '#9a6a42'); } }
+  // night over everything, except where the fire and the lamp reach; the fire burns, and the moon lays a path on the sea
+  const flick = 0.92 + Math.sin(t * 9) * 0.04 + Math.sin(t * 23) * 0.03, FX = sx(fx, fy) + 2, FY = sy(fx, fy, fz + 1) + 1, LX = sx(w.lamp[0], w.lamp[1]) + 2, LY = sy(w.lamp[0], w.lamp[1], w.lamp[2]);
+  const rF = Math.min(W, H) * 0.36 * flick, rL = 22, night = [0.5, 0.56, 0.84], warm = [1.14, 0.98, 0.76];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const k = (y * W + x) * 4, dx = (x - FX) / rF, dy = (y - FY) / (rF * 0.62), dlx = (x - LX) / rL, dly = (y - LY) / (rL * 0.62);
+    let f = Math.max(0, 1 - Math.sqrt(dx * dx + dy * dy)), fl = Math.max(0, 1 - Math.sqrt(dlx * dlx + dly * dly)) * 0.75;
+    f = Math.floor(Math.max(f, fl) * 5) / 5;   // light in bands, as pixel art does it
+    for (let c = 0; c < 3; c++) out[k + c] = Math.min(255, out[k + c] * (night[c] + (warm[c] - night[c]) * f));
+  }
+  { const put = (a, b, c) => { a = Math.round(a); b = Math.round(b); if (a >= 0 && b >= 0 && a < W && b < H && dep[b * W + a] === -1e9) { const k = (b * W + a) * 4, v = c3(c); out[k] = v[0]; out[k + 1] = v[1]; out[k + 2] = v[2]; } };
+    const mx = W * 0.2, my = H * 0.9, f8 = Math.floor(t * 6);
+    for (let k = 0; k < 150; k++) { const a = hash(k * 1.37) * 6.283, r = Math.sqrt(hash(k * 2.71)), X = mx + Math.cos(a) * r * W * 0.2, Y = my + Math.sin(a) * r * H * 0.1; if (hash(k * 0.73 + f8 * 3.1) > 0.7 - r * 0.3) continue; put(X, Y, r < 0.4 ? '#ffffff' : '#c8d8f0'); if (r < 0.5) put(X + 1, Y, '#c8d8f0'); } }
+  { const put = (a, b, c) => { a = Math.round(a); b = Math.round(b); if (a >= 0 && b >= 0 && a < W && b < H) { const k = (b * W + a) * 4, v = c3(c); out[k] = v[0]; out[k + 1] = v[1]; out[k + 2] = v[2]; } };
+    for (let i = -3; i <= 3; i++) { put(FX + i, FY + 1, '#3a2418'); put(FX + i, FY + 2, i % 2 ? '#5a3420' : '#3a2418'); }
+    const f = Math.floor(t * 8) % 3;
+    for (let i = -2; i <= 2; i++) for (let j = 0; j < 4 - Math.abs(i); j++) put(FX + i, FY - j, j > 1 ? '#ffcf5a' : '#ff8a2a');
+    put(FX - (f === 1 ? 1 : 0), FY - 4, '#fff2c0'); put(FX + (f === 2 ? 1 : 0), FY - 5, '#ffe7a0');
+    for (let k = 0; k < 4; k++) { const a = (t * 0.8 + k / 4) % 1; put(FX + Math.round(Math.sin(t * 3 + k * 2) * 3), FY - 7 - Math.round(a * 22), a < 0.5 ? '#ffb04a' : '#c86a3a'); }
+    put(LX, LY - 1, '#ffd27a'); put(LX, LY - 2, '#ffe7a0'); }
+  SYMI.ctx.putImageData(SYMI.img, 0, 0);
+  G.drawImage(SYMI.cv, 0, 0);
+}
+
 // ---------- hooking into the game ----------
 PORT_SCENES.rhodes = drawRhodesIso;
 drawRhodes = drawRhodesIso;
 drawSea = drawSeaIso;
+const drawCamp0 = drawCamp;
+drawCamp = function (W, H, t, stop) { return stop === 'symi' ? drawSymiIso(W, H, t) : drawCamp0(W, H, t, stop); };
 const fit0 = fitPixels;
 fitPixels = function (cv, cssW, cssH, cols) {   // Rhodes, the sea and the title want more, smaller pixels: about 280 across, never bigger than 3 points, each a whole number of screen pixels
-  const ours = (cv === els.scene && S && ((S.phase === 'port' && (S.port || 'rhodes') === 'rhodes') || (S.phase === 'sea' && S.voyage))) || cv === els.tcanvas;
+  const camp = cv === els.scene && S && S.phase === 'camp' && S.camp && S.camp.stop === 'symi';
+  const ours = camp || (cv === els.scene && S && ((S.phase === 'port' && (S.port || 'rhodes') === 'rhodes') || (S.phase === 'sea' && S.voyage))) || cv === els.tcanvas;
   if (!ours) return fit0(cv, cssW, cssH, cols);
-  const dpr = window.devicePixelRatio || 1, dev = Math.max(1, Math.min(Math.round(cssW * dpr / 280), Math.round(3 * dpr))), P = dev / dpr, W = Math.ceil(cssW / P), H = Math.ceil(cssH / P);
+  const across = camp ? 200 : 280, dpr = window.devicePixelRatio || 1, dev = Math.max(1, Math.min(Math.round(cssW * dpr / across), Math.round((camp ? 4 : 3) * dpr))), P = dev / dpr, W = Math.ceil(cssW / P), H = Math.ceil(cssH / P);
   if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
   const sw = W * P + 'px', sh = H * P + 'px';
   if (cv.style.width !== sw) cv.style.width = sw;
