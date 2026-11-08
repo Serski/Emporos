@@ -80,6 +80,7 @@ The history of the period is real and stays in the background: the siege of Rhod
 - `tools/build.mjs` creates `index.html` from `src/game.html`.
 - `tests/sim.js` plays Chapters I to IV in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
 - `samples/ports-detailed.html` and `samples/ports-flat.html` are art samples, not part of the game. Each draws Rhodes, Piraeus and Syracuse in one style: detailed at 320 × 180 with shading ramps, coloured outlines and dithering, with a merchant close up; or flat at 224 × 126, the game's own look a step bigger, with each port's merchants as whole figures. Syracuse belongs to Chapter VI, which is not written yet, so its traders are placeholders. `samples/before-after.png` puts the detailed Rhodes beside the harbour as the game draws it now.
+- `samples/rhodes-iso.html` is an isometric sample: the harbour at Rhodes as a little block of the world, built from small cubes with black outlines and bright flat colours, and full of small people.
 - `samples/rhodes-painterly.html` is an earlier experiment with lit, painterly pixels at 400 × 225, kept for reference.
 - `tests/play.js` plays all four chapters in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
 
