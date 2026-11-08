@@ -7687,20 +7687,17 @@ function shadowOf(m, svx, svy) {   // where a model's shadow falls on the water:
   return s;
 }
 let CLOUDS = null;
-const cloudShapes = () => CLOUDS || (CLOUDS = [0, 1, 2].map(k => {   // white clouds with a blue-grey belly and a black outline, eBoy fashion
-  const w = 46 + k * 12, h = 22 + k * 3, a = new Uint8Array(w * h), n = 3 + k;
-  for (let j = 0; j < n; j++) {
-    const cx = 8 + j * (w - 16) / (n - 1), cy = h * 0.58 - (j % 2) * 3 - (j === 1 ? 2 : 0), rx = (7 + (j % 2) * 3 + hash(k * 3.1 + j) * 3) * 1.15, ry = rx * 0.72;
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const dx = (x - cx) / rx, dy = (y - cy) / ry; if (dx * dx + dy * dy <= 1 && y < h - 3) a[y * w + x] = 1; }
+const cloudModels = () => CLOUDS || (CLOUDS = [0, 1, 2].map(k => model(Wd => {   // puffs of cubes, long along the ship's course: white on top, blue-grey sides, outlined
+  const id = Wd.newId(), n = 3 + k, L = 10 + k * 4, blobs = [];
+  for (let j = 0; j < n; j++) { const r = q => hash(k * 7.3 + j * 3.1 + q * 1.7), mid = 1 - Math.abs(j - (n - 1) / 2) / n; blobs.push([1 + j * (L - 2) / (n - 1), (r(1) - 0.5) * 3, 3.4 + r(2) * 1.6 + mid * 1.4, 3.4 + r(3) * 1.4 + mid * 1.2, 2.6 + mid * 3.6 + r(4) * 1.2]); }
+  for (let j = 0; j < n - 1; j++) { const r = q => hash(k * 5.1 + j * 2.3 + q * 3.7); blobs.push([2 + j * (L - 2) / (n - 1) + r(1) * 3, (r(2) - 0.5) * 2, 2.2 + r(3), 2 + r(4), 4.5 + r(5) * 2.5]); }   // puffs on top
+  const top = { t: '#ffffff', l: '#e2eaf6', r: '#bccae2' }, low = { t: '#f4f8ff', l: '#ccd8ec', r: '#a6b6d2' };
+  for (let x = -6; x <= L + 6; x++) for (let y = -7; y <= 7; y++) {
+    let h = 0;
+    for (const [cx, cy, rx, ry, hm] of blobs) { const d = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2; if (d < 1) h = Math.max(h, Math.max(1, Math.round(hm * Math.sqrt(1 - d)))); }
+    for (let z = 0; z < h; z++) Wd.put(x, y, z, z === 0 && h > 1 ? low : top, id);
   }
-  const data = new Uint8ClampedArray(w * h * 4), set = (i, c) => { const n2 = parseInt(c.slice(1), 16); data[i * 4] = n2 >> 16 & 255; data[i * 4 + 1] = n2 >> 8 & 255; data[i * 4 + 2] = n2 & 255; data[i * 4 + 3] = 255; };
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const i = y * w + x, inside = a[i], near = (dx, dy) => { const X = x + dx, Y = y + dy; return X >= 0 && Y >= 0 && X < w && Y < h && a[Y * w + X]; };
-    if (inside) set(i, !near(0, 2) || !near(0, 3) ? '#d4dff0' : !near(0, -2) ? '#ffffff' : '#f6f9ff');
-    else if (near(1, 0) || near(-1, 0) || near(0, 1) || near(0, -1)) set(i, INK);
-  }
-  return { w, h, data, mask: a };
-}));
+})));
 const DOLPHIN = sprite(['....KK...', '...KggK..', '.KKgggKKK', 'KgggwwggK', '.KKK.KKK.'], { K: INK, g: '#6a8aa8', w: '#dce8f0' });
 const PIRATE = [person({ skin: '#c88a58', hair: '#1b130e', robe: '#3a3440', style: 'short', beard: 2, hat: 'pilos', hatC: '#a8aeb4' }, 'stand'), person({ skin: '#d8985e', hair: '#2a1d14', robe: '#8a3a2a', style: 'curly', beard: 1 }, 'stand')];
 const ARCHER = person({ skin: '#c88a58', hair: '#1b130e', robe: '#e8e0d0', style: 'short', hat: 'pilos', hatC: '#c9ced3' }, 'stand');
@@ -7731,13 +7728,13 @@ function drawSeaIso(W, H, t, o) {
   // a shadow falls, for each step up, this far across the picture: to the right in the morning, down at noon, to the left in the evening
   const sunC = clamp(o.clock, 0, 1), sunLen = 1 + 2 * Math.abs(sunC - 0.5) * 2, dsx = Math.cos(Math.PI * sunC) * sunLen, dsy = (0.3 + 0.7 * Math.sin(Math.PI * sunC)) * sunLen * 0.6;
   const svx = (dsx / 2 + dsy) / 2, svy = (dsy - dsx / 2) / 2, shine = storm < 0.6;   // the same, as steps across the sea
-  const gx = W * (0.14 + 0.72 * sunC), gy = H * (0.1 + 0.1 * (1 - Math.sin(Math.PI * sunC))), rx = W * 0.22, ry = H * 0.12;
+  const S5 = Math.sqrt(5), mn = Math.min(W, H), gD = mn * 1.25 * (sunC - 0.5), gx = W * 0.5 + gD * 2 / S5, gy = H * (title ? 0.3 : 0.34) + gD / S5, ru = mn * 0.36, rv = mn * 0.11;
   const ST = seaTex(), T = ST.frames[Math.floor(t * 12) % ST.n], fxo = Math.round(2 * flow), fyo = Math.round(flow);
   for (let y = 0; y < H; y++) {
-    const rowT = pm(y + fyo, ST.h) * ST.w, rowP = pm((y + fyo) >> 1, ST.ph) * ST.pw, dy = (y - gy) / ry;
+    const rowT = pm(y + fyo, ST.h) * ST.w, rowP = pm((y + fyo) >> 1, ST.ph) * ST.pw, dy = y - gy;
     for (let x = 0; x < W; x++) {
       let tn = T[rowT + pm(x + fxo, ST.w)] + ST.patch[rowP + pm((x + fxo) >> 1, ST.pw)];
-      if (shine) { const dx = (x - gx) / rx; if (dx * dx + dy * dy < 0.35) tn++; }
+      if (shine) { const dx = x - gx, u = (dx * 2 + dy) / S5 / ru, v = (dy * 2 - dx) / S5 / rv; if (u * u + v * v < 0.35) tn++; }
       const col = tones[tn < 0 ? 0 : tn > 3 ? 3 : tn], k = (y * W + x) * 4; out[k] = col[0]; out[k + 1] = col[1]; out[k + 2] = col[2]; out[k + 3] = 255;
     }
   }
@@ -7745,10 +7742,10 @@ function drawSeaIso(W, H, t, o) {
   if (shine) {   // the glitter itself, twinkling
     const gc = c3(mix('#fffbe0', pal.sun, dusk * 0.8)), f8 = Math.floor(t * 8);
     for (let k = 0; k < 260; k++) {
-      const a = hash(k * 1.37) * 6.283, r = Math.sqrt(hash(k * 2.71)), X = Math.round(gx + Math.cos(a) * r * rx), Y = Math.round(gy + Math.sin(a) * r * ry);
+      const a = hash(k * 1.37) * 6.283, r = Math.sqrt(hash(k * 2.71)), u = Math.cos(a) * r * ru, v = Math.sin(a) * r * rv, X = Math.round(gx + (2 * u - v) / S5), Y = Math.round(gy + (u + 2 * v) / S5);
       if (hash(k * 0.73 + f8 * 3.1) > 0.75 - r * 0.35) continue;
-      const len = r < 0.35 ? 3 : r < 0.7 ? 2 : 1;
-      for (let q = 0; q < len; q++) if (X + q >= 0 && X + q < W && Y >= 0 && Y < H) paint(Y * W + X + q, r < 0.3 && q === 1 ? WH : gc);
+      const len = r < 0.35 ? 4 : r < 0.7 ? 3 : 2;   // each glint a little dash along the same slant
+      for (let q = 0; q < len; q++) { const xx = X + q, yy = Y + (q >> 1); if (xx >= 0 && xx < W && yy >= 0 && yy < H) paint(yy * W + xx, r < 0.3 && q === 1 ? WH : gc); }
     }
   }
   if (rough) {   // white horses when the wind is up
@@ -7761,8 +7758,7 @@ function drawSeaIso(W, H, t, o) {
   const all = [], umin = Math.floor(-OX / 2) - 4, umax = Math.ceil((W - OX) / 2) + 4;
   const drift = title ? pm((o.scroll || 0) * 0.12, 600) : (o.scroll || 0) * 0.12;
   // other boats about their business, and further out, ships
-  const B = boats(), lanes = [['fish', mt.HW + 8, 0.5, 30, -1, 81], ['sail', -(mt.HW + 20), 0.6, 150, 1, 0], ['sail', mt.HW + 30, 0.8, 200, 1, 0]];
-  if (title) lanes.push(['sail', -(mt.HW + 22), 0.5, 40, -1, 0], ['fish', -(mt.HW + 36), 0.35, 150, 1, 84], ['row', -(mt.HW + 12), 0.3, 220, 1, 85]);
+  const B = boats(), lanes = title ? [] : [['fish', mt.HW + 8, 0.5, 30, -1, 81], ['sail', -(mt.HW + 20), 0.6, 150, 1, 0], ['sail', mt.HW + 30, 0.8, 200, 1, 0]];   // on the title page, only our own ship
   for (const [kd, y, v, off, dir, rider] of lanes) {
     const span = umax - umin + 90, x = pm(t * v * dir - drift + off, span) + umin + y - 40;
     all.push(['v', B[kd][dir > 0 ? 0 : 1], x, y, 0, dir, false]); if (rider) all.push(['p', folk(rider, null)[0], x + 3, y, 1, dir < 0]);
@@ -7825,19 +7821,35 @@ function drawSeaIso(W, H, t, o) {
   { const X = sx(mt.top[0], mt.top[1]) + 2, Y = sy(mt.top[0], mt.top[1], mt.top[2] + bob); for (let i = 0; i < 7; i++) put(X - 1 - i, Y - 1 + Math.round(Math.sin(t * 6 - i) * (i / 7)), i < 4 ? P.band : mix(P.band, '#2a2850', 0.3)); }
   if (o.patrol) { const x = mt.L * 0.3 + (1 - o.patrol.near) * 90 + 34, y = mt.HW + 9, X = sx(x, y) + 2, Y = sy(x, y, 8); for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) put(X + 1 + i, Y + j + Math.round(Math.sin(t * 4 + i) * (i / 5)), j === 1 && i > 1 ? '#c9a040' : '#efe3cc'); }
   // gulls, each with a little shadow on the water
-  for (let k = 0; k < (title ? 6 : 4); k++) {
-    const x = Math.round(((t * (8 + k * 3) + k * 90) % (W + 20)) - 10), y = 10 + k * Math.round(H / 7) + Math.round(Math.sin(t * 1.5 + k) * 3), g = GULL[Math.floor(t * 3 + k) % 2];
+  const lane = (c, s) => c >= 0 ? [c + 2 * s, s] : [2 * s, -c / 2 + s];   // a point on the line X - 2Y = c, s steps down it to the right
+  for (let k = 0; k < (title ? 5 : 4); k++) {
+    const c = -2 * H + (k + 0.5) / (title ? 5 : 4) * (W + 2 * H), Ls = (c >= 0 ? (W - c) / 2 : Math.min(W / 2, H + c / 2)) + 20, dir = k % 2 ? -1 : 1, s = pm(t * (4 + k) * dir + k * 37, Ls) - 10;
+    const [gx0, gy0] = lane(c, s), x = Math.round(gx0), y = Math.round(gy0) + Math.round(Math.sin(t * 1.5 + k) * 2), g = GULL[Math.floor(t * 3 + k) % 2];
     const dxs = Math.round((svx - svy) * 2 * 8), dys = 16 + Math.round((svx + svy) * 8);
     for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.data[(j * g.w + i) * 4 + 3]) { const X = x + i + dxs, Y = y + j + dys; if (X >= 0 && Y >= 0 && X < W && Y < H) shade(Y * W + X, 0.7); }
     for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.data[(j * g.w + i) * 4 + 3]) put(x + i, y + j, INK);
   }
   // clouds drifting over, their shadows sliding across the sea and over the ship
-  { const CL = cloudShapes(), nC = storm > 0.3 ? 5 : 3, A = 26, dxs = Math.round((svx - svy) * 2 * A), dys = Math.round(2 * A + (svx + svy) * A), ys = [0.02, 0.2, 0.84, 0.34, 0.94];
-    const cl2 = [];
-    for (let k = 0; k < nC; k++) { const cl = CL[k % 3], v = 3 + k * 1.3 + sp * 1.5, x = Math.round(W + 40 - pm(t * v + k * 137 + 40, W + cl.w + 80)), y = Math.round(H * ys[k]); cl2.push([cl, x, y]); }
-    for (const [cl, x, y] of cl2) for (let jj = 0; jj < Math.ceil(cl.h * 0.7); jj++) { const j = Math.min(cl.h - 1, Math.floor(jj / 0.7)), Y = y + dys + jj; if (Y < 0 || Y >= H) continue; for (let i = 0; i < cl.w; i++) { if (!cl.mask[j * cl.w + i]) continue; const X = x + dxs + i; if (X >= 0 && X < W) shade(Y * W + X, 0.74); } }
-    const grey = storm > 0.3;
-    for (const [cl, x, y] of cl2) for (let j = 0; j < cl.h; j++) for (let i = 0; i < cl.w; i++) { const si = (j * cl.w + i) * 4; if (!cl.data[si + 3]) continue; const X = x + i, Y = y + j; if (X < 0 || Y < 0 || X >= W || Y >= H) continue; const k = Y * W + X; out[k * 4] = grey ? cl.data[si] * 0.72 : cl.data[si]; out[k * 4 + 1] = grey ? cl.data[si + 1] * 0.74 : cl.data[si + 1]; out[k * 4 + 2] = grey ? cl.data[si + 2] * 0.78 : cl.data[si + 2]; out[k * 4 + 3] = 255; }
+  // the wind carries them the way the ship goes (back the other way in a head wind), high over the water: each drops its own shadow away from the sun
+  { const CL = cloudModels(), nC = storm > 0.3 ? 5 : title ? 3 : 4, A = 22, wdir = o.wind === 'head' ? -1 : 1, v = (o.calm ? 0.25 : 0.5 + sp * 0.5) * wdir, grey = storm > 0.3, list = [];
+    for (let k = 0; k < nC; k++) {
+      let c = -2 * H + (k + 0.35 + hash(k * 4.1) * 0.3) / nC * (W + 2 * H);
+      // a cloud's path keeps clear of the ship (her hull and mast, and the cloud's own width and height); its shadow may still cross her
+      const c0 = cx - 2 * cy, lo = c0 - 16 - 56, hi = c0 + 16 + 4 * mt.zt + 2 * (mt.top[2] - mt.zt) + 28; if (c > lo && c < hi) c = c - lo < hi - c ? lo : hi;
+      const m = CL[k % 3], y = (OX - 2 * OY + 4 * A - c) / 4;
+      const a = Math.max((-90 - OX) / 2 + y, -70 - OY - y + 2 * A), b = Math.min((W + 30 - OX) / 2 + y, H + 40 - OY - y + 2 * A);
+      if (b - a < 10) continue;
+      list.push([m, a + pm(t * v + k * 61 + hash(k) * 200, b - a), y]);
+    }
+    for (const [m, x, y] of list) {
+      const sh = shadowOf(m, svx, svy), gx2 = x + A * svx, gy2 = y + A * svy, X0 = Math.round(sx(gx2, gy2)) - sh.ox, Y0 = Math.round(sy(gx2, gy2, 0)) + 1 - sh.oy;
+      for (let j = 0; j < sh.h; j++) { const py = Y0 + j; if (py < 0 || py >= H) continue; for (let i = 0; i < sh.w; i++) { if (!sh.mask[j * sh.w + i]) continue; const px_ = X0 + i; if (px_ >= 0 && px_ < W) shade(py * W + px_, 0.76); } }
+    }
+    for (const [m, x, y] of list) {
+      const X0 = Math.round(sx(x, y)) - m.ox, Y0 = Math.round(sy(x, y, A)) - m.oy;
+      for (let j = 0; j < m.h; j++) { const py = Y0 + j; if (py < 0 || py >= H) continue; for (let i = 0; i < m.w; i++) { const si = (j * m.w + i) * 4; if (!m.rgba[si + 3]) continue; const px_ = X0 + i; if (px_ < 0 || px_ >= W) continue; const k = py * W + px_;
+        out[k * 4] = grey ? m.rgba[si] * 0.7 : m.rgba[si]; out[k * 4 + 1] = grey ? m.rgba[si + 1] * 0.72 : m.rgba[si + 1]; out[k * 4 + 2] = grey ? m.rgba[si + 2] * 0.76 : m.rgba[si + 2]; out[k * 4 + 3] = 255; } }
+    }
   }
   SEACACHE.ctx.putImageData(SEACACHE.img, 0, 0);
   const tint = Math.max(dusk * 0.4, storm * 0.35);
@@ -7962,8 +7974,8 @@ function drawSymiIso(W, H, t) {
     for (let c = 0; c < 3; c++) out[k + c] = Math.min(255, out[k + c] * (night[c] + (warm[c] - night[c]) * f));
   }
   { const put = (a, b, c) => { a = Math.round(a); b = Math.round(b); if (a >= 0 && b >= 0 && a < W && b < H && dep[b * W + a] === -1e9) { const k = (b * W + a) * 4, v = c3(c); out[k] = v[0]; out[k + 1] = v[1]; out[k + 2] = v[2]; } };
-    const mx = W * 0.2, my = H * 0.9, f8 = Math.floor(t * 6);
-    for (let k = 0; k < 150; k++) { const a = hash(k * 1.37) * 6.283, r = Math.sqrt(hash(k * 2.71)), X = mx + Math.cos(a) * r * W * 0.2, Y = my + Math.sin(a) * r * H * 0.1; if (hash(k * 0.73 + f8 * 3.1) > 0.7 - r * 0.3) continue; put(X, Y, r < 0.4 ? '#ffffff' : '#c8d8f0'); if (r < 0.5) put(X + 1, Y, '#c8d8f0'); } }
+    const mx = W * 0.22, my = H * 0.9, f8 = Math.floor(t * 6), S5 = Math.sqrt(5), ru = Math.min(W, H) * 0.3, rv = Math.min(W, H) * 0.08;
+    for (let k = 0; k < 150; k++) { const a = hash(k * 1.37) * 6.283, r = Math.sqrt(hash(k * 2.71)), u = Math.cos(a) * r * ru, v = Math.sin(a) * r * rv, X = Math.round(mx + (2 * u - v) / S5), Y = Math.round(my + (u + 2 * v) / S5); if (hash(k * 0.73 + f8 * 3.1) > 0.7 - r * 0.3) continue; for (let q = 0; q < (r < 0.5 ? 3 : 2); q++) put(X + q, Y + (q >> 1), r < 0.4 && q === 1 ? '#ffffff' : '#c8d8f0'); } }
   { const put = (a, b, c) => { a = Math.round(a); b = Math.round(b); if (a >= 0 && b >= 0 && a < W && b < H) { const k = (b * W + a) * 4, v = c3(c); out[k] = v[0]; out[k + 1] = v[1]; out[k + 2] = v[2]; } };
     for (let i = -3; i <= 3; i++) { put(FX + i, FY + 1, '#3a2418'); put(FX + i, FY + 2, i % 2 ? '#5a3420' : '#3a2418'); }
     const f = Math.floor(t * 8) % 3;
