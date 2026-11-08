@@ -6943,7 +6943,8 @@ else start((hotApi && hotApi.data) || {});
 // Emporos drawn isometric, black outlines and bright flat colours, inside the real game: Rhodes, the voyage, and the title page.
 // tools/build-iso-preview.mjs bakes this into samples/game-iso.html, a copy of the game drawn this way.
 // The way eBoy does it: the picture is full, the water is one flat bright colour with little drawn ripples,
-// and every corner holds something: houses, a stoa, ships, boats, people. Only a strip of the game's own sky stays at the top.
+// and every corner holds something: houses, a stoa, ships, boats, people. There is no horizon and no sky: the world runs off every edge,
+// and the hour of the day shows in the colour laid over all of it.
 (() => {
 'use strict';
 const INK = '#16141c';
@@ -6976,7 +6977,7 @@ const level = (x, y) => Math.min(4, Math.floor((CITY - x) / 12) + Math.floor((QB
 const isHead = (x, y) => (x >= 12 && x < 27 && y >= 8 && y < QB) || (x >= 15 && x < 24 && y >= -18 && y < 8);
 const isMole = (x, y) => x > CITY && x <= -2 && y >= -36 && y <= -32;
 const topAt = (x, y) => y >= QB ? 0 : isCity(x, y) ? level(x, y) * 2 : (isHead(x, y) || isMole(x, y)) ? 0 : -3;
-const horizon = H => Math.round(Math.max(18, H * 0.13));
+const horizon = H => 0;   // no sky: an isometric world has no horizon
 function camera(W, H) { const ax = 30, ay = QB + 4; return { OX: Math.round(W * 0.5 - (ax - ay) * 2), OY: Math.round(H * 0.84 - (ax + ay) - 30) }; }
 
 function makeWd() {
@@ -6995,7 +6996,7 @@ function buildWorld(hullKind, stage, W, H, robes) {
   const Wd = makeWd(), { put, get, box, face } = Wd;
   const on = (x, y, z, pad) => { const X = OX + (x - y) * 2, Y = OY + x + y - 2 * z; pad = pad == null ? 12 : pad; return X > -4 - pad && X < W + pad && Y > -4 - pad && Y < H + pad; };
   const seen = (x0, y0, w, d, z0, h) => { for (const [x, y] of [[x0, y0], [x0 + w - 1, y0], [x0, y0 + d - 1], [x0 + w - 1, y0 + d - 1], [x0 + (w >> 1), y0 + (d >> 1)]]) for (const z of [z0, z0 + h]) if (on(x, y, z)) return true; return false; };
-  const beyond = (x, y, z) => x + y - 2 * z < K - 1;   // past the horizon, where the sky is
+  const beyond = (x, y, z) => x + y - 2 * z < K - 8;   // off the top of the picture
   const umin = Math.floor((-12 - OX) / 2), umax = Math.ceil((W + 12 - OX) / 2), vmin = K - 2, vmax = H - OY + 16;
   const xLo = Math.floor((umin + vmin) / 2), xHi = Math.ceil((umax + vmax) / 2), yLo = Math.floor((vmin - umax) / 2), yHi = Math.ceil((vmax - umin) / 2);
   const ships = [], lights = {};
@@ -7475,14 +7476,6 @@ function drawRhodesIso(W, H, t, o) {
   const pal = dayPal(o.clock), hz = horizon(H), stage = o.stage || 1, hullKind = (S && S.hull) || 'small';
   const ids = merchantsAt('rhodes', S ? S.ch : 1).filter(id => !MERCHANTS[id].noStall).sort((a, b) => MERCHANTS[a].at - MERCHANTS[b].at);
   const dusk = Math.max(0, Math.min(1, (o.clock - 0.72) / 0.2), Math.min(1, (0.12 - o.clock) / 0.12));
-  // a strip of the game's sky, flat, with its sun, clouds and the far coast of Asia
-  G.drawImage(layer('isoSky' + W + 'x' + H + ':' + Math.round(o.clock * 60), W, H, () => {
-    R(0, 0, W, hz + 2, mix(pal.skyTop, pal.skyBot, 0.5));
-    R(0, Math.round(hz * 0.45), W, hz, mix(pal.skyTop, pal.skyBot, 0.8));
-    sunDisc(Math.round(W * 0.84), Math.round(hz * 0.4), 4, pal.sun);
-    ridge(0, W, hz + 1, Math.max(3, hz * 0.28), 30, 3, pal.far);
-  }), 0, 0);
-  clouds(W, hz, t, pal.cloud, 7, 3);
   // the town, built once for this size
   const key = W + 'x' + H + ':' + stage + ':' + hullKind + ':' + ids.join(',');
   if (CACHE.key !== key) {
@@ -7546,7 +7539,7 @@ function drawRhodesIso(W, H, t, o) {
     const u = t * v / (b - a), x = a + (b - a) * tri(u), dir = dirOf(u), m = B[kind][dir > 0 ? 0 : 1];
     all.push(['v', m, x, y, 0, dir]); if (rider) all.push(['p', folk(rider, null)[0], x + 3, y, 1, dir < 0]);
   }
-  const K = hz - OY;   // nothing sails past the horizon: a boat comes out from behind the town, or over the edge of the sea
+  const K = hz - OY - 8;   // a boat comes out from behind the town, or in over the edge of the picture
   for (const [kind, y, v, off, dir] of [['tri', -54, 2.2, 0, 1], ['sail', -64, 1.6, 50, -1], ['fish', -72, 1.2, 20, 1]]) {
     const [a, b] = span(y, Math.max(-70, K + 3 - y), 400), L = b - a + 10, d = (t * v + off) % L, x = dir > 0 ? a + d : b + 10 - d;
     if (b - a < 8) continue;
@@ -7769,7 +7762,7 @@ const ARCHER = person({ skin: '#c88a58', hair: '#1b130e', robe: '#e8e0d0', style
 const SEACACHE = { key: null };
 function drawSeaIso(W, H, t, o) {
   const title = G.canvas === els.tcanvas, pal = dayPal(o.clock, o.storm), storm = o.storm || 0;
-  const hz = Math.round(H * (title ? 0.1 : 0.15)), kind = shipKind(), P = SHIPS[kind];
+  const hz = 0, kind = shipKind(), P = SHIPS[kind];   // no sky, no horizon: the sea and the land run off every edge
   const sail = storm > 0.3 || o.wind === 'gale' ? 'reef' : o.wind === 'head' ? 'furled' : o.calm ? 'slack' : 'full', rowing = !!o.row, ph = rowing ? Math.floor(t * 2.5) % 2 : 0;
   const ship = voyShip(kind, sail, rowing, ph), mt = ship.meta;
   // where the ship sits on the screen, and the camera that puts her there
@@ -7801,7 +7794,7 @@ function drawSeaIso(W, H, t, o) {
         for (const [a, b] of shape) { const x = X + a, y = Y + b; if (x >= 0 && x < W && y >= 0 && y < H) paint(y * W + x, col); }
       } } }
   // things on the water, each a model or a sprite placed in the world
-  const all = [], seed = o.seed || 3, K = hz - OY, umin = Math.floor(-OX / 2) - 4, umax = Math.ceil((W - OX) / 2) + 4;
+  const all = [], seed = o.seed || 3, K = -OY - 8, umin = Math.floor(-OX / 2) - 4, umax = Math.ceil((W - OX) / 2) + 4;
   const drift = title ? pm((o.scroll || 0) * 0.12, 600) : (o.scroll || 0) * 0.12;
   const ys = -(mt.HW + 15);   // the shore, out on the far side
   if (title) {   // the title page holds still: a shore across the top with its villages, open water behind the name, islands about the ship
@@ -7879,15 +7872,6 @@ function drawSeaIso(W, H, t, o) {
   const tint = Math.max(dusk * 0.4, storm * 0.35);
   if (tint > 0) { const c = SEACACHE.ctx; c.globalCompositeOperation = 'source-atop'; c.globalAlpha = tint; c.fillStyle = storm > dusk ? '#4a5660' : mix(pal.skyBot, '#3a2a6a', 0.55); c.fillRect(0, 0, W, H); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
   G.drawImage(SEACACHE.cv, 0, 0);
-  // the sky, over the top of it all: flat, with the sun where the hour puts it, clouds, and the far coast when there is one
-  G.drawImage(layer('isoSeaSky' + W + 'x' + H + ':' + hz + ':' + Math.round(o.clock * 60) + ':' + Math.round(storm * 10) + ':' + (o.open ? 1 : 0) + ':' + (o.seed || 0), W, hz + 1, () => {
-    R(0, 0, W, hz + 1, mix(pal.skyTop, pal.skyBot, 0.5));
-    R(0, Math.round(hz * 0.5), W, hz, mix(pal.skyTop, pal.skyBot, 0.8));
-    if (storm < 0.6) sunDisc(Math.round(W * (0.08 + 0.84 * clamp(o.clock, 0, 1))), Math.round(hz - 3 - Math.sin(Math.PI * clamp(o.clock, 0, 1)) * hz * 0.6), title ? 6 : 4, pal.sun);
-    if (!o.open) ridge(title ? 40 : (o.seed || 0) * 13, W, hz, Math.max(3, hz * 0.3), 30, o.seed || 3, pal.far);
-    R(0, hz - 2, W, 3, mix(pal.skyBot, '#ffffff', 0.3));
-  }), 0, 0);
-  clouds(W, hz, t, pal.cloud, o.seed || 7, storm ? 6 : 3);
   // rigging and pennant, the island lighthouse fires, gulls, wind, rain
   const dot = (x, y, c) => { G.fillStyle = c; G.fillRect(Math.round(x), Math.round(y), 1, 1); };
   const ln = (a, b, c, z0) => { const x0 = sx(a[0], a[1]) + 2, y0 = sy(a[0], a[1], a[2] + z0) + 1, x1 = sx(b[0], b[1]) + 2, y1 = sy(b[0], b[1], b[2] + z0) + 1, n = Math.max(1, Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let i = 0; i <= n; i++) if (y0 + (y1 - y0) * i / n >= hz) dot(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c); };
