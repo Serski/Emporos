@@ -7679,52 +7679,50 @@ function vnoise(x, y, s) {   // smooth value noise, for hills and shorelines
   return (h(xi, yi) * (1 - u) + h(xi + 1, yi) * u) * (1 - v) + (h(xi, yi + 1) * (1 - u) + h(xi + 1, yi + 1) * u) * v;
 }
 const COASTS = [];
-function coastModel(seed, b, xa, xb, ys, cut) {   // a long shore along x: beaches and rocks, hills of scrub and olives, villages with a little mole, a temple on a height
-  const key = [seed, b, xa, xb, ys, cut].join(':'), hit = COASTS.find(c => c.key === key); if (hit) return hit.m;
-  const sh = x => ys + Math.round((vnoise(x / 22, 0.5, seed) - 0.5) * 10), rocky = x => vnoise(x / 30, 3.5, seed + 1) > 0.6, hts = new Map(), used = new Set(), people = [];
-  const hAt = (x, y) => { const d = sh(x) - y; if (d < 0) return null; const r = rocky(x); if (!r && d < 3) return 0; return Math.min(Math.floor(d / (r ? 1.3 : 2.6)), Math.floor(1 + vnoise(x / 18, y / 14, seed + 2) * 12 * Math.min(1, d / 16))); };
+// Land seen from the sea: beaches and rocks, hills of scrub, fields and olives, villages with a little mole, farms, a temple or a tower on a height.
+// o.dist(x, y) is how far inland a tile is (below 0 is sea), o.each(f) visits the tiles to build, o.hidden(x, y, h) says the sky covers a tile,
+// o.shore lists points on the water's edge where villages may stand, and o.inland(k, r) gives a spot behind the village for its k-th house.
+function landModel(o) {
+  const hit = COASTS.find(c => c.key === o.key); if (hit) return hit.m;
+  const seed = o.seed, b = o.b || 0, hts = new Map(), used = new Set(), people = [];
+  const hAt = (x, y) => { const d = o.dist(x, y); if (d == null || d < 0) return null; const r = o.rocky(x, y); if (!r && d < 3) return 0; return Math.min(Math.floor(d / (r ? 1.3 : 2.6)), Math.floor(1 + vnoise(x / 18, y / 14, seed + 2) * 12 * Math.min(1, d / 16))); };
   const m = model(Wd => {
-    // everything is built in the world's own x, and shifted by b into the model, so that pieces built later join up
     const W2 = { ...Wd, put: (x, y, z, mm, id) => Wd.put(x - b, y, z, mm, id), get: (x, y, z) => Wd.get(x - b, y, z), face: (x, y, z, sd, c) => Wd.face(x - b, y, z, sd, c),
       box: (x0, y0, z0, w, d, h, mm, id) => Wd.box(x0 - b, y0, z0, w, d, h, typeof mm === 'function' ? (x, y, z) => mm(x + b, y, z) : mm, id) };
     const g = Wd.newId(), sand = mat('#f6e4b4', 0.14, 0.3), rock = mat('#e6d0a0', 0.18, 0.36), cliff = mat('#d4b888', 0.2, 0.4), scrub = mat('#a8c860', 0.2, 0.42), scrub2 = mat('#94bc58', 0.2, 0.42), field = mat('#ecd478', 0.16, 0.34), field2 = mat('#dcb860', 0.16, 0.34), path = mat('#f0dcb0', 0.14, 0.3);
-    for (let x = xa; x <= xb; x++) for (let y = sh(x); ; y--) {
-      if ((x - b) + y < cut) break;   // past the horizon from here on: the sky covers it
-      const h = hAt(x, y); if (h == null) continue;
-      if ((x - b) + y - 2 * h < cut) continue;
+    o.each((x, y) => {
+      const d = o.dist(x, y);
+      if (d != null && d < 0 && d >= -2 && o.rocky(x, y)) { const r = hash(x * 1.3 + y * 7.1 + seed); if (r < 0.45) { const id = Wd.newId(); W2.put(x, y, -1, pm(x + y, 2) ? M.grey : M.greyD, id); if (r < 0.15) W2.put(x, y, 0, M.grey, id); } return; }
+      const h = hAt(x, y); if (h == null || o.hidden(x, y, h)) return;
       hts.set(x + ',' + y, h);
-      const f = (k, yy) => { const v = hAt(x + k, yy); return v == null ? -2 : v; }, low = Math.min(f(1, y), f(0, y + 1), h);
-      const d = sh(x) - y, fld = vnoise(x / 9, y / 7, seed + 4) > 0.62 && h >= 1 && h <= 6, road = pm(x + Math.round(vnoise(y / 9, 1, seed) * 6), 37) === 0;
-      const top = h === 0 ? sand : rocky(x) && d < 4 ? rock : road ? path : fld ? (pm(x + y, 3) ? field : field2) : pm(x * 3 + y, 5) ? scrub : scrub2;
+      const f = (dx, dy) => { const v = hAt(x + dx, y + dy); return v == null ? -2 : v; }, low = Math.min(f(1, 0), f(0, 1), h);
+      const fld = vnoise(x / 9, y / 7, seed + 4) > 0.62 && h >= 1 && h <= 6, road = pm(x + Math.round(vnoise(y / 9, 1, seed) * 6), 37) === 0;
+      const top = h === 0 ? sand : o.rocky(x, y) && d < 4 ? rock : road ? path : fld ? (pm(x + y, 3) ? field : field2) : pm(x * 3 + y, 5) ? scrub : scrub2;
       for (let z = Math.min(h, Math.max(-1, low + 1)); z <= h; z++) W2.put(x, y, z, z === h ? top : z < 1 ? M.grey : cliff, g);
-    }
-    for (let x = xa; x <= xb; x++) if (rocky(x)) for (let y = sh(x) + 1; y <= sh(x) + 2; y++) { const r = hash(x * 1.3 + y * 7.1 + seed); if (r < 0.45) { const id = Wd.newId(); W2.put(x, y, -1, pm(x + y, 2) ? M.grey : M.greyD, id); if (r < 0.15) W2.put(x, y, 0, M.grey, id); } }
+    });
     const top = (x, y) => hts.has(x + ',' + y) ? hts.get(x + ',' + y) : null;
     const spot = (x0, y0, w, d) => { let lo = 99, hi = -9; for (let x = x0; x < x0 + w; x++) for (let y = y0; y < y0 + d; y++) { const h = top(x, y); if (h == null || used.has(x + ',' + y)) return null; lo = Math.min(lo, h); hi = Math.max(hi, h); } return hi - lo > 3 ? null : [lo, hi]; };
     const take = (x0, y0, w, d) => { for (let x = x0 - 1; x <= x0 + w; x++) for (let y = y0 - 1; y <= y0 + d; y++) used.add(x + ',' + y); };
-    // villages, every so often along the shore, each with a mole and a boat or two
-    for (let vi = Math.floor(xa / 40) - 1; vi * 40 <= xb; vi++) {
-      const r = k => hash(vi * 9.7 + seed * 3.1 + k * 1.3); if (r(0) < 0.18) continue;
-      const xv = vi * 40 + Math.floor(r(1) * 16), yv = sh(xv);
-      if (xv < xa + 4 || xv > xb - 4) continue;
-      if (!rocky(xv)) {
+    for (const [xv, yv, vi] of o.shore) {   // villages, each with a mole and a boat or two
+      const r = k => hash(vi * 9.7 + seed * 3.1 + k * 1.3);
+      if (!o.rocky(xv, yv)) {
         const mo = Wd.newId(); for (let y = yv - 1; y <= yv + 5; y++) for (const x of [xv, xv + 1]) { W2.put(x, y, 0, M.stone, mo); W2.put(x, y, -1, M.stoneD, mo); }
         smallBoat(W2, xv + 3, yv + 1, AWN[Math.floor(r(2) * AWN.length)], true); if (r(3) < 0.6) smallBoat(W2, xv - 3, yv + 2, AWN[Math.floor(r(4) * AWN.length)], true);
         people.push([xv + 0.5, yv + 3, 1]);
       }
       for (let k = 0; k < 14; k++) {
-        const w = 3 + (r(10 + k) < 0.4 ? 1 : 0), d = 3, hx = xv + Math.round((r(20 + k) - 0.5) * 22), hy = yv - 3 - Math.floor(r(30 + k) * 14), sp_ = spot(hx, hy, w, d);
+        const w = 3 + (r(10 + k) < 0.4 ? 1 : 0), d = 3, [hx, hy] = o.inland(xv, yv, r(20 + k), r(30 + k)), sp_ = spot(hx, hy, w, d);
         if (!sp_) continue; take(hx, hy, w, d);
         house(W2, hx, hy, sp_[0] + 1, w, d, sp_[1] - sp_[0] + 3 + Math.floor(r(40 + k) * 2), [M.white, M.white, M.cream, M.blueW, M.ochre][Math.floor(r(50 + k) * 5)], { flat: r(60 + k) < 0.45, alongY: r(70 + k) < 0.5, door: r(80 + k) < 0.5 ? '#3a6ab4' : '#c8483a', seed: r(90 + k) });
         if (k % 3 === 0) people.push([hx + w / 2, hy + d + 0.5, sp_[0] + 1]);
       }
     }
     // a temple or a watchtower on the heights now and then
-    for (let ti = Math.floor(xa / 90); ti * 90 <= xb; ti++) {
-      const r = k => hash(ti * 5.3 + seed * 1.7 + k * 2.9); if (r(0) < 0.35) continue;
-      let best = null; for (let x = ti * 90 + 10; x < ti * 90 + 80; x += 3) for (let y = sh(x) - 4; y > sh(x) - 30; y -= 3) { const s_ = spot(x, y, 5, 4); if (s_ && s_[0] >= 4 && (!best || s_[0] > best[2])) best = [x, y, s_[0]]; }
-      if (!best) continue; const [x0, y0, z] = best; take(x0, y0, 5, 4);
-      if (r(1) < 0.6) { const tm = W2.box(x0, y0, z + 1, 5, 4, 1, M.marble); for (const [dx, dy] of [[0, 0], [2, 0], [4, 0], [0, 3], [2, 3], [4, 3]]) W2.box(x0 + dx, y0 + dy, z + 2, 1, 1, 3, M.marble, tm); W2.box(x0, y0, z + 5, 5, 4, 1, M.marble, tm); for (let x = x0; x < x0 + 5; x++) { W2.put(x, y0 + 1, z + 6, M.roof, tm); W2.put(x, y0 + 2, z + 6, M.roof, tm); W2.face(x, y0 + 3, z + 5, 'l', x % 2 ? '#3a64c8' : '#e8483a'); } }
+    const best = new Map();
+    for (const [k, h] of hts) { const [x, y] = k.split(',').map(Number); if (h < 4 || pm(x, 3) || pm(y, 3)) continue; const bk = Math.floor((x - y) / 70); if (hash(bk * 5.3 + seed * 1.7) < 0.3) continue; const s_ = spot(x, y, 5, 4); if (s_ && (!best.has(bk) || s_[0] > best.get(bk)[2])) best.set(bk, [x, y, s_[0]]); }
+    for (const [bk, [x0, y0, z]] of best) {
+      if (!spot(x0, y0, 5, 4)) continue; take(x0, y0, 5, 4);
+      if (hash(bk * 2.9 + seed) < 0.6) { const tm = W2.box(x0, y0, z + 1, 5, 4, 1, M.marble); for (const [dx, dy] of [[0, 0], [2, 0], [4, 0], [0, 3], [2, 3], [4, 3]]) W2.box(x0 + dx, y0 + dy, z + 2, 1, 1, 3, M.marble, tm); W2.box(x0, y0, z + 5, 5, 4, 1, M.marble, tm); for (let x = x0; x < x0 + 5; x++) { W2.put(x, y0 + 1, z + 6, M.roof, tm); W2.put(x, y0 + 2, z + 6, M.roof, tm); W2.face(x, y0 + 3, z + 5, 'l', x % 2 ? '#3a64c8' : '#e8483a'); } }
       else { const tw = W2.box(x0 + 1, y0, z + 1, 3, 3, 8, (x, y, zz) => zz % 3 === 0 ? M.stoneD : M.stone); for (const [dx, dy] of [[1, 0], [3, 0], [1, 2], [3, 2]]) W2.put(x0 + dx, y0 + dy, z + 9, M.stone, tw); }
     }
     // farmhouses out on their own, each with a cypress by the door
@@ -7744,8 +7742,26 @@ function coastModel(seed, b, xa, xb, ys, cut) {   // a long shore along x: beach
     }
   });
   m.meta = { people };
-  COASTS.unshift({ key, m }); if (COASTS.length > 3) COASTS.pop();
+  COASTS.unshift({ key: o.key, m }); if (COASTS.length > 3) COASTS.pop();
   return m;
+}
+function coastModel(seed, b, xa, xb, ys, cut) {   // a shore running along x, out on the far side of the ship
+  const sh = x => ys + Math.round((vnoise(x / 22, 0.5, seed) - 0.5) * 10), shore = [];
+  for (let vi = Math.floor(xa / 40) - 1; vi * 40 <= xb; vi++) { const r = k => hash(vi * 9.7 + seed * 3.1 + k * 1.3); if (r(0) < 0.18) continue; const xv = vi * 40 + Math.floor(r(1) * 16); if (xv > xa + 4 && xv < xb - 4) shore.push([xv, sh(xv), vi]); }
+  return landModel({ key: ['c', seed, b, xa, xb, ys, cut].join(':'), seed, b, shore,
+    dist: (x, y) => sh(x) - y, rocky: x => vnoise(x / 30, 3.5, seed + 1) > 0.6,
+    each: f => { for (let x = xa; x <= xb; x++) for (let y = sh(x) + 2; (x - b) + y >= cut; y--) f(x, y); },
+    hidden: (x, y, h) => (x - b) + y - 2 * h < cut,
+    inland: (xv, yv, a, c) => [xv + Math.round((a - 0.5) * 22), yv - 3 - Math.floor(c * 14)] });
+}
+function farShore(seed, vs, umin, umax, cut) {   // a shore straight across the picture, for the title page: land above, sea below
+  const sv = u => vs + Math.round((vnoise(u / 26, 0.5, seed) - 0.5) * 14), shore = [];
+  for (let vi = Math.floor(umin / 34); vi * 34 <= umax; vi++) { const r = k => hash(vi * 9.7 + seed * 3.1 + k * 1.3); if (r(0) < 0.15) continue; const u = vi * 34 + Math.floor(r(1) * 12), v = sv(u); if ((u + v) % 2 === 0) shore.push([(u + v) / 2, (v - u) / 2, vi]); else shore.push([(u + v + 1) / 2, (v + 1 - u) / 2, vi]); }
+  return landModel({ key: ['f', seed, vs, umin, umax, cut].join(':'), seed, shore,
+    dist: (x, y) => sv(x - y) - (x + y), rocky: (x, y) => vnoise((x - y) / 30, 3.5, seed + 1) > 0.62,
+    each: f => { for (let u = umin; u <= umax; u++) for (let v = sv(u) + 2; v >= cut; v--) if (!((u + v) & 1)) f((u + v) / 2, (v - u) / 2); },
+    hidden: (x, y, h) => x + y - 2 * h < cut,
+    inland: (xv, yv, a, c) => { const back = 4 + Math.floor(c * 12), side = Math.round((a - 0.5) * 20); return [xv - back + side, yv - back - side]; } });
 }
 const DOLPHIN = sprite(['....KK...', '...KggK..', '.KKgggKKK', 'KgggwwggK', '.KKK.KKK.'], { K: INK, g: '#6a8aa8', w: '#dce8f0' });
 const PIRATE = [person({ skin: '#c88a58', hair: '#1b130e', robe: '#3a3440', style: 'short', beard: 2, hat: 'pilos', hatC: '#a8aeb4' }, 'stand'), person({ skin: '#d8985e', hair: '#2a1d14', robe: '#8a3a2a', style: 'curly', beard: 1 }, 'stand')];
@@ -7753,11 +7769,11 @@ const ARCHER = person({ skin: '#c88a58', hair: '#1b130e', robe: '#e8e0d0', style
 const SEACACHE = { key: null };
 function drawSeaIso(W, H, t, o) {
   const title = G.canvas === els.tcanvas, pal = dayPal(o.clock, o.storm), storm = o.storm || 0;
-  const hz = Math.round(H * (title ? 0.52 : 0.15)), kind = shipKind(), P = SHIPS[kind];
+  const hz = Math.round(H * (title ? 0.1 : 0.15)), kind = shipKind(), P = SHIPS[kind];
   const sail = storm > 0.3 || o.wind === 'gale' ? 'reef' : o.wind === 'head' ? 'furled' : o.calm ? 'slack' : 'full', rowing = !!o.row, ph = rowing ? Math.floor(t * 2.5) % 2 : 0;
   const ship = voyShip(kind, sail, rowing, ph), mt = ship.meta;
   // where the ship sits on the screen, and the camera that puts her there
-  const cx = Math.round(W * (title ? 0.34 : 0.44)), cy = Math.round(H * (title ? 0.8 : 0.6)), OX = cx - mt.L, OY = cy - Math.round(mt.L / 2);
+  const cx = Math.round(W * (title ? 0.3 : 0.44)), cy = Math.round(H * (title ? 0.8 : 0.6)), OX = cx - mt.L, OY = cy - Math.round(mt.L / 2);
   const sx = (x, y) => OX + (x - y) * 2, sy = (x, y, z) => OY + x + y - 2 * z;
   if (SEACACHE.key !== W + 'x' + H) { SEACACHE.key = W + 'x' + H; SEACACHE.cv = document.createElement('canvas'); SEACACHE.cv.width = W; SEACACHE.cv.height = H; SEACACHE.ctx = SEACACHE.cv.getContext('2d'); SEACACHE.img = SEACACHE.ctx.createImageData(W, H); SEACACHE.dep = new Float32Array(W * H); }
   const out = SEACACHE.img.data, dep = SEACACHE.dep;
@@ -7788,7 +7804,12 @@ function drawSeaIso(W, H, t, o) {
   const all = [], seed = o.seed || 3, K = hz - OY, umin = Math.floor(-OX / 2) - 4, umax = Math.ceil((W - OX) / 2) + 4;
   const drift = title ? pm((o.scroll || 0) * 0.12, 600) : (o.scroll || 0) * 0.12;
   const ys = -(mt.HW + 15);   // the shore, out on the far side
-  if (!o.open) {
+  if (title) {   // the title page holds still: a shore across the top with its villages, open water behind the name, islands about the ship
+    const fs = farShore(seed + 20, Math.round(H * 0.36) - OY, umin - 4, umax + 4, K - 2);
+    all.push(['v', fs, 0, 0, 0, 0, true, -1e6]);
+    for (const [x, y, z] of fs.meta.people) all.push(['p', folk(Math.round(x * 3 + y), null)[0], x, y, z, x % 2 < 1]);
+    for (const [fx, fy, v] of [[0.82, 0.86, 13], [0.04, 0.98, 7], [1.0, 0.6, 22]]) { const u = (fx * W - OX) / 2, vv = fy * H - OY; all.push(['v', isleModel(v), Math.round((u + vv) / 2), Math.round((vv - u) / 2), 0, 0, true]); }
+  } else if (!o.open) {
     const b = Math.floor(drift / 60) * 60, cm = coastModel(seed, b, umin + ys - 62 + b, umax + ys + 8 + b + 60, ys, K - 2);
     all.push(['v', cm, b - drift, 0, 0, 0, true, -1e6]);
     for (const [x, y, z] of cm.meta.people) all.push(['p', folk(Math.round(x * 3 + y), null)[0], x - drift, y, z, x % 2 < 1]);
@@ -7801,6 +7822,7 @@ function drawSeaIso(W, H, t, o) {
   }
   // other boats about their business, and further out, ships
   const B = boats(), lanes = [['fish', mt.HW + 6, 0.5, 30, -1, 81], ['row', -(mt.HW + 6), 0.4, 140, -1, 82], ['sail', mt.HW + 26, 0.8, 200, 1, 0], ['fish', mt.HW + 40, 0.3, 90, 1, 83]];
+  if (title) lanes.push(['sail', -(mt.HW + 22), 0.5, 40, -1, 0], ['fish', -(mt.HW + 36), 0.35, 150, 1, 84], ['row', -(mt.HW + 12), 0.3, 220, 1, 85]);
   if (o.open) lanes.push(['sail', -(mt.HW + 16), 0.6, 60, 1, 0], ['tri', -(mt.HW + 30), 1.4, 10, 1, 0], ['sail', mt.HW + 16, 0.5, 170, -1, 0], ['fish', -(mt.HW + 44), 0.3, 220, -1, 0], ['sail', mt.HW + 34, 0.7, 120, -1, 0], ['tri', mt.HW + 58, 1.1, 260, -1, 0]);
   for (const [kd, y, v, off, dir, rider] of lanes) {
     const span = umax - umin + 90, x = pm(t * v * dir - drift + off, span) + umin + y - 40;
@@ -7862,10 +7884,10 @@ function drawSeaIso(W, H, t, o) {
     R(0, 0, W, hz + 1, mix(pal.skyTop, pal.skyBot, 0.5));
     R(0, Math.round(hz * 0.5), W, hz, mix(pal.skyTop, pal.skyBot, 0.8));
     if (storm < 0.6) sunDisc(Math.round(W * (0.08 + 0.84 * clamp(o.clock, 0, 1))), Math.round(hz - 3 - Math.sin(Math.PI * clamp(o.clock, 0, 1)) * hz * 0.6), title ? 6 : 4, pal.sun);
-    if (!o.open) ridge(title ? 40 : (o.seed || 0) * 13, W, hz, Math.max(3, hz * (title ? 0.16 : 0.3)), title ? 40 : 30, o.seed || 3, pal.far);
+    if (!o.open) ridge(title ? 40 : (o.seed || 0) * 13, W, hz, Math.max(3, hz * 0.3), 30, o.seed || 3, pal.far);
     R(0, hz - 2, W, 3, mix(pal.skyBot, '#ffffff', 0.3));
   }), 0, 0);
-  clouds(W, hz, t, pal.cloud, o.seed || 7, storm ? 6 : title ? 6 : 3);
+  clouds(W, hz, t, pal.cloud, o.seed || 7, storm ? 6 : 3);
   // rigging and pennant, the island lighthouse fires, gulls, wind, rain
   const dot = (x, y, c) => { G.fillStyle = c; G.fillRect(Math.round(x), Math.round(y), 1, 1); };
   const ln = (a, b, c, z0) => { const x0 = sx(a[0], a[1]) + 2, y0 = sy(a[0], a[1], a[2] + z0) + 1, x1 = sx(b[0], b[1]) + 2, y1 = sy(b[0], b[1], b[2] + z0) + 1, n = Math.max(1, Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let i = 0; i <= n; i++) if (y0 + (y1 - y0) * i / n >= hz) dot(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c); };
