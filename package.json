@@ -6,7 +6,8 @@
   "scripts": {
     "build": "node tools/build.mjs",
     "sim": "node tests/sim.js",
-    "test": "node tests/play.js"
+    "test": "node tests/play.js",
+    "trailer": "node tools/trailer/make.js"
   },
   "devDependencies": {
     "playwright": "1.63.0"

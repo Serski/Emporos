@@ -143,6 +143,7 @@ The history of the period is real and stays in the background: the siege of Rhod
 - `tools/build.mjs` creates `index.html` from `src/game.html`.
 - `tests/sim.js` plays Chapters I to IX in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
 - `tests/play.js` plays all nine chapters, to the last page, in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
+- `tools/trailer/` makes the 20-second Steam trailer in `trailer/`: it loads real saved games (played by the bots from `tests/sim.js`) into the game in a headless Chromium, films each shot frame by frame, scores it with the game's own sound engine, and encodes it with ffmpeg. The shots, and the words on screen, are in `tools/trailer/shots.js`.
 
 Inside `src/game.html`, the rules sit between `// ===== ENGINE START =====` and `// ===== ENGINE END =====` and never touch the page. That is what lets `tests/sim.js` run them on their own. All the art and sound is drawn and synthesized in code.
 
@@ -172,4 +173,10 @@ npx playwright install chromium
 
 ```bash
 npm test
+```
+
+Make the Steam trailer again after changing the game (takes about four minutes; needs Playwright, ffmpeg, and the internet for the game's fonts). It writes `trailer/emporos-trailer.mp4`, 1920 x 1080 at 60 fps, and a thumbnail from its last shot. Work files go to `trailer-work/`. To film only some shots again, name them, such as `node tools/trailer/make.js buy,sell`:
+
+```bash
+npm run trailer
 ```
