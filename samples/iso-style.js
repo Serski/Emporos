@@ -45,7 +45,7 @@ function makeWd() {
   const get = (x, y, z) => V.get(vk(x, y, z));
   const box = (x0, y0, z0, w, d, h, m, id) => { id = id || NEXT++; for (let x = x0; x < x0 + w; x++) for (let y = y0; y < y0 + d; y++) for (let z = z0; z < z0 + h; z++) put(x, y, z, typeof m === 'function' ? m(x, y, z) : m, id); return id; };
   const face = (x, y, z, side, c) => { const v = get(x, y, z); if (v) v[side] = c; };
-  return { V, put, get, box, face, newId: () => NEXT++ };
+  return { V, put, get, box, face, del: (x, y, z) => V.delete(vk(x, y, z)), newId: () => NEXT++ };
 }
 
 // ---------- the world in cubes, built for the part of it a picture of this size can see ----------
@@ -778,7 +778,7 @@ const SEACACHE = { key: null };
 function drawSeaIso(W, H, t, o) {
   const title = G.canvas === els.tcanvas, pal = dayPal(o.clock, o.storm), storm = o.storm || 0;
   const hz = 0, kind = shipKind(), P = SHIPS[kind];   // no sky, no horizon: the sea and the land run off every edge
-  const sail = storm > 0.3 || o.wind === 'gale' ? 'reef' : o.wind === 'head' ? 'furled' : o.calm ? 'slack' : 'full', rowing = !!o.row, ph = rowing ? Math.floor(t * 2.5) % 2 : 0;
+  const sail = o.night ? 'furled' : storm > 0.3 || o.wind === 'gale' ? 'reef' : o.wind === 'head' ? 'furled' : o.calm ? 'slack' : 'full', rowing = !!o.row, ph = rowing ? Math.floor(t * 2.5) % 2 : 0;
   const ship = voyShip(kind, sail, rowing, ph), mt = ship.meta;
   // where the ship sits on the screen, and the camera that puts her there
   const cx = Math.round(W * (title ? 0.3 : 0.44)), cy = Math.round(H * (title ? 0.8 : 0.6)), OX = cx - mt.L, OY = cy - Math.round(mt.L / 2);
@@ -800,7 +800,7 @@ function drawSeaIso(W, H, t, o) {
   // the sun: its glitter on the water goes from left in the morning to right in the evening, and every shadow falls away from it, long early and late
   // a shadow falls, for each step up, this far across the picture: to the right in the morning, down at noon, to the left in the evening
   const sunC = clamp(o.clock, 0, 1), sunLen = 1 + 2 * Math.abs(sunC - 0.5) * 2, dsx = Math.cos(Math.PI * sunC) * sunLen, dsy = (0.3 + 0.7 * Math.sin(Math.PI * sunC)) * sunLen * 0.6;
-  const svx = (dsx / 2 + dsy) / 2, svy = (dsy - dsx / 2) / 2, shine = storm < 0.6;   // the same, as steps across the sea
+  const svx = (dsx / 2 + dsy) / 2, svy = (dsy - dsx / 2) / 2, shine = storm < 0.6 && !o.night;   // the same, as steps across the sea
   const S5 = Math.sqrt(5), mn = Math.min(W, H), gD = mn * 1.25 * (sunC - 0.5), gx = W * 0.5 + gD * 2 / S5, gy = H * (title ? 0.3 : 0.34) + gD / S5, ru = mn * 0.36, rv = mn * 0.11;
   const ST = seaTex(), T = ST.frames[Math.floor(t * 12) % ST.n], fxo = Math.round(2 * flow), fyo = Math.round(flow);
   for (let y = 0; y < H; y++) {
@@ -831,7 +831,7 @@ function drawSeaIso(W, H, t, o) {
   const all = [], umin = Math.floor(-OX / 2) - 4, umax = Math.ceil((W - OX) / 2) + 4;
   const drift = title ? pm((o.scroll || 0) * 0.12, 600) : (o.scroll || 0) * 0.12;
   // other boats about their business, and further out, ships
-  const B = boats(), lanes = title ? [] : [['fish', mt.HW + 8, 0.5, 30, -1, 81], ['sail', -(mt.HW + 20), 0.6, 150, 1, 0], ['sail', mt.HW + 30, 0.8, 200, 1, 0]];   // on the title page, only our own ship
+  const B = boats(), lanes = title || o.night ? [] : [['fish', mt.HW + 8, 0.5, 30, -1, 81], ['sail', -(mt.HW + 20), 0.6, 150, 1, 0], ['sail', mt.HW + 30, 0.8, 200, 1, 0]];   // on the title page, only our own ship
   for (const [kd, y, v, off, dir, rider] of lanes) {
     const span = umax - umin + 90, x = pm(t * v * dir - drift + off, span) + umin + y - 40;
     all.push(['v', B[kd][dir > 0 ? 0 : 1], x, y, 0, dir, false]); if (rider) all.push(['p', folk(rider, null)[0], x + 3, y, 1, dir < 0]);
@@ -894,7 +894,7 @@ function drawSeaIso(W, H, t, o) {
   if (o.patrol) { const x = mt.L * 0.3 + (1 - o.patrol.near) * 90 + 34, y = mt.HW + 9, X = sx(x, y) + 2, Y = sy(x, y, 8); for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) put(X + 1 + i, Y + j + Math.round(Math.sin(t * 4 + i) * (i / 5)), j === 1 && i > 1 ? '#c9a040' : '#efe3cc'); }
   // gulls, each with a little shadow on the water
   const lane = (c, s) => c >= 0 ? [c + 2 * s, s] : [2 * s, -c / 2 + s];   // a point on the line X - 2Y = c, s steps down it to the right
-  for (let k = 0; k < (title ? 5 : 4); k++) {
+  for (let k = 0; k < (o.night ? 0 : title ? 5 : 4); k++) {
     const c = -2 * H + (k + 0.5) / (title ? 5 : 4) * (W + 2 * H), Ls = (c >= 0 ? (W - c) / 2 : Math.min(W / 2, H + c / 2)) + 20, dir = k % 2 ? -1 : 1, s = pm(t * (4 + k) * dir + k * 37, Ls) - 10;
     const [gx0, gy0] = lane(c, s), x = Math.round(gx0), y = Math.round(gy0) + Math.round(Math.sin(t * 1.5 + k) * 2), g = GULL[Math.floor(t * 3 + k) % 2];
     const dxs = Math.round((svx - svy) * 2 * 8), dys = 16 + Math.round((svx + svy) * 8);
@@ -903,7 +903,7 @@ function drawSeaIso(W, H, t, o) {
   }
   // clouds drifting over, their shadows sliding across the sea and over the ship
   // the wind carries them the way the ship goes (back the other way in a head wind), high over the water: each drops its own shadow away from the sun
-  { const CL = cloudModels(), nC = storm > 0.3 ? 5 : title ? 3 : 4, A = 22, wdir = o.wind === 'head' ? -1 : 1, v = (o.calm ? 0.25 : 0.5 + sp * 0.5) * wdir, grey = storm > 0.3, list = [];
+  if (!o.night) { const CL = cloudModels(), nC = storm > 0.3 ? 5 : title ? 3 : 4, A = 22, wdir = o.wind === 'head' ? -1 : 1, v = (o.calm ? 0.25 : 0.5 + sp * 0.5) * wdir, grey = storm > 0.3, list = [];
     for (let k = 0; k < nC; k++) {
       let c = -2 * H + (k + 0.35 + hash(k * 4.1) * 0.3) / nC * (W + 2 * H);
       // a cloud's path keeps clear of the ship (her hull and mast, and the cloud's own width and height); its shadow may still cross her
@@ -923,6 +923,13 @@ function drawSeaIso(W, H, t, o) {
         out[k * 4] = grey ? m.rgba[si] * 0.7 : m.rgba[si]; out[k * 4 + 1] = grey ? m.rgba[si + 1] * 0.72 : m.rgba[si + 1]; out[k * 4 + 2] = grey ? m.rgba[si + 2] * 0.76 : m.rgba[si + 2]; out[k * 4 + 3] = 255; } }
     }
   }
+  if (o.night) {   // dark everywhere but round the stern lamp, and the moon laying a path on the water
+    const LX = sx(mt.stern[0], mt.stern[1]) + 2, LY = sy(mt.stern[0], mt.stern[1], mt.stern[2] + bob) - 1, r = Math.min(W, H) * 0.24 * (0.96 + Math.sin(t * 7) * 0.04), nC = [0.42, 0.48, 0.8], wC = [1.12, 0.96, 0.76];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const dx = (x - LX) / r, dy = (y - LY) / (r * 0.62); const f = Math.floor(Math.max(0, 1 - Math.sqrt(dx * dx + dy * dy)) * 5) / 5, k = (y * W + x) * 4; for (let c = 0; c < 3; c++) out[k + c] = Math.min(255, out[k + c] * (nC[c] + (wC[c] - nC[c]) * f)); }
+    const S5 = Math.sqrt(5), mx = W * 0.72, my = H * 0.3, ru = Math.min(W, H) * 0.34, rv = Math.min(W, H) * 0.09, f8 = Math.floor(t * 6);
+    for (let k = 0; k < 170; k++) { const a = hash(k * 1.37) * 6.283, rr = Math.sqrt(hash(k * 2.71)), u = Math.cos(a) * rr * ru, v = Math.sin(a) * rr * rv, X = Math.round(mx + (2 * u - v) / S5), Y = Math.round(my + (u + 2 * v) / S5); if (hash(k * 0.73 + f8 * 3.1) > 0.7 - rr * 0.3) continue; for (let q = 0; q < (rr < 0.5 ? 3 : 2); q++) { const xx = X + q, yy = Y + (q >> 1); if (xx >= 0 && xx < W && yy >= 0 && yy < H && isWater(yy * W + xx)) paint(yy * W + xx, c3(rr < 0.4 && q === 1 ? '#ffffff' : '#c8d8f0')); } }
+    for (const [dx, dy, c] of [[0, 0, '#ffd27a'], [0, -1, '#ffe7a0'], [1, 0, '#ffb04a'], [-1, 0, INK], [2, 0, INK], [0, 1, INK], [1, 1, INK]]) { const xx = Math.round(LX + dx), yy = Math.round(LY + dy); if (xx >= 0 && xx < W && yy >= 0 && yy < H) paint(yy * W + xx, c3(c)); }
+  }
   SEACACHE.ctx.putImageData(SEACACHE.img, 0, 0);
   const tint = Math.max(dusk * 0.4, storm * 0.35);
   if (tint > 0) { const c = SEACACHE.ctx; c.globalCompositeOperation = 'source-atop'; c.globalAlpha = tint; c.fillStyle = storm > dusk ? '#4a5660' : mix(pal.skyBot, '#3a2a6a', 0.55); c.fillRect(0, 0, W, H); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
@@ -932,80 +939,175 @@ function drawSeaIso(W, H, t, o) {
   if (storm > 0.3) { G.fillStyle = 'rgba(220,228,236,0.6)'; for (let k = 0; k < 60; k++) { const x = (hash(k) * W + t * 40) % W, y = (hash(k + 9) * H + t * 120) % H; G.fillRect(Math.floor(x), Math.floor(y), 1, 3); } }
 }
 
-// ---------- Symi: a night on the beach, the ship drawn up, the crew round a fire, sponges drying on the rocks ----------
+// ---------- nights ashore: the ship drawn up on a beach, the crew round a fire, and whatever each place has ----------
 function vn(x, y, s) {   // smooth value noise
   const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, h = (a, b) => hash(a * 12.99 + b * 78.23 + s * 37.7), u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
   return (h(xi, yi) * (1 - u) + h(xi + 1, yi) * u) * (1 - v) + (h(xi, yi + 1) * (1 - u) + h(xi + 1, yi + 1) * u) * v;
 }
 PERSON.sit = ['..KKK..', '.KhhhK.', '.KhssK.', '.KsseK.', '..KsK..', '.KrrrK.', 'KsrrrsK', 'KrRrRrK', 'KrrrrrK', '.KKKKK.'];
+const SPONGE = () => [mat('#e0b050', 0.2, 0.4), mat('#c89838', 0.2, 0.4), mat('#d8a848', 0.2, 0.4)];
+function spring(c, u, dv) {   // a spout in a little wall, a stone basin, jars waiting
+  const { Wd, at, top } = c, { put, box, face } = Wd, [x, y] = at(u, dv), z = top(x, y) + 1, sp = box(x - 2, y - 1, z, 5, 1, 3, M.stoneD);
+  box(x - 1, y, z, 3, 2, 1, M.stone, sp); for (let i = -1; i < 2; i++) put(i + x, y, z + 1, mat('#5ac0f0', 0.1, 0.2), sp); face(x, y - 1, z + 2, 'l', INK);
+  for (const [dx, dy] of [[3, 1], [4, 0], [3, -1]]) { const jz = top(x + dx, y + dy) + 1, j = Wd.newId(); put(x + dx, y + dy, jz, mat('#e8763a', 0.16, 0.34), j); put(x + dx, y + dy, jz + 1, mat('#c85a2a'), j); }
+}
+function slopeTrees(c, from, density) {   // olives, carobs and the odd cypress on the hillside, with dry-stone terrace walls
+  const { Wd, hts, dist, used } = c;
+  for (const [k, h] of hts) {
+    const [x, y] = k.split(',').map(Number), u = x - y, d = dist(x, y);
+    if (d > from + 1 && !c.rocky(u) && pm(Math.round(d), 9) === 0 && hash(x * 0.9 + y * 1.7) < 0.85 && !used.has(k)) { Wd.put(x, y, h + 1, pm(x, 2) ? M.stone : M.stoneD, Wd.newId()); used.add(k); }
+  }
+  for (const [k, h] of hts) {
+    const [x, y] = k.split(',').map(Number), d = dist(x, y), r = hash(x * 0.37 + y * 1.91 + c.seed);
+    if (d < from || pm(x, 5) || pm(y, 4) || used.has(k) || r > density || vn(x / 12, y / 9, 77 + c.seed) < 0.45) continue;
+    if (r < 0.05) Wd.box(x, y, h + 1, 1, 1, 4, M.cypress); else tree(Wd, x, y, h + 1, 0.6 + r * 0.9);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) used.add((x + i) + ',' + (y + j));
+  }
+}
+function flatten(c, x0, y0, w, d, pad) {   // a level terrace cut into the hill at its average height: returns that height
+  const { Wd, top, hts } = c; pad = pad || 0; let sum = 0, n = 0;
+  for (let x = x0 - pad; x < x0 + w + pad; x++) for (let y = y0 - pad; y < y0 + d + pad; y++) { sum += top(x, y); n++; }
+  const zb = Math.max(1, Math.round(sum / n)), ter = Wd.newId();
+  for (let x = x0 - pad; x < x0 + w + pad; x++) for (let y = y0 - pad; y < y0 + d + pad; y++) {
+    for (let z = zb + 1; z <= top(x, y) + 1; z++) Wd.del(x, y, z);
+    for (let z = Math.max(0, Math.min(zb, top(x, y) + 1)); z <= zb; z++) Wd.put(x, y, z, z === zb ? M.rock : M.stoneD, ter);
+    hts.set(x + ',' + y, zb); c.used.add(x + ',' + y);
+  }
+  return zb;
+}
+const CAMPSPEC = {
+  symi: {
+    seed: 41, high: 15, rocky: u => Math.abs(u - 4) > 38, cove: u => Math.max(0, Math.round((Math.abs(u - 4) - 44) * 0.9)),
+    ship: [-36, 7], fire: [10, 6], glaukos: [-46, 2], swimmer: [36, -12],
+    dress(c) {
+      const { Wd, at, top, hts } = c, { put, box, face } = Wd, sponge = SPONGE();
+      spring(c, -14, 17);
+      const [hx, hy] = at(40, 13), hz_ = top(hx, hy) + 1;
+      house(Wd, hx, hy, hz_, 5, 4, 4, M.cream, { flat: true, door: '#5a3a2a', seed: 0.2 });
+      for (let k = 0; k < 7; k++) { const [x, y] = at(20 + k * 4, 2 + (k % 3)), z = Math.max(0, top(x, y)) + 1, rk = box(x, y, z, 2 + (k % 2), 2, 1, k % 2 ? M.grey : M.greyD); for (let i = 0; i < 2 + (k % 2); i++) if (hash(k * 3 + i) < 0.8) put(x + i, y + (i % 2), z + 1, sponge[(k + i) % 3], rk); }
+      const [bx, by] = at(52, -6); smallBoat(Wd, bx, by, '#3a8ad8', false);
+      slopeTrees(c, 13, 0.3);
+      for (const [u, dv, w2] of [[30, 20, 4], [50, 9, 4], [-24, 34, 3]]) { const [x, y] = at(u, dv); if (hts.has(x + ',' + y)) house(Wd, x, y, top(x, y) + 1, w2, 3, 3 + (u % 2 ? 1 : 0), u > 40 ? M.white : M.cream, { flat: true, door: '#5a3a2a', seed: 0.5 }); }
+      { const [x, y] = at(30, 9), z = top(x, y) + 1, rack = Wd.newId(); for (const dx of [0, 6]) box(x + dx, y, z, 1, 1, 4, M.woodD, rack); for (let dx = 0; dx <= 6; dx++) { put(x + dx, y, z + 4, M.woodD, rack); if (dx > 0 && dx < 6) put(x + dx, y, z + 3, sponge[dx % 3], rack); } }
+      { const [x, y] = at(14, 44); if (hts.has(x + ',' + y)) { const z = top(x, y) + 1, sh = box(x, y, z, 3, 3, 3, M.white); put(x + 1, y + 1, z + 3, M.roof, sh); face(x + 1, y + 2, z, 'l', '#3a2418'); } }
+      return { lights: [[hx + 2, hy + 4, hz_ + 1, 22, 0.75]], goats: [[-20, 26], [-6, 40], [40, 30], [18, 34]], people: [[24, 6, 'diver1'], [32, 5, 'diver2']] };
+    },
+  },
+  triopion: {   // under the cape, below the walls of Knidos: fishermen and their boats on the beach, lamps in the town, a beacon on the cape
+    seed: 53, high: 12, rocky: u => u > 30 || u < -50, cove: u => u > 34 ? Math.round((u - 34) * 1.1) : Math.max(0, Math.round((-54 - u) * 0.8)), lift: u => u > 26 ? Math.round((u - 26) * 0.9) : 0,
+    ship: [-30, 7], fire: [-4, 6], glaukos: null, swimmer: null,
+    dress(c) {
+      const { Wd, at, top, hts } = c, { put, box, face } = Wd, lights = [];
+      // the walls of Knidos across the slope, towers along them, and the town above with its lamps lit
+      const wallDv = u => 24 + Math.round(3 * Math.sin(u / 9));
+      for (let u = -90; u <= 24; u++) { const [x, y] = at(u, wallDv(u)); if (!hts.has(x + ',' + y)) continue; const z = top(x, y), id = Wd.newId(); for (let k = 1; k <= 3; k++) put(x, y, z + k, pm(u, 4) < 2 ? M.stone : M.stoneD, id); if (pm(u, 2) === 0) put(x, y, z + 4, M.stone, id); c.used.add(x + ',' + y); }
+      for (let u = -84; u <= 20; u += 18) { const [x, y] = at(u, wallDv(u)); if (!hts.has(x + ',' + y)) continue; const z = top(x, y) + 1, tw = box(x - 1, y - 1, z, 3, 3, 6, (xx, yy, zz) => zz % 2 ? M.stone : M.stoneD); for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) put(x + dx, y + dy, z + 6, M.stone, tw); face(x, y + 1, z + 3, 'l', INK); lights.push([x, y + 2, z + 4, 10, 0.55]); }
+      for (let dv = 30, r = 0; dv < 70; dv += 7, r++) for (let u = -88 + (r % 2) * 4; u < 28; u += 8) {
+        const [x, y] = at(u, dv); if (!hts.has(x + ',' + y) || c.used.has(x + ',' + y)) continue;
+        const k = hash(u * 3.1 + dv * 7.3); if (k < 0.15) continue;
+        const z = top(x, y) + 1; let ok = true; for (let i = 0; i < 4 && ok; i++) for (let j = 0; j < 4; j++) if (Math.abs(top(x + i, y + j) - top(x, y)) > 2 || c.used.has((x + i) + ',' + (y + j))) { ok = false; break; }
+        if (!ok) continue;
+        house(Wd, x, y, z, 4, 4, 4 + Math.floor(k * 3), [M.white, M.cream, M.ochre, M.pink][Math.floor(k * 4)], { flat: k < 0.5, alongY: k > 0.7, door: '#5a3a2a', seed: k });
+        for (let i = -1; i <= 4; i++) for (let j = -1; j <= 4; j++) c.used.add((x + i) + ',' + (y + j));
+        if (k > 0.6) lights.push([x + 2, y + 4, z + 2, 8, 0.55]);
+      }
+      // the round temple of Aphrodite, up on the height, columns in a ring under a cone of a roof
+      { const [x, y] = at(-30, 58); if (hts.has(x + ',' + y)) { const z = flatten(c, x - 4, y - 4, 9, 9, 0) + 1, id = Wd.newId();
+        for (let i = -4; i <= 4; i++) for (let j = -4; j <= 4; j++) { const r = Math.hypot(i, j); if (r <= 4.3) put(x + i, y + j, z, M.marble, id); if (r > 3.2 && r <= 4.3 && pm(i + j, 2) === 0) for (let k = 1; k <= 4; k++) put(x + i, y + j, z + k, M.marble, id); if (r <= 2) for (let k = 1; k <= 4; k++) put(x + i, y + j, z + k, mat('#f0e4d0', 0.3, 0.5), id); }
+        for (let k = 0; k < 4; k++) for (let i = -4 + k; i <= 4 - k; i++) for (let j = -4 + k; j <= 4 - k; j++) if (Math.hypot(i, j) <= 4.3 - k) put(x + i, y + j, z + 5 + k, k === 3 ? M.bronze : M.roof, id);
+        lights.push([x, y + 4, z + 2, 10, 0.5]); } }
+      // a beacon on the cape
+      { const [x, y] = at(52, 18); if (hts.has(x + ',' + y)) { const z = top(x, y) + 1, b = box(x, y, z, 2, 2, 4, M.stoneD); put(x, y, z + 4, M.iron, b); c.beacon = [x + 1, y + 1, z + 5]; lights.push([x + 1, y + 1, z + 5, 18, 0.8]); } }
+      // the fishermen: two boats pulled up, nets drying on poles, baskets of fish
+      for (const [u, dv, col] of [[18, 3, '#e8483a'], [26, 2, '#3a8ad8']]) { const [x, y] = at(u, dv); smallBoat(Wd, x, y, col, false); }
+      { const [x, y] = at(8, 9), z = top(x, y) + 1, nets = Wd.newId(); for (const dx of [0, 6]) box(x + dx, y, z, 1, 1, 5, M.woodD, nets); for (let dx = 1; dx < 6; dx++) for (let k = 1; k < 5; k++) if ((dx + k) % 2 === 0) put(x + dx, y, z + k, mat('#8a6a4a', 0.1, 0.2), nets); }
+      for (const [u, dv] of [[22, 7], [24, 8]]) { const [x, y] = at(u, dv), z = top(x, y) + 1, b = Wd.newId(); put(x, y, z, mat('#c89a52', 0.16, 0.34), b); put(x, y, z + 1, mat('#c8d8e8', 0.1, 0.2), b); }
+      slopeTrees(c, 12, 0.22);
+      const lamp = at(23, 6); lights.push([lamp[0], lamp[1], top(lamp[0], lamp[1]) + 3, 16, 0.7]);
+      return { lights, people: [[20, 6, 'fisher1'], [27, 5, 'fisher2'], [24, 9, 'fisher3']] };
+    },
+  },
+  loryma: {   // a harbour on the mainland across from Rhodes, a Rhodian fort on the height, soldiers glad of company, a spring
+    seed: 67, high: 9, rocky: u => u < -58 || u > 46, cove: u => u < -60 ? Math.round((-60 - u) * 1.0) : Math.max(0, Math.round((u - 48) * 0.8)),
+    ship: [-6, 7], fire: [22, 6], glaukos: null, swimmer: null,
+    dress(c) {
+      const { Wd, at, top, hts } = c, { put, box, face } = Wd, lights = [];
+      // the fort: four walls with a walk along the top, a tower at each corner, a gate looking down on the beach, a barracks inside
+      let fort = null;
+      { const [x0, y0] = at(-30, 34), w = 18, d = 14;
+        if (hts.has(x0 + ',' + y0)) {
+          const zb = flatten(c, x0 - 1, y0 - 1, w + 2, d + 2, 1) + 1, id = Wd.newId(), wallM = (x, y, z) => pm(x + y + z, 3) === 0 ? M.stoneD : M.stone;
+          for (let x = x0; x < x0 + w; x++) for (let y = y0; y < y0 + d; y++) {
+            const edge = x === x0 || y === y0 || x === x0 + w - 1 || y === y0 + d - 1; if (!edge) continue;
+            const gate = y === y0 + d - 1 && Math.abs(x - (x0 + w / 2)) < 1.5;
+            for (let z = zb + (gate ? 3 : 0); z < zb + 5; z++) put(x, y, z, wallM(x, y, z), id);
+            if (pm(x + y, 2) === 0) put(x, y, zb + 5, M.stone, id);
+          }
+          for (const [x, y] of [[x0 - 1, y0 - 1], [x0 + w - 2, y0 - 1], [x0 - 1, y0 + d - 2], [x0 + w - 2, y0 + d - 2]]) { const tw = box(x, y, zb, 3, 3, 8, wallM); for (const [dx, dy] of [[0, 0], [2, 0], [0, 2], [2, 2]]) put(x + dx, y + dy, zb + 8, M.stone, tw); face(x + 1, y + 2, zb + 5, 'l', INK); face(x + 2, y + 1, zb + 5, 'r', INK); }
+          house(Wd, x0 + 3, y0 + 3, zb, 9, 5, 5, M.ochre, { alongY: false, door: '#5a3a2a', seed: 0.7 });
+          const gx = Math.round(x0 + w / 2), gy = y0 + d - 1;
+          lights.push([gx - 2, gy + 1, zb + 3, 14, 0.8], [gx + 2, gy + 1, zb + 3, 14, 0.8], [x0 + w - 1, y0 + d - 1, zb + 9, 12, 0.6]);
+          fort = { gate: [gx, gy + 2, zb], torches: [[gx - 2, gy + 1, zb + 3], [gx + 2, gy + 1, zb + 3]], flag: [x0 + w - 1, y0 + d - 1, zb + 9], wall: [x0 + 6, y0 + d - 1, zb + 5] };
+        } }
+      spring(c, 2, 16);
+      for (const [u, dv, col] of [[40, -8, '#e8483a'], [52, -4, '#ffffff']]) { const [x, y] = at(u, dv); smallBoat(Wd, x, y, col, false); }
+      { const [x, y] = at(34, 12), z = top(x, y) + 1; house(Wd, x, y, z, 4, 4, 4, M.cream, { flat: true, door: '#5a3a2a', seed: 0.3 }); }
+      slopeTrees(c, 12, 0.3);
+      return { lights, fort, people: [[26, 9, 'soldier'], [18, 9, 'soldier2'], [34, 7, 'soldier3']] };
+    },
+  },
+};
 // The beach runs straight across the picture: a tile is (u, v) = (x - y, x + y) on the screen, and the shore is a line of v.
-function symiWorld(W, H) {
-  const OX = Math.round(W * 0.5), OY = Math.round(H * 0.5), vs0 = Math.round(H * (H > W * 0.8 ? 0.74 : 0.64)) - OY, seed = 41;   // on a phone the story text covers the top, so the beach sits lower
-  const sv = u => vs0 + Math.round(1.6 * Math.sin(u / 11) + 1.1 * Math.sin(u / 4.7 + 1)) + Math.max(0, Math.round((Math.abs(u - 4) - 44) * 0.9));   // a cove, the headlands coming forward at each end
-  const rocky = u => Math.abs(u - 4) > 38;
-  const dist = (x, y) => sv(x - y) - (x + y);
-  const hAt = (x, y) => { const d = dist(x, y); if (d < 0) return null; const u = x - y, r = rocky(u); if (!r && d < 11) return d < 6 ? 0 : 1; return Math.min(Math.floor((d - (r ? 0 : 9)) / (r ? 1.5 : 2.6)) + 1, 2 + Math.floor(vn(x / 15, y / 11, seed) * 15)); };
+function campWorld(W, H, stop) {
+  const P = CAMPSPEC[stop], seed = P.seed, OX = Math.round(W * 0.5), OY = Math.round(H * 0.5), vs0 = Math.round(H * (H > W * 0.8 ? 0.74 : 0.64)) - OY;   // on a phone the story text covers the top, so the beach sits lower
+  const sv = u => vs0 + Math.round(1.6 * Math.sin(u / 11 + seed) + 1.1 * Math.sin(u / 4.7 + 1)) + P.cove(u);
+  const dist = (x, y) => sv(x - y) - (x + y), lift = P.lift || (() => 0);
+  const hAt = (x, y) => { const d = dist(x, y); if (d < 0) return null; const u = x - y, r = P.rocky(u); if (!r && d < 11) return d < 6 ? 0 : 1; return Math.min(Math.floor((d - (r ? 0 : 9)) / (r ? 1.5 : 2.6)) + 1, 2 + Math.floor(vn(x / 15, y / 11, seed) * P.high) + lift(u)); };
   const at = (u, dv) => { let v = sv(u) - dv; if ((u + v) & 1) v--; return [(u + v) / 2, (v - u) / 2]; };
-  const Wd = makeWd(), { put, box, face } = Wd, g = Wd.newId(), hts = new Map();
+  const Wd = makeWd(), { put } = Wd, g = Wd.newId(), hts = new Map();
   const sand = mat('#f0dcb0', 0.14, 0.3), sand2 = mat('#e4cc9c', 0.14, 0.3), peb = mat('#c8c0b0', 0.16, 0.32), rock = mat('#d0c4a8', 0.18, 0.38), rock2 = mat('#bcae94', 0.18, 0.38), cliff = mat('#b4a68a', 0.2, 0.42);
   const scrub = mat('#8aa858', 0.2, 0.42), scrub2 = mat('#6a9048', 0.2, 0.42), thyme = mat('#a87ab8', 0.16, 0.34), path = mat('#e8d8b4', 0.14, 0.3);
-  const umin = Math.floor(-OX / 2) - 4, umax = Math.ceil((W - OX) / 2) + 4, vmin = -OY - 30;
+  const umin = Math.floor(-OX / 2) - 4, umax = Math.ceil((W - OX) / 2) + 4, vmin = -OY - 40;
   for (let u = umin; u <= umax; u++) for (let v = vmin; v <= sv(u) + 3; v++) {
     if ((u + v) & 1) continue;
     const x = (u + v) / 2, y = (v - u) / 2, d = dist(x, y);
-    if (d < 0) { if (d >= -3 && rocky(u) && hash(x * 1.3 + y * 7.1) < 0.5) { const id = Wd.newId(); put(x, y, -1, pm(x + y, 2) ? M.grey : M.greyD, id); if (hash(x * 3.1 + y) < 0.3) put(x, y, 0, M.grey, id); } continue; }
-    const h = hAt(x, y); if (OY + v - 2 * h < -8) continue;
+    if (d < 0) { if (d >= -3 && P.rocky(u) && hash(x * 1.3 + y * 7.1) < 0.5) { const id = Wd.newId(); put(x, y, -1, pm(x + y, 2) ? M.grey : M.greyD, id); if (hash(x * 3.1 + y) < 0.3) put(x, y, 0, M.grey, id); } continue; }
+    const h = hAt(x, y); if (OY + v - 2 * h < -10) continue;
     hts.set(x + ',' + y, h);
     const f = (dx, dy) => { const q = hAt(x + dx, y + dy); return q == null ? -2 : q; }, low = Math.min(f(1, 0), f(0, 1), h);
-    const r = rocky(u), sc = vn(x / 7, y / 6, seed + 3), zig = pm(Math.round(u + Math.sin(v / 5) * 6), 31) === 0 && d > 12;
-    const top = h === 0 ? (hash(x * 0.7 + y * 1.9) < 0.18 ? peb : pm(x + y, 3) ? sand : sand2) : h === 1 && !r ? (hash(x + y * 3.3) < 0.4 ? peb : sand2)
+    const r = P.rocky(u), sc = vn(x / 7, y / 6, seed + 3), zig = pm(Math.round(u + Math.sin(v / 5) * 6), 31) === 0 && d > 12;
+    const tp = h === 0 ? (hash(x * 0.7 + y * 1.9) < 0.18 ? peb : pm(x + y, 3) ? sand : sand2) : h === 1 && !r ? (hash(x + y * 3.3) < 0.4 ? peb : sand2)
       : zig ? path : sc > 0.6 ? (hash(x * 2.3 + y) < 0.07 ? thyme : pm(x * 3 + y, 4) ? scrub : scrub2) : pm(x + 2 * y, 5) ? rock : rock2;
-    for (let z = Math.min(h, Math.max(-1, low + 1)); z <= h; z++) put(x, y, z, z === h ? top : z < 1 ? M.grey : cliff, g);
+    for (let z = Math.min(h, Math.max(-1, low + 1)); z <= h; z++) put(x, y, z, z === h ? tp : z < 1 ? M.grey : cliff, g);
   }
   const top = (x, y) => hts.has(x + ',' + y) ? hts.get(x + ',' + y) : 0;
-  // the spring above the beach: a spout in a little wall, a stone basin, jars waiting
-  { const [x, y] = at(-14, 17), z = top(x, y) + 1, sp = box(x - 2, y - 1, z, 5, 1, 3, M.stoneD); box(x - 1, y, z, 3, 2, 1, M.stone, sp); for (let i = -1; i < 2; i++) put(i + x, y, z + 1, mat('#5ac0f0', 0.1, 0.2), sp); face(x, y - 1, z + 2, 'l', INK);
-    for (const [dx, dy] of [[3, 1], [4, 0], [3, -1]]) { const jz = top(x + dx, y + dy) + 1, j = Wd.newId(); put(x + dx, y + dy, jz, mat('#e8763a', 0.16, 0.34), j); put(x + dx, y + dy, jz + 1, mat('#c85a2a'), j); } }
-  // the divers' hut, with a lamp at the door, and their sponges drying on the rocks by the water
-  const [hx, hy] = at(40, 13), hz_ = top(hx, hy) + 1;
-  house(Wd, hx, hy, hz_, 5, 4, 4, M.cream, { flat: true, door: '#5a3a2a', seed: 0.2 });
-  const sponge = [mat('#e0b050', 0.2, 0.4), mat('#c89838', 0.2, 0.4), mat('#d8a848', 0.2, 0.4)];
-  for (let k = 0; k < 7; k++) {
-    const [x, y] = at(20 + k * 4, 2 + (k % 3)), z = Math.max(0, top(x, y)) + 1, rk = box(x, y, z, 2 + (k % 2), 2, 1, k % 2 ? M.grey : M.greyD);
-    for (let i = 0; i < 2 + (k % 2); i++) if (hash(k * 3 + i) < 0.8) put(x + i, y + (i % 2), z + 1, sponge[(k + i) % 3], rk);
-  }
-  const [bx, by] = at(52, -6); smallBoat(Wd, bx, by, '#3a8ad8', false);
-  // dry-stone walls holding up terraces on the slope, olives and carobs on them
-  const used = new Set();
-  for (const [k, h] of hts) {
-    const [x, y] = k.split(',').map(Number), u = x - y, d = dist(x, y);
-    if (d > 14 && Math.abs(u - 4) < 40 && pm(Math.round(d), 9) === 0 && hash(x * 0.9 + y * 1.7) < 0.85) { const id = Wd.newId(); put(x, y, h + 1, pm(x, 2) ? M.stone : M.stoneD, id); used.add(k); }
-  }
-  for (const [k, h] of hts) {
-    const [x, y] = k.split(',').map(Number), d = dist(x, y), r = hash(x * 0.37 + y * 1.91 + 5);
-    if (d < 13 || pm(x, 5) || pm(y, 4) || used.has(k) || r > 0.3 || vn(x / 12, y / 9, 77) < 0.45) continue;
-    if (r < 0.05) box(x, y, h + 1, 1, 1, 4, M.cypress); else tree(Wd, x, y, h + 1, 0.6 + r * 0.9);
-    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) used.add((x + i) + ',' + (y + j));
-  }
-  for (const [u, dv, w2] of [[30, 20, 4], [50, 9, 4], [-24, 34, 3]]) { const [x, y] = at(u, dv); if (hts.has(x + ',' + y)) house(Wd, x, y, top(x, y) + 1, w2, 3, 3 + (u % 2 ? 1 : 0), u > 40 ? M.white : M.cream, { flat: true, door: '#5a3a2a', seed: 0.5 }); }
-  { const [x, y] = at(30, 9), z = top(x, y) + 1, rack = Wd.newId(); for (const dx of [0, 6]) box(x + dx, y, z, 1, 1, 4, M.woodD, rack); for (let dx = 0; dx <= 6; dx++) { put(x + dx, y, z + 4, M.woodD, rack); if (dx > 0 && dx < 6) put(x + dx, y, z + 3, sponge[dx % 3], rack); } }
-  { const [x, y] = at(14, 44); if (hts.has(x + ',' + y)) { const z = top(x, y) + 1, sh = box(x, y, z, 3, 3, 3, M.white); put(x + 1, y + 1, z + 3, M.roof, sh); face(x + 1, y + 2, z, 'l', '#3a2418'); } }
-  return { V: Wd.V, OX, OY, at, top, sv,
-    fire: (() => { const [x, y] = at(10, 6); return [x, y, top(x, y)]; })(), lamp: [hx + 2, hy + 4, hz_ + 1],
-    ship: (() => { const [x, y] = at(-36, 7); return [x, y]; })(), glaukos: (() => { const [x, y] = at(-46, 2); return [x, y, top(x, y) + 1]; })(),
-    goats: [[-20, 26], [-6, 40], [40, 30], [18, 34]].map(([u, dv]) => { const [x, y] = at(u, dv); return [x, y, top(x, y) + 1]; }),
-    divers: [[24, 6], [32, 5]].map(([u, dv]) => { const [x, y] = at(u, dv); return [x, y, top(x, y) + 1]; }), swimmer: at(36, -12) };
+  const c = { Wd, at, top, hts, dist, rocky: P.rocky, seed, used: new Set() };
+  // keep the beach clear where the ship lies and the crew sit
+  for (const [u, dv, r] of [[P.ship[0], P.ship[1], 14], [P.fire[0], P.fire[1], 5]]) for (let du = -r; du <= r; du++) for (let dd = -4; dd <= 4; dd++) { const [x, y] = at(u + du, dv + dd); c.used.add(x + ',' + y); }
+  const extra = P.dress(c);
+  const pos = ([u, dv]) => { const [x, y] = at(u, dv); return [x, y, top(x, y) + 1]; };
+  return { V: Wd.V, OX, OY, at, top, sv, stop, ...extra, beacon: c.beacon,
+    fire: (() => { const [x, y] = at(P.fire[0], P.fire[1]); return [x, y, top(x, y)]; })(), ship: at(P.ship[0], P.ship[1]),
+    glaukos: P.glaukos && pos(P.glaukos), swimmer: P.swimmer && at(P.swimmer[0], P.swimmer[1]),
+    goats: (extra.goats || []).map(pos), people: (extra.people || []).map(([u, dv, who]) => [...pos([u, dv]), who]) };
 }
-const SYMI = { key: null };
-function drawSymiIso(W, H, t) {
-  const kind = shipKind(), key = W + 'x' + H + ':' + kind;
-  if (SYMI.key !== key) {
-    const w = symiWorld(W, H); SYMI.key = key; SYMI.w = w; SYMI.R = raster(w.V, W, H, w.OX, w.OY, false);
-    SYMI.cv = document.createElement('canvas'); SYMI.cv.width = W; SYMI.cv.height = H; SYMI.ctx = SYMI.cv.getContext('2d'); SYMI.img = SYMI.ctx.createImageData(W, H); SYMI.dep = new Float32Array(W * H);
+const CAMPC = { key: null };
+const CAMPFOLK = {
+  diver1: () => person({ skin: '#9a6a42', hair: '#1a1210', robe: '#9a6a42', style: 'short' }, 'stand', 'sack'), diver2: () => person({ skin: '#a87448', hair: '#2a1d14', robe: '#7a5034', style: 'curly' }, 'stand'),
+  fisher1: () => person({ skin: '#a87448', hair: '#e8e8e8', robe: '#6a7a8a', style: 'short', beard: 2 }, 'stand', 'basket'), fisher2: () => person({ skin: '#9a6a42', hair: '#1a1210', robe: '#8a5a3a', style: 'curly', beard: 1 }, 'stand'), fisher3: () => person({ skin: '#b87a4a', hair: '#3a281c', robe: '#c8b89a', style: 'short' }, 'sit'),
+  soldier: () => person({ skin: '#c88a58', hair: '#2a1d14', robe: '#c8324a', style: 'short', hat: 'pilos', hatC: '#ffb44a' }, 'stand'), soldier2: () => person({ skin: '#d8985e', hair: '#1b130e', robe: '#c8324a', style: 'short', beard: 1, hat: 'pilos', hatC: '#ffb44a' }, 'stand'), soldier3: () => person({ skin: '#b87a4a', hair: '#3a281c', robe: '#c8324a', style: 'curly', hat: 'pilos', hatC: '#ffb44a' }, 'sit'),
+};
+const GOATS = () => CAMPC.goat || (CAMPC.goat = [sprite(['.KK.....', 'KwhK....', '.KwKKKK.', '.KwwwwwK', '..KwwwwK', '..K.K.K.'], { K: INK, w: '#f0ece0', h: '#c8b8a0' }), sprite(['.KK.....', 'KbhK....', '.KbKKKK.', '.KbbbbbK', '..KbbbbK', '..K.K.K.'], { K: INK, b: '#8a5a3a', h: '#c8b8a0' })]);
+function drawCampIso(W, H, t, stop) {
+  const kind = shipKind(), key = W + 'x' + H + ':' + kind + ':' + stop;
+  if (CAMPC.key !== key) {
+    const w = campWorld(W, H, stop); CAMPC.key = key; CAMPC.w = w; CAMPC.R = raster(w.V, W, H, w.OX, w.OY, false); CAMPC.lmap = null;
+    CAMPC.cv = document.createElement('canvas'); CAMPC.cv.width = W; CAMPC.cv.height = H; CAMPC.ctx = CAMPC.cv.getContext('2d'); CAMPC.img = CAMPC.ctx.createImageData(W, H); CAMPC.dep = new Float32Array(W * H);
+    CAMPC.folk = {}; for (const [, , , who] of w.people) CAMPC.folk[who] = CAMPC.folk[who] || CAMPFOLK[who]();
   }
-  const w = SYMI.w, Rw = SYMI.R, out = SYMI.img.data, dep = SYMI.dep, { OX, OY } = w;
+  const w = CAMPC.w, Rw = CAMPC.R, out = CAMPC.img.data, dep = CAMPC.dep, { OX, OY } = w;
   const sx = (x, y) => OX + (x - y) * 2, sy = (x, y, z) => OY + x + y - 2 * z;
-  // the water first, the same living surface as at sea, then the island over it
+  // the water first, the same living surface as at sea, then the land over it
   const ST = seaTex(), T = ST.frames[Math.floor(t * 8) % ST.n], c3 = c => { const n = parseInt(c.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
   const water = '#3a8aa8', tones = [mix(water, '#1a3a5a', 0.14), water, mix(water, '#ffffff', 0.17), mix(water, '#ffffff', 0.4)].map(c3), drift = Math.round(t * 1.5);
   for (let y = 0; y < H; y++) { const rowT = pm(y + drift, ST.h) * ST.w, rowP = pm((y + drift) >> 1, ST.ph) * ST.pw; for (let x = 0; x < W; x++) { let tn = T[rowT + pm(x + 2 * drift, ST.w)] + ST.patch[rowP + pm((x + 2 * drift) >> 1, ST.pw)]; const c = tones[tn < 0 ? 0 : tn > 3 ? 3 : tn], k = (y * W + x) * 4; out[k] = c[0]; out[k + 1] = c[1]; out[k + 2] = c[2]; out[k + 3] = 255; } }
@@ -1019,56 +1121,273 @@ function drawSymiIso(W, H, t) {
     const X0 = Math.round(sx(x, y)) - m.ox, Y0 = Math.round(sy(x, y, z)) - m.oy, base = x + y + z;
     for (let j = 0; j < m.h; j++) { const py = Y0 + j; if (py < 0 || py >= H) continue; for (let i = 0; i < m.w; i++) { const s = j * m.w + i; if (!m.rgba[s * 4 + 3]) continue; const px_ = X0 + i; if (px_ < 0 || px_ >= W) continue; const k = py * W + px_, d = base + m.depth[s]; if (d < dep[k] - 0.3) continue; dep[k] = d; out[k * 4] = m.rgba[s * 4]; out[k * 4 + 1] = m.rgba[s * 4 + 1]; out[k * 4 + 2] = m.rgba[s * 4 + 2]; } }
   };
-  // the ship drawn up on the sand, bow to the sea; the crew round the fire; Glaukos apart, looking north; the divers
-  const all = [], ship = voyShip(kind, 'furled', false, 0), mt = ship.meta, [fx, fy, fz] = w.fire;
+  // the ship drawn up on the sand; the crew round the fire; Glaukos apart; the people of the place
+  const all = [], ship = voyShip(kind, 'furled', false, 0), [fx, fy, fz] = w.fire;
   all.push(['v', ship, w.ship[0], w.ship[1], 0]);
-  const ring = [[-2, 0], [2, 0], [0, -2], [0, 2], [-1.5, 1.6], [1.6, -1.5]];
-  ring.forEach(([dx, dy], i) => all.push(['p', person(look(150 + i), 'sit'), fx + dx, fy + dy, fz + 1, dx > 0 || dy < 0]));
-  const GL = SYMI.gl || (SYMI.gl = person({ skin: '#c88a58', hair: '#e8e8e8', robe: '#8a6a4a', style: 'short', beard: 2 }, 'stand'));
-  all.push(['p', GL, w.glaukos[0], w.glaukos[1], w.glaukos[2], true]);
-  const DV = SYMI.dv || (SYMI.dv = [person({ skin: '#9a6a42', hair: '#1a1210', robe: '#9a6a42', style: 'short' }, 'stand', 'sack'), person({ skin: '#a87448', hair: '#2a1d14', robe: '#7a5034', style: 'curly' }, 'stand')]);
-  w.divers.forEach(([x, y, z], i) => all.push(['p', DV[i], x, y, z, i === 1]));
-  const GOAT = SYMI.goat || (SYMI.goat = [sprite(['.KK.....', 'KwhK....', '.KwKKKK.', '.KwwwwwK', '..KwwwwK', '..K.K.K.'], { K: INK, w: '#f0ece0', h: '#c8b8a0' }), sprite(['.KK.....', 'KbhK....', '.KbKKKK.', '.KbbbbbK', '..KbbbbK', '..K.K.K.'], { K: INK, b: '#8a5a3a', h: '#c8b8a0' })]);
-  w.goats.forEach(([x, y, z], i) => all.push(['p', GOAT[i % 2], x + (Math.floor(t * 0.3 + i) % 3 === 0 ? 0.5 : 0), y, z, i % 2 === 1]));
+  [[-2, 0], [2, 0], [0, -2], [0, 2], [-1.5, 1.6], [1.6, -1.5]].forEach(([dx, dy], i) => all.push(['p', person(look(150 + i), 'sit'), fx + dx, fy + dy, fz + 1, dx > 0 || dy < 0]));
+  if (w.glaukos) { const GL = CAMPC.gl || (CAMPC.gl = person({ skin: '#c88a58', hair: '#e8e8e8', robe: '#8a6a4a', style: 'short', beard: 2 }, 'stand')); all.push(['p', GL, w.glaukos[0], w.glaukos[1], w.glaukos[2], true]); }
+  w.people.forEach(([x, y, z, who], i) => all.push(['p', CAMPC.folk[who], x, y, z, i % 2 === 1]));
+  if (w.fort) all.push(['p', CAMPC.folk.soldier || (CAMPC.folk.soldier = CAMPFOLK.soldier()), w.fort.wall[0], w.fort.wall[1], w.fort.wall[2], false]);
+  w.goats.forEach(([x, y, z], i) => all.push(['p', GOATS()[i % 2], x + (Math.floor(t * 0.3 + i) % 3 === 0 ? 0.5 : 0), y, z, i % 2 === 1]));
   all.sort((p, q) => (p[2] + p[3] + p[4]) - (q[2] + q[3] + q[4]));
   for (const e of all) if (e[0] === 'v') drawVox(e[1], e[2], e[3], e[4]); else drawAt(e[1], e[2], e[3], e[4], e[5]);
-  // a diver coming up out of the water with his stone, and the rings he makes
-  { const [x, y] = w.swimmer, up = Math.sin(t * 0.7) > 0.2, X = Math.round(sx(x, y)), Y = Math.round(sy(x, y, 0)); const put = (a, b, c) => { if (a >= 0 && b >= 0 && a < W && b < H) { const k = (b * W + a) * 4, v = c3(c); out[k] = v[0]; out[k + 1] = v[1]; out[k + 2] = v[2]; } };
-    const r = 2 + Math.floor(t * 3) % 4; for (let i = -r * 2; i <= r * 2; i++) { const yy = Math.round(Math.sqrt(Math.max(0, r * r - (i / 2) * (i / 2)))); put(X + i, Y - yy + 1, '#cfeaf2'); put(X + i, Y + yy + 1, '#cfeaf2'); }
-    if (up) { put(X, Y - 1, INK); put(X + 1, Y - 1, INK); put(X - 1, Y, INK); put(X, Y, '#1a1210'); put(X + 1, Y, '#1a1210'); put(X + 2, Y, INK); put(X, Y + 1, '#9a6a42'); put(X + 1, Y + 1, '#9a6a42'); } }
-  // night over everything, except where the fire and the lamp reach; the fire burns, and the moon lays a path on the sea
-  const flick = 0.92 + Math.sin(t * 9) * 0.04 + Math.sin(t * 23) * 0.03, FX = sx(fx, fy) + 2, FY = sy(fx, fy, fz + 1) + 1, LX = sx(w.lamp[0], w.lamp[1]) + 2, LY = sy(w.lamp[0], w.lamp[1], w.lamp[2]);
-  const rF = Math.min(W, H) * 0.36 * flick, rL = 22, night = [0.5, 0.56, 0.84], warm = [1.14, 0.98, 0.76];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const k = (y * W + x) * 4, dx = (x - FX) / rF, dy = (y - FY) / (rF * 0.62), dlx = (x - LX) / rL, dly = (y - LY) / (rL * 0.62);
-    let f = Math.max(0, 1 - Math.sqrt(dx * dx + dy * dy)), fl = Math.max(0, 1 - Math.sqrt(dlx * dlx + dly * dly)) * 0.75;
-    f = Math.floor(Math.max(f, fl) * 5) / 5;   // light in bands, as pixel art does it
-    for (let c = 0; c < 3; c++) out[k + c] = Math.min(255, out[k + c] * (night[c] + (warm[c] - night[c]) * f));
+  const put = (a, b, c) => { a = Math.round(a); b = Math.round(b); if (a >= 0 && b >= 0 && a < W && b < H) { const k = (b * W + a) * 4, v = c3(c); out[k] = v[0]; out[k + 1] = v[1]; out[k + 2] = v[2]; } };
+  if (w.swimmer) {   // a diver coming up out of the water, and the rings he makes
+    const [x, y] = w.swimmer, up = Math.sin(t * 0.7) > 0.2, X = Math.round(sx(x, y)), Y = Math.round(sy(x, y, 0)), r = 2 + Math.floor(t * 3) % 4;
+    for (let i = -r * 2; i <= r * 2; i++) { const yy = Math.round(Math.sqrt(Math.max(0, r * r - (i / 2) * (i / 2)))); put(X + i, Y - yy + 1, '#cfeaf2'); put(X + i, Y + yy + 1, '#cfeaf2'); }
+    if (up) { put(X, Y - 1, INK); put(X + 1, Y - 1, INK); put(X - 1, Y, INK); put(X, Y, '#1a1210'); put(X + 1, Y, '#1a1210'); put(X + 2, Y, INK); put(X, Y + 1, '#9a6a42'); put(X + 1, Y + 1, '#9a6a42'); }
   }
-  { const put = (a, b, c) => { a = Math.round(a); b = Math.round(b); if (a >= 0 && b >= 0 && a < W && b < H && dep[b * W + a] === -1e9) { const k = (b * W + a) * 4, v = c3(c); out[k] = v[0]; out[k + 1] = v[1]; out[k + 2] = v[2]; } };
-    const mx = W * 0.22, my = H * 0.9, f8 = Math.floor(t * 6), S5 = Math.sqrt(5), ru = Math.min(W, H) * 0.3, rv = Math.min(W, H) * 0.08;
-    for (let k = 0; k < 150; k++) { const a = hash(k * 1.37) * 6.283, r = Math.sqrt(hash(k * 2.71)), u = Math.cos(a) * r * ru, v = Math.sin(a) * r * rv, X = Math.round(mx + (2 * u - v) / S5), Y = Math.round(my + (u + 2 * v) / S5); if (hash(k * 0.73 + f8 * 3.1) > 0.7 - r * 0.3) continue; for (let q = 0; q < (r < 0.5 ? 3 : 2); q++) put(X + q, Y + (q >> 1), r < 0.4 && q === 1 ? '#ffffff' : '#c8d8f0'); } }
-  { const put = (a, b, c) => { a = Math.round(a); b = Math.round(b); if (a >= 0 && b >= 0 && a < W && b < H) { const k = (b * W + a) * 4, v = c3(c); out[k] = v[0]; out[k + 1] = v[1]; out[k + 2] = v[2]; } };
-    for (let i = -3; i <= 3; i++) { put(FX + i, FY + 1, '#3a2418'); put(FX + i, FY + 2, i % 2 ? '#5a3420' : '#3a2418'); }
-    const f = Math.floor(t * 8) % 3;
-    for (let i = -2; i <= 2; i++) for (let j = 0; j < 4 - Math.abs(i); j++) put(FX + i, FY - j, j > 1 ? '#ffcf5a' : '#ff8a2a');
-    put(FX - (f === 1 ? 1 : 0), FY - 4, '#fff2c0'); put(FX + (f === 2 ? 1 : 0), FY - 5, '#ffe7a0');
-    for (let k = 0; k < 4; k++) { const a = (t * 0.8 + k / 4) % 1; put(FX + Math.round(Math.sin(t * 3 + k * 2) * 3), FY - 7 - Math.round(a * 22), a < 0.5 ? '#ffb04a' : '#c86a3a'); }
-    put(LX, LY - 1, '#ffd27a'); put(LX, LY - 2, '#ffe7a0'); }
-  SYMI.ctx.putImageData(SYMI.img, 0, 0);
-  G.drawImage(SYMI.cv, 0, 0);
+  // night over everything, except where the fire and the lamps reach
+  const flick = 0.92 + Math.sin(t * 9) * 0.04 + Math.sin(t * 23) * 0.03, FX = sx(fx, fy) + 2, FY = sy(fx, fy, fz + 1) + 1, rF = Math.min(W, H) * 0.36 * flick;
+  if (!CAMPC.lmap) {   // the lamps' light, worked out once
+    const lm = CAMPC.lmap = new Float32Array(W * H);
+    for (const [x, y, z, r, s] of (w.lights || [])) { const lx = sx(x, y) + 2, ly = sy(x, y, z); for (let yy = Math.max(0, Math.floor(ly - r)); yy < Math.min(H, ly + r); yy++) for (let xx = Math.max(0, Math.floor(lx - r)); xx < Math.min(W, lx + r); xx++) { const dx = (xx - lx) / r, dy = (yy - ly) / (r * 0.62), q = 1 - Math.sqrt(dx * dx + dy * dy); if (q > 0) lm[yy * W + xx] = Math.max(lm[yy * W + xx], q * s); } }
+  }
+  const night = [0.5, 0.56, 0.84], warm = [1.14, 0.98, 0.76], lm = CAMPC.lmap;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const dx = (x - FX) / rF, dy = (y - FY) / (rF * 0.62);
+    let f = Math.max(lm[y * W + x], 1 - Math.sqrt(dx * dx + dy * dy));
+    f = Math.floor(f * 5) / 5;   // light in bands, as pixel art does it
+    const k = (y * W + x) * 4; for (let c = 0; c < 3; c++) out[k + c] = Math.min(255, out[k + c] * (night[c] + (warm[c] - night[c]) * f));
+  }
+  { const onW = (a, b) => dep[Math.round(b) * W + Math.round(a)] === -1e9, mx = W * 0.22, my = H * 0.9, f8 = Math.floor(t * 6), S5 = Math.sqrt(5), ru = Math.min(W, H) * 0.3, rv = Math.min(W, H) * 0.08;   // the moon's path on the water
+    for (let k = 0; k < 150; k++) { const a = hash(k * 1.37) * 6.283, r = Math.sqrt(hash(k * 2.71)), u = Math.cos(a) * r * ru, v = Math.sin(a) * r * rv, X = Math.round(mx + (2 * u - v) / S5), Y = Math.round(my + (u + 2 * v) / S5); if (hash(k * 0.73 + f8 * 3.1) > 0.7 - r * 0.3) continue; for (let q = 0; q < (r < 0.5 ? 3 : 2); q++) if (X + q >= 0 && X + q < W && Y + (q >> 1) >= 0 && Y + (q >> 1) < H && onW(X + q, Y + (q >> 1))) put(X + q, Y + (q >> 1), r < 0.4 && q === 1 ? '#ffffff' : '#c8d8f0'); } }
+  const flame = (X, Y, big) => { const f = Math.floor(t * 8 + X) % 3; for (let i = -big; i <= big; i++) for (let j = 0; j < big + 2 - Math.abs(i); j++) put(X + i, Y - j, j > 1 ? '#ffcf5a' : '#ff8a2a'); put(X - (f === 1 ? 1 : 0), Y - big - 2, '#fff2c0'); put(X + (f === 2 ? 1 : 0), Y - big - 3, '#ffe7a0'); };
+  for (let i = -3; i <= 3; i++) { put(FX + i, FY + 1, '#3a2418'); put(FX + i, FY + 2, i % 2 ? '#5a3420' : '#3a2418'); }
+  flame(FX, FY, 2);
+  for (let k = 0; k < 4; k++) { const a = (t * 0.8 + k / 4) % 1; put(FX + Math.round(Math.sin(t * 3 + k * 2) * 3), FY - 7 - Math.round(a * 22), a < 0.5 ? '#ffb04a' : '#c86a3a'); }
+  for (const [x, y, z, r] of (w.lights || [])) { const X = sx(x, y) + 2, Y = sy(x, y, z); if (r >= 14) flame(X, Y, 1); else { put(X, Y - 1, '#ffd27a'); put(X, Y - 2, '#ffe7a0'); } }
+  CAMPC.ctx.putImageData(CAMPC.img, 0, 0);
+  G.drawImage(CAMPC.cv, 0, 0);
+  if (w.fort) { const [x, y, z] = w.fort.flag, X = sx(x, y) + 2, Y = sy(x, y, z); G.fillStyle = '#3a2a20'; G.fillRect(X, Y - 10, 1, 10); for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) { G.fillStyle = j === 0 || j === 3 ? '#7a5a4a' : i > 1 && i < 4 && j > 0 && j < 3 ? '#c8a050' : '#a03a3a'; G.fillRect(X + 1 + i, Y - 10 + j + Math.round(Math.sin(t * 4 + i) * (i / 6)), 1, 1); } }
+}
+// a night at anchor off a rocky shore: the open sea in the dark, the ship riding to her anchor with the stern lamp lit
+function drawAnchorIso(W, H, t) { drawSeaIso(W, H, t, { clock: 0.5, storm: 0, calm: true, wind: 'calm', row: false, crew: 3, seed: 5, scroll: 0, open: true, night: true }); }
+
+// ---------- Halicarnassus: a town rising round its harbour like a theatre, the Mausoleum in the middle of it, and the theatre itself up the hill ----------
+const HB = [20, QB, 40];   // the harbour basin, a half-round against the quay: centre and radius
+const hInMole = (x, y) => x >= 60 && x <= 63 && y >= -2 && y <= 21;
+const hWater = (x, y) => y < QB && !hInMole(x, y) && ((x - HB[0]) ** 2 + (y - HB[1]) ** 2 < HB[2] * HB[2] || (x >= 64 && y > -14) || (x >= 56 && y > 21));
+const hLevel = (x, y) => {
+  const d = Math.sqrt((x - HB[0]) ** 2 + (y - HB[1]) ** 2) - HB[2];
+  const ds = x >= 64 ? -14 - y : y > -14 ? 64 - x : Math.hypot(64 - x, -14 - y);   // how far from the open sea on the right
+  return Math.max(0, Math.min(7, Math.floor(d / 6), Math.floor((QB - 1 - y) / 3), Math.floor(ds / 4)));
+};
+const hTop = (x, y) => y >= QB ? 0 : hInMole(x, y) ? 0 : hWater(x, y) ? -3 : hLevel(x, y) * 2;
+const H_MAUS = [-21, -9, 13], H_THEA = [-40, -16, 10.5], H_PAL = [22, -34, 13, 8], H_TOWER = [60, 17];
+function hReserved(x0, y0, w, d) {
+  const hit = (ax, ay, aw, ad) => x0 < ax + aw && x0 + w > ax && y0 < ay + ad && y0 + d > ay;
+  return hit(H_MAUS[0] - 2, H_MAUS[1] - 2, H_MAUS[2] + 4, H_MAUS[2] + 4) || hit(H_THEA[0] - 12, H_THEA[1] - 12, 24, 24) || hit(H_PAL[0] - 1, H_PAL[1] - 1, H_PAL[2] + 2, H_PAL[3] + 4);
+}
+function mausoleum(Wd, x0, y0, z0) {   // a tall podium, a ring of columns round the tomb, a stepped pyramid, and the king's chariot on top
+  const { put, box, face } = Wd, id = Wd.newId(), N = 13, pod = mat('#f4e8cc', 0.14, 0.3), podB = mat('#e2cea4', 0.14, 0.3);
+  const band = (z, a, b) => { for (let i = 0; i < N; i++) { face(x0 + i, y0 + N - 1, z, 'l', i % 2 ? a : b); face(x0 + N - 1, y0 + i, z, 'r', i % 2 ? mix(a, '#2a2850', 0.2) : mix(b, '#2a2850', 0.2)); } };
+  box(x0 - 1, y0 - 1, z0, N + 2, N + 2, 1, M.marble, id);
+  box(x0, y0, z0 + 1, N, N, 8, (x, y, z) => z === z0 + 8 ? M.marble : (z - z0) % 3 === 0 ? podB : pod, id);
+  band(z0 + 7, '#3a64c8', '#e8483a');
+  const zc = z0 + 9;
+  box(x0 + 2, y0 + 2, zc, N - 4, N - 4, 6, mat('#efe2cc', 0.32, 0.52), id);
+  for (let i = 0; i < N; i += 2) for (const [x, y] of [[x0 + i, y0], [x0 + i, y0 + N - 1], [x0, y0 + i], [x0 + N - 1, y0 + i]]) box(x, y, zc, 1, 1, 6, M.marble, id);
+  box(x0, y0, zc + 6, N, N, 1, M.marble, id); band(zc + 6, '#e8483a', '#3a64c8');
+  for (let k = 0; k < 6; k++) box(x0 + k, y0 + k, zc + 7 + k, N - 2 * k, N - 2 * k, 1, k % 2 ? mat('#e8dcc4') : M.marble, id);
+  const zt = zc + 13, br = Wd.newId(), cx = x0 + 6, cy = y0 + 6;   // the chariot and its four horses, in bronze
+  put(cx - 1, cy, zt, M.bronze, br); put(cx - 1, cy, zt + 1, M.bronze, br); put(cx - 1, cy - 1, zt, M.bronze, br);
+  for (const dy of [-1, 0, 1]) { put(cx + 1, cy + dy, zt, M.bronze, br); put(cx + 1, cy + dy, zt + 1, M.bronze, br); put(cx + 2, cy + dy, zt + 2, M.bronze, br); }
+  return { top: [cx, cy, zt + 3], steps: [[x0 + 3, y0 + N + 1, z0 + 1], [x0 + 9, y0 + N + 1, z0 + 1], [x0 + N + 1, y0 + 6, z0 + 1]] };
+}
+function theatre(Wd, cx, cy, zb, fx, fy, topAt) {   // seats in half-rings facing the harbour and rising away from it, an orchestra, a stage building
+  const id = Wd.newId(), seat = mat('#f4e6c4', 0.16, 0.34), seat2 = mat('#e2cca0', 0.16, 0.34), seats = [];
+  for (let x = cx - 11; x <= cx + 11; x++) for (let y = cy - 11; y <= cy + 11; y++) {
+    const dx = x - cx, dy = y - cy, r = Math.hypot(dx, dy), along = (dx * fx + dy * fy) / Math.max(0.01, r);
+    if (r > 10.5) continue;
+    let z;
+    if (r < 3) z = zb;   // the orchestra
+    else if (along > 0.2) continue;
+    else z = zb + Math.floor(r - 2);
+    for (let zz = Math.min(z, Math.max(0, topAt(x, y) + 1)); zz <= z; zz++) Wd.put(x, y, zz, zz < z ? M.stoneD : r < 3 ? M.marble : Math.floor(r - 2) % 2 ? seat : seat2, id);
+    if (r >= 3 && Math.floor(r - 2) % 2 === 0) seats.push([x, y, z + 1]);
+  }
+  const sk = Wd.newId();   // the stage building, between the orchestra and the harbour
+  for (let k = -5; k <= 5; k++) { const x = Math.round(cx + fx * 4 - fy * k), y = Math.round(cy + fy * 4 + fx * k); for (let z = Math.max(0, topAt(x, y) + 1); z <= zb + 3; z++) Wd.put(x, y, z, z === zb + 3 ? M.roof : pm(k, 3) === 0 && z < zb + 3 ? M.marble : mat('#e8c8a0', 0.14, 0.3), sk); }
+  return seats;
+}
+function buildHalic(hullKind, W, H, robes) {
+  const { OX, OY } = camera(W, H), K = -OY;
+  const Wd = makeWd(), { put, get, box, face } = Wd;
+  const on = (x, y, z, pad) => { const X = OX + (x - y) * 2, Y = OY + x + y - 2 * z; pad = pad == null ? 12 : pad; return X > -4 - pad && X < W + pad && Y > -4 - pad && Y < H + pad; };
+  const seen = (x0, y0, w, d, z0, h) => { for (const [x, y] of [[x0, y0], [x0 + w - 1, y0], [x0, y0 + d - 1], [x0 + w - 1, y0 + d - 1], [x0 + (w >> 1), y0 + (d >> 1)]]) for (const z of [z0, z0 + h]) if (on(x, y, z)) return true; return false; };
+  const beyond = (x, y, z) => x + y - 2 * z < K - 8;
+  const umin = Math.floor((-12 - OX) / 2), umax = Math.ceil((W + 12 - OX) / 2), vmin = K - 2, vmax = H - OY + 16;
+  const xLo = Math.floor((umin + vmin) / 2), xHi = Math.ceil((umax + vmax) / 2), yLo = Math.floor((vmin - umax) / 2), yHi = Math.ceil((vmax - umin) / 2);
+  const ships = [];
+  // the ground
+  const flat = Wd.newId(), city = Wd.newId(), earth = mat('#e8cc98', 0.16, 0.34), earth2 = mat('#dcbc86', 0.16, 0.34), green = mat('#a8c868', 0.18, 0.38);
+  const groundMat = (x, y) => {
+    if (y >= QB) return y === QB ? M.kerb : y < STOA_Y ? (pm(x, 6) === 0 || pm(y - QB, 6) === 0 ? M.pave2 : M.pave) : pm(x + 2 * y, 5) === 0 ? M.street2 : M.street;
+    if (hInMole(x, y)) return pm(x + y, 3) ? M.quay : M.quay2;
+    return pm(x * 7 + y * 3, 11) === 0 ? green : pm(Math.floor(x / 4) + Math.floor(y / 4), 3) ? earth : earth2;
+  };
+  for (let v = vmin; v <= vmax; v++) for (let u = umin; u <= umax; u++) {
+    if ((u + v) & 1) continue;
+    const x = (u + v) / 2, y = (v - u) / 2, top = hTop(x, y);
+    if (top < -2 || beyond(x, y, top)) continue;
+    const low = Math.min(hTop(x + 1, y), hTop(x, y + 1), top), m = groundMat(x, y), id = y >= QB || hInMole(x, y) ? flat : city;
+    for (let z = Math.min(top, Math.max(-2, low + 1)); z <= top; z++) put(x, y, z, z === top ? m : pm(Math.floor((x + y + (z % 2 ? 2 : 0)) / 4) + z, 2) ? M.stone : M.stoneD, id);
+  }
+  // a low wall along the water all round the harbour
+  for (let x = -26; x < 64; x++) for (let y = -10; y < QB; y++) { if (hWater(x, y) || !(hWater(x + 1, y) || hWater(x, y + 1)) || hInMole(x, y)) continue; const t = hTop(x, y); if (t > 0 && on(x, y, t)) put(x, y, t + 1, pm(x + y, 2) ? M.stone : M.stoneD, city); }
+  // the Mausoleum, on a terrace of its own above the harbour
+  let maus = null;
+  { const [x0, y0, N] = H_MAUS; let zb = 0; for (let x = x0 - 2; x < x0 + N + 2; x++) for (let y = y0 - 2; y < y0 + N + 2; y++) zb = Math.max(zb, hTop(x, y));
+    const ter = Wd.newId(); for (let x = x0 - 2; x < x0 + N + 2; x++) for (let y = y0 - 2; y < y0 + N + 2; y++) for (let z = Math.max(0, hTop(x, y) + 1); z <= zb; z++) put(x, y, z, z === zb ? (pm(x + y, 2) ? M.pave : M.pave2) : M.stoneD, ter);
+    if (seen(x0, y0, N, N, zb, 26)) maus = mausoleum(Wd, x0, y0, zb + 1); }
+  // the theatre up the hill to the left, facing the harbour
+  let seats = [];
+  { const [cx, cy] = H_THEA, dx = HB[0] - cx, dy = HB[1] - cy, n = Math.hypot(dx, dy), zb = hTop(cx, cy) + 1;
+    if (seen(cx - 10, cy - 10, 20, 20, zb, 12)) seats = theatre(Wd, cx, cy, zb, dx / n, dy / n, hTop); }
+  // the king's palace, by the sea on the right
+  { const [x0, y0, w, d] = H_PAL; let zb = 0; for (let x = x0; x < x0 + w; x++) for (let y = y0; y < y0 + d + 3; y++) zb = Math.max(zb, hTop(x, y));
+    if (seen(x0, y0, w, d + 3, zb, 12) && !beyond(x0 + w, y0 + d, zb)) {
+      const ter = Wd.newId(); for (let x = x0 - 1; x <= x0 + w; x++) for (let y = y0 - 1; y <= y0 + d + 3; y++) for (let z = Math.max(0, hTop(x, y) + 1); z <= zb; z++) put(x, y, z, z === zb ? M.pave : M.stoneD, ter);
+      house(Wd, x0, y0, zb + 1, w, d, 7, mat('#f0c8a0', 0.14, 0.3), { alongY: false, door: '#5a3a2a', seed: 0.9, tile: true });
+      const pc = Wd.newId(); for (let x = x0; x < x0 + w; x++) { if (pm(x - x0, 2) === 0) for (let z = zb + 1; z < zb + 7; z++) put(x, y0 + d + 1, z, M.marble, pc); put(x, y0 + d + 1, zb + 7, M.marble, pc); put(x, y0 + d, zb + 7, M.marble, pc); face(x, y0 + d + 1, zb + 7, 'l', x % 2 ? '#3a64c8' : '#e8483a'); }
+    } }
+  // the mole across the harbour mouth, and its tower
+  { const [tx, ty] = H_TOWER, tw = box(tx, ty, 1, 4, 4, 13, (x, y, z) => ((x + y) % 4 < 2) === (z % 2 === 0) ? M.stone : M.stoneD);
+    for (let x = tx; x < tx + 4; x++) for (let y = ty; y < ty + 4; y++) if ((x === tx || y === ty || x === tx + 3 || y === ty + 3) && (x + y) % 2 === 0) put(x, y, 14, M.stone, tw);
+    for (const z of [5, 9]) { face(tx + 1, ty + 3, z, 'l', INK); face(tx + 3, ty + 1, z, 'r', INK); }
+    for (const y of [2, 8, 14]) box(60, y, 1, 1, 1, 1, M.stoneD); }
+  // houses everywhere else on the hill, packed onto the terraces
+  for (let cy = Math.floor(yLo / 7) - 1; cy * 7 < QB - 2; cy++) for (let cx = Math.floor(xLo / 7) - 1; cx * 7 < xHi; cx++) {
+    const R = k => h3(cx * 1.7 + 3, cy * 2.3 + 1, k), w = 5 + (R(1) < 0.5 ? 0 : 1), d = 5 + (R(2) < 0.5 ? 0 : 1);
+    const x0 = cx * 7 + Math.floor(R(3) * (8 - w)), y0 = cy * 7 + Math.floor(R(4) * (8 - d));
+    if (y0 + d > QB - 1 || hReserved(x0, y0, w, d)) continue;
+    let ok = true, lo = 99, hi = -9;
+    for (let x = x0 - 1; x <= x0 + w && ok; x++) for (let y = y0 - 1; y <= y0 + d; y++) { if (hWater(x, y) || hInMole(x, y) || y >= QB) { ok = false; break; } const t = hTop(x, y); lo = Math.min(lo, t); hi = Math.max(hi, t); }
+    if (!ok || hi - lo > 4 || beyond(x0 + w - 1, y0 + d - 1, lo) || !seen(x0, y0, w, d, lo, 14)) continue;
+    const z0 = lo + 1, up = hi - lo, kind = R(5);
+    if (kind < 0.1 && !up) { tree(Wd, x0 + 1, y0 + 1, z0, R(6)); tree(Wd, x0 + w - 2, y0 + d - 2, z0, R(7)); box(x0 + w - 1, y0, z0, 1, 1, 5, M.cypress); continue; }
+    house(Wd, x0, y0, z0, w, d, up + 4 + Math.floor(R(7) * 4), WALL_M[Math.floor(R(8) * WALL_M.length)], { flat: R(9) < 0.35, alongY: R(10) < 0.45, door: R(11) < 0.5 ? '#3a6ab4' : '#c8483a', awning: R(12) < 0.25 ? AWN[Math.floor(R(13) * AWN.length)] : null, seed: R(14) });
+  }
+  // the harbour: our ship at the quay, merchantmen, a warship at anchor outside, little boats along the mole
+  const elpis = buildShip({ ...Wd, put: (x, y, z, m, id) => put(x + 14, y, z, m, id), box: (x0, y0, z0, w, d, h, m, id) => box(x0 + 14, y0, z0, w, d, h, m, id), face: (x, y, z, s, c) => face(x + 14, y, z, s, c), get: (x, y, z) => get(x + 14, y, z) }, hullKind);
+  const sh = p => [p[0] + 14, p[1], p[2]]; elpis.top = sh(elpis.top); elpis.bow = sh(elpis.bow); elpis.stern = sh(elpis.stern); elpis.deck = elpis.deck.map(([x, y]) => [x + 14, y]);
+  ships.push(elpis);
+  ships.push(ship(Wd, { xs: 24, xe: 42, yc: 10, hw: 3, zt: 2, hull: mat('#5a3a2a', 0.18, 0.36), band: M.yellow, post: true, mast: 12, yard: true, cargo: '#c8a060' }));
+  ships.push(ship(Wd, { xs: -2, xe: 14, yc: 8, hw: 3, zt: 2, hull: mat('#6a4a3a', 0.18, 0.36), band: M.green, post: true, mast: 11, yard: true, cargo: '#e8763a' }));
+  ships.push(ship(Wd, { kind: 'tri', xs: 67, xe: 93, yc: 2, hw: 2, zt: 1, hull: mat('#3a3440', 0.1, 0.2), band: mat('#3a8ad8'), deck: M.deck, oars: true, ram: true, eye: true, post: true, yard: true, mast: 9 }));
+  for (const [x, y, c] of [[48, 12, '#e8483a'], [52, 18, '#ffd040'], [-16, 20, '#3a8ad8'], [-12, 14, '#ffffff'], [67, 24, '#5ab84a']]) smallBoat(Wd, x, y, c, true);
+  // the quay: bollards, goods, a cart, the stalls, trees, and the street of shops behind
+  for (let x = -20; x < 110; x += 10) if (!(x >= 26 && x < 92)) box(x, QB, 1, 1, 1, 1, M.stoneD);
+  const jar = mat('#e8763a', 0.16, 0.34), jars = Wd.newId();
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) { put(4 + i * 2, QB + 3 + j * 2, 1, jar, jars); put(4 + i * 2, QB + 3 + j * 2, 2, mat('#c85a2a'), jars); }
+  const sacks = Wd.newId(); for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) box(14 + i * 2, QB + 3 + j * 2, 1, 2, 2, 1 + ((i + j) % 2), mat('#f0d8a0', 0.14, 0.3), sacks);
+  const blocks = Wd.newId(); box(-8, QB + 2, 1, 4, 3, 3, M.marble, blocks); box(-3, QB + 3, 1, 3, 3, 2, M.marble, blocks); box(-7, QB + 2, 4, 2, 2, 1, mat('#e8e0d4'), blocks);   // marble from the yard
+  const cart = box(-16, QB + 4, 1, 6, 3, 2, M.wood); box(-15, QB + 5, 3, 3, 1, 1, M.marble, cart); face(-15, QB + 6, 1, 'l', INK); face(-12, QB + 6, 1, 'l', INK);
+  robes.forEach((robe, i) => stall(Wd, STALL_X(i), QB + 3, robe, i));
+  for (let x = -16; x < 120; x += 12) if (on(x, QB + 14, 4)) tree(Wd, x, QB + 14, 1, h3(x, 3, 2));
+  stoa(Wd, Math.max(-22, umin + STOA_Y - 2), Math.min(150, umax + STOA_Y + 8));
+  for (let by = 0; BY + by * 13 <= yHi + 2; by++) for (let bx = Math.floor((xLo - 20) / 14); bx * 14 <= xHi; bx++) { const x0 = bx * 14 + 2, y0 = BY + by * 13; if (seen(x0, y0, 12, 11, 0, 14)) block(Wd, x0, y0, bx + 40, by + 9); }
+  return { V: Wd.V, ships, elpis, maus, seats, tower: [H_TOWER[0] + 2, H_TOWER[1] + 2, 15], view: { umin, umax, vmin, vmax, xLo, xHi, yLo, yHi } };
+}
+const HCACHE = { key: null };
+function drawHalicIso(W, H, t, o) {
+  const pal = dayPal(o.clock), hullKind = (S && S.hull) || 'small';
+  const ids = merchantsAt('halic', S ? S.ch : 1).filter(id => !MERCHANTS[id].noStall).sort((a, b) => MERCHANTS[a].at - MERCHANTS[b].at);
+  const dusk = Math.max(0, Math.min(1, (o.clock - 0.72) / 0.2), Math.min(1, (0.12 - o.clock) / 0.12));
+  const key = W + 'x' + H + ':' + hullKind + ':' + ids.join(',');
+  if (HCACHE.key !== key) {
+    const world = buildHalic(hullKind, W, H, ids.map(id => MERCHANTS[id].look.robe));
+    HCACHE.key = key; HCACHE.world = world; HCACHE.R = renderWorld(world, W, H); HCACHE.traders = ids.map(id => person(MERCHANTS[id].look, 'stand')); HCACHE.waterKey = null;
+    HCACHE.cv = document.createElement('canvas'); HCACHE.cv.width = W; HCACHE.cv.height = H; HCACHE.ctx = HCACHE.cv.getContext('2d'); HCACHE.img = HCACHE.ctx.createImageData(W, H); HCACHE.dep = new Float32Array(W * H);
+    const sp = world.seats.filter((s, i) => hash(i * 2.17) < 0.55); HCACHE.crowd = sp.map((s, i) => [person(look(1000 + i), 'sit'), s, i % 2 === 0]);
+  }
+  const water = mix(WATER, pal.seaTop, dusk * 0.7);
+  if (HCACHE.waterKey !== water) { HCACHE.water = waterFrames(HCACHE.R, W, H, 0, water); HCACHE.waterKey = water; }
+  const Rw = HCACHE.R, out = HCACHE.img.data, dep = HCACHE.dep, { OX, OY } = Rw, Wt = HCACHE.water, W0 = HCACHE.world, view = W0.view;
+  out.set(Wt.frames[Math.floor(t * 1.5) % 2]); dep.set(Rw.depth);
+  const sx = (x, y) => OX + (x - y) * 2, sy = (x, y, z) => OY + x + y - 2 * z;
+  const paint = (k, c) => { out[k * 4] = c[0]; out[k * 4 + 1] = c[1]; out[k * 4 + 2] = c[2]; out[k * 4 + 3] = 255; };
+  const drawAt = (sp, x, y, z, flip) => {
+    const X = Math.round(sx(x, y)) + 2 - (sp.w >> 1), Y = Math.round(sy(x, y, z)) + 2 - sp.h, base = x + y + z + 0.6;
+    for (let j = 0; j < sp.h; j++) for (let i = 0; i < sp.w; i++) {
+      const si = (j * sp.w + (flip ? sp.w - 1 - i : i)) * 4; if (!sp.data[si + 3]) continue;
+      const px_ = X + i, py = Y + j; if (px_ < 0 || py < 0 || px_ >= W || py >= H) continue;
+      const k = py * W + px_, d = base + (sp.h - 1 - j) / 2; if (d < dep[k] - 0.3) continue;
+      dep[k] = Math.max(dep[k], d); out[k * 4] = sp.data[si]; out[k * 4 + 1] = sp.data[si + 1]; out[k * 4 + 2] = sp.data[si + 2]; out[k * 4 + 3] = 255;
+    }
+  };
+  const drawVox = (m, x, y, z, dir) => {
+    const X0 = Math.round(sx(x, y)) - m.ox, Y0 = Math.round(sy(x, y, z)) - m.oy, base = x + y + z;
+    for (let j = 0; j < m.h; j++) { const py = Y0 + j; if (py < 0 || py >= H) continue;
+      for (let i = 0; i < m.w; i++) { const s = j * m.w + i; if (!m.rgba[s * 4 + 3]) continue; const px_ = X0 + i; if (px_ < 0 || px_ >= W) continue;
+        const k = py * W + px_, d = base + m.depth[s]; if (d < dep[k] - 0.3) continue;
+        dep[k] = d; out[k * 4] = m.rgba[s * 4]; out[k * 4 + 1] = m.rgba[s * 4 + 1]; out[k * 4 + 2] = m.rgba[s * 4 + 2]; out[k * 4 + 3] = 255; } }
+    if (!dir) return;
+    for (let k = 1; k < 9; k++) for (const s of [-1, 1]) {
+      const wx = x - dir * k * 0.9 + (dir > 0 ? 0 : m.L), wy = y + s * (1.2 + k * 0.35), X = Math.round(sx(wx, wy)) + 2, Y = Math.round(sy(wx, wy, 0)) + 2;
+      for (let q = 0; q < 2; q++) { const xx = X + q, i = Y * W + xx; if (xx >= 0 && xx < W && Y >= 0 && Y < H && Wt.isW[i] && dep[i] < -1e8 + 1 && (k + q + Math.floor(t * 6)) % 3) paint(i, k < 4 ? Wt.WH : Wt.LI); }
+    }
+  };
+  const all = [], span = (y, a, b) => [Math.max(a, view.umin + y - 4), Math.min(b, view.umax + y + 4)];
+  ids.forEach((id, i) => all.push(['p', HCACHE.traders[i], STALL_X(i) + 3, QB + 6, 1, i % 2 === 1]));
+  LANES.forEach((ln, li) => { const [a, b] = span(ln.y, ln.a, 400); if (b <= a) return;
+    for (let n = 0; n < ln.n; n++) { const k = 2000 + li * 40 + n, dir = n % 2 ? -1 : 1, v = 1.3 + hash(k * 3.3) * 1.4, d = (t * v + hash(k * 1.7) * (b - a)) % (b - a), x = dir > 0 ? a + d : b - d, y = ln.y + (n % 3 === 2 ? 1 : 0);
+      all.push(['p', folk(k, ['amphora', null, 'basket', null, 'sack', null][Math.floor(hash(k * 5.1) * 6)])[Math.floor(t * 4 + n) % 2], x, y, 1, dir < 0]); } });
+  ACROSS.forEach((ac, ai) => { const a = Math.max(QB + 12, view.vmin - ac.x - 2), b = Math.min(view.yHi, 400); if (b <= a) return;
+    for (let n = 0; n < ac.n; n++) { const k = 2900 + ai * 10 + n, dir = n % 2 ? -1 : 1, v = 1.2 + hash(k * 3.3), d = (t * v + hash(k * 1.7) * (b - a)) % (b - a), y = dir > 0 ? a + d : b - d;
+      all.push(['p', folk(k, n % 2 ? 'basket' : null)[Math.floor(t * 4 + n) % 2], ac.x + 0.5, y, 1, dir > 0]); } });
+  for (let x = -20; x < 130; x += 7) all.push(['p', folk(2500 + x, x % 3 ? null : 'basket')[0], x, QB + 13, 1, x % 2 === 0]);
+  for (let i = 0; i < 9; i += 2) all.push(['p', folk(2600 + i, i % 3 ? 'basket' : null)[0], STALL_X(i) + 5, QB + 8, 1, true]);
+  for (const [x, y, k, c] of [[-10, QB + 6, 1, null], [-5, QB + 7, 2, 'sack'], [0, QB + 2, 3, null], [9, QB + 7, 4, 'amphora'], [20, QB + 8, 5, null], [-14, QB + 2, 6, null]]) all.push(['p', folk(2700 + k, c)[0], x, y, 1, k % 2 === 0]);
+  for (const [p, f, x, y, z] of HCACHE.crowd.map(([p, s, f]) => [p, f, ...s])) all.push(['p', p, x, y, z, f]);   // the whole town watching from its seats
+  if (W0.maus) W0.maus.steps.forEach(([x, y, z], i) => all.push(['p', folk(2800 + i, null)[0], x, y, z, i % 2 === 0]));
+  const sh = W0.elpis; all.push(['p', folk(41, null)[0], sh.deck[0][0], sh.deck[0][1], 2, false], ['p', folk(42, 'sack')[0], sh.deck[1][0], sh.deck[1][1], 2, true]);
+  W0.ships.forEach((s, i) => { if (s === sh || !s.top) return; if (s.kind === 'tri') all.push(['p', MARINE, s.deck[0][0], s.deck[0][1], 1, false], ['p', MARINE, s.deck[1][0], s.deck[1][1], 1, true]); else all.push(['p', folk(2860 + i, null)[0], s.deck[0][0], s.deck[0][1], 2, i % 2 === 0]); });
+  all.push(['p', GUARD, W0.tower[0], W0.tower[1], W0.tower[2] - 1, true], ['p', GUARD, H_PAL[0] + 3, H_PAL[1] + H_PAL[3] + 2, hTop(H_PAL[0] + 3, H_PAL[1] + H_PAL[3]) + 1, false]);
+  { const x = 30 + Math.sin(t * 0.25) * 10; all.push(['p', DONKEY[Math.floor(t * 3) % 2], x, QB + 10, 1, Math.cos(t * 0.25) < 0]); }
+  all.push(['p', CAT[Math.floor(t * 0.8) % 2], 24, QB + 5, 1, false], ['p', DOG[Math.floor(t * 6) % 2], -2 + ((t * 3) % 30), QB + 11, 1, false]);
+  for (const [x, y, ph] of [[34, 24, 0], [44, 20, 1.3], [28, 18, 2.1], [67, 18, 0.7]]) all.push(['p', SWIM[Math.floor(t * 2 + ph) % 2], x, y, -1, ph > 1]);
+  const B = boats(), tri = u => { const f = u % 2; return f < 1 ? f : 2 - f; }, dirOf = u => (u % 2) < 1 ? 1 : -1;
+  for (const [kind, y, a, b, v, rider] of [['row', 16, 28, 54, 1.4, 2871], ['fish', 21, 26, 50, 1.0, 2872], ['sail', 14, 67, 100, 1.2, 0], ['row', 24, 67, 94, 1.1, 2873]]) {
+    const u = t * v / (b - a), x = a + (b - a) * tri(u), dir = dirOf(u), m = B[kind][dir > 0 ? 0 : 1];
+    all.push(['v', m, x, y, 0, dir]); if (rider) all.push(['p', folk(rider, null)[0], x + 3, y, 1, dir < 0]);
+  }
+  all.sort((p, q) => (p[2] + p[3] + p[4]) - (q[2] + q[3] + q[4]));
+  for (const e of all) if (e[0] === 'v') drawVox(e[1], e[2], e[3], e[4], e[5]); else drawAt(e[1], e[2], e[3], e[4], e[5]);
+  HCACHE.ctx.putImageData(HCACHE.img, 0, 0);
+  if (dusk > 0) { const c = HCACHE.ctx; c.globalCompositeOperation = 'source-atop'; c.globalAlpha = 0.4 * dusk; c.fillStyle = mix(pal.skyBot, '#3a2a6a', 0.55); c.fillRect(0, 0, W, H); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
+  G.drawImage(HCACHE.cv, 0, 0);
+  const dot = (x, y, c) => { G.fillStyle = c; G.fillRect(Math.round(x), Math.round(y), 1, 1); };
+  const ln = (a, b, c) => { const x0 = sx(a[0], a[1]) + 2, y0 = sy(a[0], a[1], a[2]) + 1, x1 = sx(b[0], b[1]) + 2, y1 = sy(b[0], b[1], b[2]) + 1, n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let i = 0; i <= n; i++) dot(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c); };
+  for (const s of W0.ships) if (s.top) { ln(s.top, s.bow, '#5a4a40'); ln(s.top, s.stern, '#5a4a40'); }
+  ln([sh.bow[0], sh.bow[1], 3], [sh.bow[0] - 1, QB, 2], '#5a4a40'); ln([sh.stern[0] + 2, sh.stern[1], 3], [sh.stern[0] + 5, QB, 2], '#5a4a40');
+  W0.ships.forEach((s, i) => { if (!s.top) return; const X = sx(s.top[0], s.top[1]) + 2, Y = sy(s.top[0], s.top[1], s.top[2]), c = s === sh ? ['#ff5a3a', '#c83a2a'] : [['#3a8ad8', '#2a5aa8'], ['#ffd040', '#c8a020'], ['#5ab84a', '#3a8a3a'], ['#ff7ab0', '#c84a80']][i % 4];
+    for (let k = 0; k < 6; k++) dot(X - 1 - k, Y - 2 + Math.round(Math.sin(t * 5 - k + i) * (k / 6)), k < 3 ? c[0] : c[1]); });
+  { const [x, y, z] = W0.tower, X = sx(x, y) + 2, Y = sy(x, y, z); G.fillStyle = '#5a4a40'; G.fillRect(X + 3, Y - 12, 1, 12); for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) dot(X + 2 - i, Y - 12 + j + Math.round(Math.sin(t * 4 - i) * (i / 6)), j === 1 ? '#ffd040' : '#3a64c8'); }
+  if (W0.maus) { const [x, y, z] = W0.maus.top, X = sx(x, y) + 2, Y = sy(x, y, z); for (let k = 0; k < 2; k++) { const gx = X + Math.round(Math.sin(t * 0.7 + k * 3) * 14), gy = Y - 10 - k * 6 + Math.round(Math.cos(t * 0.9 + k) * 3), g = GULL[Math.floor(t * 3 + k) % 2]; for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.data[(j * g.w + i) * 4 + 3]) dot(gx + i, gy + j, INK); } }
+  for (let k = 0; k < 3; k++) { const x = ((t * (9 + k * 3) + k * 100) % (W + 20)) - 10, y = 20 + k * 30 + Math.round(Math.sin(t * 1.5 + k) * 3), g = GULL[Math.floor(t * 3 + k) % 2]; for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.data[(j * g.w + i) * 4 + 3]) dot(x + i, y + j, INK); }
+  const spots = [];
+  ids.forEach((id, i) => {
+    const x0 = STALL_X(i), X0 = sx(x0, QB + 7) - 1, X1 = sx(x0 + 7, QB + 2) + 5, Y0 = sy(x0, QB + 2, 10) - 4, Y1 = sy(x0 + 7, QB + 7, 0) + 4;
+    spots.push({ id, kind: 'merchant', x0: X0, x1: X1, y0: Y0, y1: Y1 });
+    if (o.wants && o.wants.has(id)) { const X = sx(x0 + 3, QB + 4), Y = sy(x0 + 3, QB + 4, 12) - 8 - Math.floor(t * 2) % 2; for (let j = 0; j < WANT.h; j++) for (let ii = 0; ii < WANT.w; ii++) { const si = (j * WANT.w + ii) * 4; if (WANT.data[si + 3]) dot(X + ii, Y + j, '#' + ((1 << 24) | (WANT.data[si] << 16) | (WANT.data[si + 1] << 8) | WANT.data[si + 2]).toString(16).slice(1)); } }
+  });
+  if (o.spots) o.spots.push(...spots);
 }
 
 // ---------- hooking into the game ----------
 PORT_SCENES.rhodes = drawRhodesIso;
 drawRhodes = drawRhodesIso;
 drawSea = drawSeaIso;
+PORT_SCENES.halic = drawHalicIso;
 const drawCamp0 = drawCamp;
-drawCamp = function (W, H, t, stop) { return stop === 'symi' ? drawSymiIso(W, H, t) : drawCamp0(W, H, t, stop); };
+drawCamp = function (W, H, t, stop) { return CAMPSPEC[stop] ? drawCampIso(W, H, t, stop) : drawCamp0(W, H, t, stop); };
+drawAnchor = drawAnchorIso;
 const fit0 = fitPixels;
 fitPixels = function (cv, cssW, cssH, cols) {   // Rhodes, the sea and the title want more, smaller pixels: about 280 across, never bigger than 3 points, each a whole number of screen pixels
-  const camp = cv === els.scene && S && S.phase === 'camp' && S.camp && S.camp.stop === 'symi';
-  const ours = camp || (cv === els.scene && S && ((S.phase === 'port' && (S.port || 'rhodes') === 'rhodes') || (S.phase === 'sea' && S.voyage))) || cv === els.tcanvas;
+  const camp = cv === els.scene && S && S.phase === 'camp' && S.camp && !!CAMPSPEC[S.camp.stop];
+  const ours = camp || (cv === els.scene && S && ((S.phase === 'port' && ['rhodes', 'halic'].includes(S.port || 'rhodes')) || (S.phase === 'sea' && S.voyage) || (S.phase === 'camp' && S.camp && S.camp.stop === 'atsea'))) || cv === els.tcanvas;
   if (!ours) return fit0(cv, cssW, cssH, cols);
   const across = camp ? 200 : 280, dpr = window.devicePixelRatio || 1, dev = Math.max(1, Math.min(Math.round(cssW * dpr / across), Math.round((camp ? 4 : 3) * dpr))), P = dev / dpr, W = Math.ceil(cssW / P), H = Math.ceil(cssH / P);
   if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
