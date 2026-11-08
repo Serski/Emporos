@@ -7620,6 +7620,18 @@ function voyShip(kind, sail, row, ph) {   // our ship, built once for each way h
         for (const [y, z] of [[0, zc - 2], [1, zc - 3]]) if (z >= z0) put(xr, y, z, { t: '#5ab84a', l: '#4aa83a', r: '#3a9a32' }, sl);
       }
     }
+    // cargo lashed on deck, forward of the mast: crates on one side, a cluster of amphorae on the other, a sack between
+    { const x0 = mx + 4, crate = { t: '#f0c878', l: '#a0602e', r: '#7a4422' }, band = '#5a3018', jar = mat('#ee7a3a', 0.16, 0.34), neck = mat('#b84e24', 0.16, 0.34);
+      for (const [dx, dy, dz] of [[0, -2, 0], [2, -2, 0], [1, -2, 2]]) {   // three crates, two below and one on top, each with a dark band round it
+        const c = Wd.newId(); box(x0 + dx, dy, zt + dz, 2, 2, 2, crate, c);
+        for (let i = 0; i < 2; i++) { face(x0 + dx + i, dy + 1, zt + dz, 'l', band); face(x0 + dx + 1, dy + i, zt + dz, 'r', band); }
+      }
+      for (const [dx, dy] of [[0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [3, 1]]) {   // amphorae, a body two high and a narrower dark neck
+        if (Math.abs(dy) > hw(x0 + dx) - 1) continue; const j = Wd.newId(); put(x0 + dx, dy, zt, jar, j); put(x0 + dx, dy, zt + 1, jar, j); put(x0 + dx, dy, zt + 2, neck, j);
+      }
+      if (hw(x0 + 5) > 1) { const sk = Wd.newId(); put(x0 + 5, 0, zt, mat('#f0d8a0', 0.14, 0.3), sk); put(x0 + 5, -1, zt, mat('#e4c88c', 0.14, 0.3), sk); }
+      meta.cargo = [x0, x0 + 6];   // (kept clear of the crew below)
+    }
     if (P.fore) {   // a small sail on a mast leaning out over the bow
       for (let k = 0; k < 6; k++) put(L - 2 + Math.floor(k * 0.7), 0, zt + 1 + k, M.woodD, rig);
       if (sail !== 'furled') for (let y = -2; y <= 2; y++) for (let z = zt + 3; z <= zt + 5; z++) put(L + 2, y, z, SAIL, sl);
@@ -7627,7 +7639,7 @@ function voyShip(kind, sail, row, ph) {   // our ship, built once for each way h
     if (row) for (let x = 5; x <= L - 5; x += 2) for (const s of [-1, 1]) { const w = hw(x), d = ph ? -1 : 1; for (let k = 0; k <= zt; k++) put(x + d * Math.floor((k + 1) / 2), s * (w + 1 + k), zt - 1 - k, M.woodD, rig); }
   });
   m.meta = { ...meta, top: [mx, 0, zt + mast + 1], bow: [L + 2, 0, zt + 2], stern: [-1, 0, zt + (P.swan ? 6 : 5)], yard: [[mx + 1, -sw - 1, zt + mast], [mx + 1, sw + 1, zt + mast]],
-    deck: Array.from({ length: 16 }, (_, k) => [3.5 + k * 2.6, k % 2 ? -(1 + k % 3) : 1 + (k % 3)]).filter(([x, y]) => x < L - 4 && Math.abs(x - mx) > 1.2 && Math.abs(y) < hw(Math.round(x)) && !(P.cabin && x > 1 && x < 9)) };
+    deck: Array.from({ length: 16 }, (_, k) => [3.5 + k * 2.6, k % 2 ? -(1 + k % 3) : 1 + (k % 3)]).filter(([x, y]) => x < L - 4 && Math.abs(x - mx) > 1.2 && Math.abs(y) < hw(Math.round(x)) && !(P.cabin && x > 1 && x < 9) && !(x > mx + 3 && x < mx + 11)) };   // the crew keep off the cargo
   SEAKIT.ships.set(key, m);
   return m;
 }
@@ -7687,17 +7699,20 @@ function shadowOf(m, svx, svy) {   // where a model's shadow falls on the water:
   return s;
 }
 let CLOUDS = null;
-const cloudModels = () => CLOUDS || (CLOUDS = [0, 1, 2].map(k => model(Wd => {   // puffs of cubes, long along the ship's course: white on top, blue-grey sides, outlined
-  const id = Wd.newId(), n = 3 + k, L = 10 + k * 4, blobs = [];
-  for (let j = 0; j < n; j++) { const r = q => hash(k * 7.3 + j * 3.1 + q * 1.7), mid = 1 - Math.abs(j - (n - 1) / 2) / n; blobs.push([1 + j * (L - 2) / (n - 1), (r(1) - 0.5) * 3, 3.4 + r(2) * 1.6 + mid * 1.4, 3.4 + r(3) * 1.4 + mid * 1.2, 2.6 + mid * 3.6 + r(4) * 1.2]); }
-  for (let j = 0; j < n - 1; j++) { const r = q => hash(k * 5.1 + j * 2.3 + q * 3.7); blobs.push([2 + j * (L - 2) / (n - 1) + r(1) * 3, (r(2) - 0.5) * 2, 2.2 + r(3), 2 + r(4), 4.5 + r(5) * 2.5]); }   // puffs on top
-  const top = { t: '#ffffff', l: '#e2eaf6', r: '#bccae2' }, low = { t: '#f4f8ff', l: '#ccd8ec', r: '#a6b6d2' };
-  for (let x = -6; x <= L + 6; x++) for (let y = -7; y <= 7; y++) {
-    let h = 0;
-    for (const [cx, cy, rx, ry, hm] of blobs) { const d = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2; if (d < 1) h = Math.max(h, Math.max(1, Math.round(hm * Math.sqrt(1 - d)))); }
-    for (let z = 0; z < h; z++) Wd.put(x, y, z, z === 0 && h > 1 ? low : top, id);
-  }
-})));
+const cloudModels = () => CLOUDS || (CLOUDS = [0, 1, 2].map(k => {   // simple clouds of cubes, long along the ship's course: a few round lobes in three tiers, white on top, pale blue sides, no outline
+  const m = model(Wd => {
+    const id = Wd.newId(), n = 2 + (k % 2), L = 8 + k * 4, blobs = [];
+    for (let j = 0; j < n; j++) { const mid = n > 2 && j === 1 ? 1 : 0; blobs.push([j * L / (n - 1), (hash(k * 3.7 + j) - 0.5) * 2, 4.2 + mid * 1.2 + hash(k + j * 5.1) * 1.2, 3.4 + mid, 2 + mid]); }
+    const top = { t: '#ffffff', l: '#e4ecf8', r: '#c6d4ea' };
+    for (let x = -7; x <= L + 7; x++) for (let y = -6; y <= 6; y++) {
+      let h = 0;
+      for (const [cx, cy, rx, ry, hm] of blobs) { const d = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2; if (d < 1) h = Math.max(h, d < 0.4 ? hm + 1 : d < 0.78 ? hm : 1); }
+      for (let z = 0; z < h; z++) Wd.put(x, y, z, top, id);
+    }
+  });
+  for (let i = 0; i < m.w * m.h; i++) if (m.rgba[i * 4] === 22 && m.rgba[i * 4 + 1] === 20 && m.rgba[i * 4 + 2] === 28) m.rgba[i * 4 + 3] = 0;   // take the outline off
+  return m;
+}));
 const DOLPHIN = sprite(['....KK...', '...KggK..', '.KKgggKKK', 'KgggwwggK', '.KKK.KKK.'], { K: INK, g: '#6a8aa8', w: '#dce8f0' });
 const PIRATE = [person({ skin: '#c88a58', hair: '#1b130e', robe: '#3a3440', style: 'short', beard: 2, hat: 'pilos', hatC: '#a8aeb4' }, 'stand'), person({ skin: '#d8985e', hair: '#2a1d14', robe: '#8a3a2a', style: 'curly', beard: 1 }, 'stand')];
 const ARCHER = person({ skin: '#c88a58', hair: '#1b130e', robe: '#e8e0d0', style: 'short', hat: 'pilos', hatC: '#c9ced3' }, 'stand');
@@ -7768,7 +7783,6 @@ function drawSeaIso(W, H, t, o) {
   all.push(['v', ship, 0, 0, bob, 0, true]);
   const crew = mt.deck.slice(0, Math.max(1, o.crew == null ? 6 : o.crew));
   crew.forEach(([x, y], i) => all.push(['p', folk(150 + i, null)[i % 2], x, y, mt.zt + bob, i % 3 === 0]));
-  for (let k = 0; k < Math.min(6, o.deckLoad || 0); k++) all.push(['p', AMPH, mt.mx + 2 + k, k % 2 ? 1 : -1, mt.zt + bob, false]);
   // dolphins playing at the bow
   if (o.dolphins > 0 || title) for (let k = 0; k < 3; k++) { const a = (t * 0.6 + k * 0.33) % 1, z = Math.sin(a * Math.PI) * 3 - 0.6; if (z > -0.2) all.push(['p', DOLPHIN, mt.L + 4 + k * 4 + a * 6, 6 + k * 2, z, false]); }
   // trouble: pirates, raiders, the king's patrol, coming up alongside
