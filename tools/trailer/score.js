@@ -1,7 +1,8 @@
 // The trailer's sound, rendered offline with the game's own sound engine: its plucked lyre, its coins, the thump of
-// cargo going into the hold, the pirates' horn, and its sea and wind. The music is written for the shot list in
-// shots.js: 100 beats a minute, eight bars of 2.4 s, in the game's own mode (E to E on the white notes, which the
-// Greeks called Dorian). Sound cues the shots logged (clicks, drops, the horn) are played where they happened.
+// cargo going into the hold, the pirates' horn, and its sea and wind. The music follows the shot list in shots.js:
+// it is written against where each shot starts (CUES), a bar to each long shot at the shots' BEAT, and a hit on each
+// quick cut, in the game's own mode (E to E on the white notes, which the Greeks called Dorian). Sound cues the shots
+// logged (clicks, drops, the horn) are played where they happened.
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -9,7 +10,7 @@ const { spawn } = require('child_process');
 const SR = 48000;
 
 // Runs inside the page. Returns the mix as interleaved 32-bit float stereo, base64.
-async function compose({ events, duration, SR }) {
+async function compose({ events, duration, SR, cues, beat }) {
   const Snd = window.__emp.T.Snd;
   const ctx = new OfflineAudioContext(2, Math.ceil(duration * SR), SR);
   // Point the game's sound engine at the offline context: init() makes its output, its noise and its sea.
@@ -41,7 +42,8 @@ async function compose({ events, duration, SR }) {
   Snd.out.gain.setValueAtTime(0, 0); Snd.out.gain.linearRampToValueAtTime(0.85, 0.5);
   master.gain.setValueAtTime(1, duration - 0.45); master.gain.linearRampToValueAtTime(0, duration);
 
-  const B = 0.6, bar = n => n * 4 * B;   // a beat, and the start of bar n
+  const B = beat, E8 = B / 2, S16 = B / 4, C = cues;   // a beat, an eighth, a sixteenth, and where each shot starts
+  const steps = (t0, t1, n) => Array.from({ length: n }, (_, k) => t0 + (t1 - t0) * k / n);   // n even strokes from t0 up to t1
   const hz = name => { const m = /^([A-G])(#|b)?(\d)$/.exec(name), s = { C: -9, D: -7, E: -5, F: -4, G: -2, A: 0, B: 2 }[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0); return 440 * Math.pow(2, s / 12 + (+m[3] - 4)); };
   const out = (node, pan, send) => {
     const p = ctx.createStereoPanner(); p.pan.value = pan || 0; node.connect(p); p.connect(music);
@@ -68,7 +70,8 @@ async function compose({ events, duration, SR }) {
   const dum = (t, v = 1) => { tone(150, 58, 0.38 * v, 0.38, t); hiss(320, 0.8, 0.12 * v, 0.07, t, 'lowpass', 0.1); };
   const tek = (t, v = 1) => { hiss(3300, 2.4, 0.2 * v, 0.055, t, 'bandpass', 0.22, 0.12); tone(820, 640, 0.05 * v, 0.03, t, 0.1, 0.12); };
   const ka = (t, v = 1) => hiss(2100, 1.6, 0.075 * v, 0.035, t, 'bandpass', 0.15, -0.15);
-  const maqsum = (t0, v = 1) => { dum(t0, v); tek(t0 + 0.3, v); ka(t0 + 0.45, v); tek(t0 + 0.9, v); dum(t0 + 1.2, v); ka(t0 + 1.5, v); tek(t0 + 1.8, v); ka(t0 + 2.1, v); ka(t0 + 2.25, v * 0.7); };
+  // maqsum, the old rhythm of the eastern Mediterranean: dum tek - tek dum - tek -, with ghost strokes, a bar long
+  const maqsum = (t0, v = 1) => [[0, dum], [1, tek], [1.5, ka], [3, tek], [4, dum], [5, ka], [6, tek], [7, ka], [7.5, ka, 0.7]].forEach(([e, hit, k = 1]) => hit(t0 + e * E8, v * k));
   // A drone like an aulos: buzzing reeds, held under the tune.
   const drone = (notes, t0, t1, v, att = 0.4, rel = 0.4, cutoff = 760) => {
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cutoff; lp.Q.value = 0.8;
@@ -112,60 +115,64 @@ async function compose({ events, duration, SR }) {
 
   // ---- the sea under everything ----
   Snd.waves.g.gain.setValueAtTime(PORT[0], 0); Snd.wind.g.gain.setValueAtTime(PORT[2], 0);
-  mood(bar(3), SEA, 0.4); mood(bar(4) + 2 * B, STORM, 0.12); mood(bar(5), PORT, 0.15); mood(bar(7), DUSK, 0.6);
+  mood(C.sail, SEA, 0.4); mood(C.storm, STORM, 0.12); mood(C.piraeus, PORT, 0.15); mood(C.end, DUSK, 0.6);
 
-  // ---- bar 0: Rhodes, 290 BC. The tune, alone on the lyre. ----
-  const theme = (t, v, oct = 4) => {   // E B E G A . G F | (E)
+  // ---- Rhodes, 290 BC. The tune, alone on the lyre. ----
+  const theme = (t, v, oct = 4) => {   // E B E G A . G F | (E), in eighths
     const o = n => n.replace(/\d/, d => String(+d + oct - 4));
-    [['E4', 0], ['B3', 0.3], ['E4', 0.6], ['G4', 0.9], ['A4', 1.2], ['G4', 1.8], ['F4', 2.1]].forEach(([n, dt], i) => lyre(o(n), v * (i === 4 ? 1.15 : 1), t + dt, 0, 0.5));
+    [['E4', 0], ['B3', 1], ['E4', 2], ['G4', 3], ['A4', 4], ['G4', 6], ['F4', 7]].forEach(([n, e], i) => lyre(o(n), v * (i === 4 ? 1.15 : 1), t + e * E8, 0, 0.5));
   };
-  lyre('E3', 0.14, 0, -0.2); theme(0, 0.19);
-  drone(['E2', 'B2'], 0.3, bar(1) + 0.2, 0.035, 1.2, 0.3);
-  tek(bar(1) - 0.45, 0.5); tek(bar(1) - 0.3, 0.7); tek(bar(1) - 0.15, 0.9);
+  lyre('E3', 0.14, C.rhodes, -0.2); theme(C.rhodes, 0.19);
+  drone(['E2', 'B2'], C.rhodes + 0.3, C.buy + 0.2, 0.035, 1.2, 0.3);
+  for (let k = 3; k >= 1; k--) tek(C.buy - k * S16, 1.1 - k * 0.2);
 
-  // ---- bars 1-3: buy, pack, sail. The drum comes in under a turning figure on the lyre. ----
-  const ost = (t0, notes, v = 0.085, pan = -0.25, count = 8) => { for (let k = 0; k < count; k++) lyre(notes[k % notes.length], v * (k % 2 ? 0.8 : 1), t0 + k * 0.3, pan, 0.3); };
-  for (const n of [1, 2, 3]) maqsum(bar(n), n === 3 ? 1.1 : 0.9);
-  lyre('E4', 0.2, bar(1)); lyre('E3', 0.12, bar(1), -0.2);
-  ost(bar(1), ['E3', 'B3', 'E4', 'B3']);
-  lyre('D4', 0.12, bar(1) + 2.1, 0.15); lyre('E4', 0.13, bar(1) + 2.25, 0.15);
-  ost(bar(2), ['C3', 'G3', 'C4', 'G3'], 0.085, -0.25, 4); ost(bar(2) + 1.2, ['D3', 'A3', 'D4', 'A3'], 0.085, -0.25, 4);
-  lyre('G4', 0.13, bar(2), 0.2); lyre('A4', 0.12, bar(2) + 1.2, 0.2); lyre('B4', 0.1, bar(2) + 2.1, 0.2);
-  // bar 3, sailing: the tune again, an octave of strings under it, and the reeds.
-  strum(['E3', 'B3', 'E4'], 0.13, bar(3)); theme(bar(3), 0.21); theme(bar(3) + 0.004, 0.08, 5);
-  ost(bar(3), ['E3', 'B3', 'E4', 'B3'], 0.075);
-  drone(['E2', 'B2'], bar(3), bar(4) + 0.05, 0.05, 0.5, 0.05);
+  // ---- buy, pack, sail: a bar each. The drum comes in under a turning figure on the lyre. ----
+  const ost = (t0, notes, v = 0.085, pan = -0.25, count = 8) => { for (let k = 0; k < count; k++) lyre(notes[k % notes.length], v * (k % 2 ? 0.8 : 1), t0 + k * E8, pan, 0.3); };
+  for (const [id, v] of [['buy', 0.9], ['hold', 0.9], ['sail', 1.1]]) maqsum(C[id], v);
+  lyre('E4', 0.2, C.buy); lyre('E3', 0.12, C.buy, -0.2);
+  ost(C.buy, ['E3', 'B3', 'E4', 'B3']);
+  lyre('D4', 0.12, C.buy + 7 * E8, 0.15); lyre('E4', 0.13, C.buy + 7.5 * E8, 0.15);
+  ost(C.hold, ['C3', 'G3', 'C4', 'G3'], 0.085, -0.25, 4); ost(C.hold + 2 * B, ['D3', 'A3', 'D4', 'A3'], 0.085, -0.25, 4);
+  lyre('G4', 0.13, C.hold, 0.2); lyre('A4', 0.12, C.hold + 2 * B, 0.2); lyre('B4', 0.1, C.hold + 7 * E8, 0.2);
+  // sailing: the tune again, an octave of strings under it, and the reeds.
+  strum(['E3', 'B3', 'E4'], 0.13, C.sail); theme(C.sail, 0.21); theme(C.sail + 0.004, 0.08, 5);
+  ost(C.sail, ['E3', 'B3', 'E4', 'B3'], 0.075);
+  drone(['E2', 'B2'], C.sail, C.pirates + 0.05, 0.05, 0.5, 0.05);
 
-  // ---- bar 4: pirates, then the gale. The drone slips up a half step; the drum doubles. ----
-  drone(['F2', 'C3'], bar(4), bar(5) + 0.05, 0.06, 0.08, 0.05, 900);
-  for (let k = 0; k < 8; k++) { dum(bar(4) + k * 0.3, k % 2 ? 0.6 : 1); tek(bar(4) + k * 0.3 + 0.15, 0.8); }
-  for (let k = 0; k < 8; k++) lyre(k % 2 ? 'F3' : 'E3', 0.1, bar(4) + k * 0.3, -0.3, 0.25);
-  for (let k = 0; k < 8; k++) lyre(k % 2 ? 'E4' : 'F4', 0.08, bar(4) + k * 0.15, 0.3, 0.3);
-  [['B4', 0], ['A4', 0.3], ['G4', 0.6], ['F4', 0.9]].forEach(([n, dt]) => lyre(n, 0.17, bar(4) + 1.2 + dt, 0.1));
-  hiss(160, 0.6, 0.35, 1.3, bar(4) + 1.2, 'lowpass', 0.3);   // the sea hits the hull
+  // ---- pirates, then the gale. The drone slips up a half step; the drum strikes four times to each cut. ----
+  drone(['F2', 'C3'], C.pirates, C.piraeus + 0.05, 0.06, 0.08, 0.05, 900);
+  const strokes = [...steps(C.pirates, C.storm, 4), ...steps(C.storm, C.piraeus, 4)];
+  strokes.forEach((t, k) => {
+    const next = k < strokes.length - 1 ? strokes[k + 1] : C.piraeus;
+    dum(t, k % 2 ? 0.6 : 1); tek((t + next) / 2, 0.8); lyre(k % 2 ? 'F3' : 'E3', 0.1, t, -0.3, 0.25);
+  });
+  steps(C.pirates, C.storm, 8).forEach((t, k) => lyre(k % 2 ? 'E4' : 'F4', 0.08, t, 0.3, 0.3));
+  steps(C.storm, C.piraeus, 4).forEach((t, k) => lyre(['B4', 'A4', 'G4', 'F4'][k], 0.17, t, 0.1));
+  hiss(160, 0.6, 0.35, C.piraeus - C.storm + 0.1, C.storm, 'lowpass', 0.3);   // the sea hits the hull
 
-  // ---- bar 5: nine voyages. A strummed chord on every cut, climbing. ----
+  // ---- nine voyages. A strummed chord on every cut, climbing. ----
+  const ports = ['piraeus', 'syracuse', 'tyre', 'alexandria'];
   [['E3', 'B3', 'E4', 'G4'], ['G3', 'D4', 'G4', 'B4'], ['A3', 'E4', 'A4', 'C5'], ['C4', 'G4', 'C5', 'E5']].forEach((ch, i) => {
-    const t = bar(5) + i * B;
-    strum(ch, 0.15, t); dum(t, 1.1); tek(t + 0.3, 0.8); ka(t + 0.45, 0.6);
+    const t = C[ports[i]], len = (i < ports.length - 1 ? C[ports[i + 1]] : C.sell) - t;
+    strum(ch, 0.15, t); dum(t, 1.1); tek(t + len / 2, 0.8); ka(t + len * 0.75, 0.6);
     lyre(ch[0].replace(/\d/, d => String(+d - 1)), 0.12, t, -0.2);
   });
-  drone(['E2', 'B2'], bar(5), bar(6) + 0.05, 0.045, 0.06, 0.05);
+  drone(['E2', 'B2'], C.piraeus, C.sell + 0.05, 0.045, 0.06, 0.05);
 
-  // ---- bar 6: sell high. Coins on the beat, and the old cadence, F falling to E. ----
-  maqsum(bar(6), 1);
-  ost(bar(6), ['D3', 'A3', 'D4', 'A3'], 0.08, -0.25, 4); ost(bar(6) + 1.2, ['F3', 'C4', 'F4', 'C4'], 0.08, -0.25, 4);
-  [['A4', 1.2], ['G4', 1.5], ['F4', 1.8], ['G4', 2.1]].forEach(([n, dt]) => lyre(n, 0.16, bar(6) + dt, 0.1));
-  drone(['D2', 'A2'], bar(6), bar(6) + 1.25, 0.04, 0.06, 0.05); drone(['F2', 'C3'], bar(6) + 1.2, bar(7) + 0.05, 0.05, 0.06, 0.05);
-  for (let k = 0; k < 4; k++) tek(bar(7) - 0.6 + k * 0.15, 0.5 + k * 0.18);
-  dum(bar(7) - 0.15, 0.7);
+  // ---- sell high. Coins on the beat, and the old cadence, F falling to E. ----
+  maqsum(C.sell, 1);
+  ost(C.sell, ['D3', 'A3', 'D4', 'A3'], 0.08, -0.25, 4); ost(C.sell + 2 * B, ['F3', 'C4', 'F4', 'C4'], 0.08, -0.25, 4);
+  [['A4', 4], ['G4', 5], ['F4', 6], ['G4', 7]].forEach(([n, e]) => lyre(n, 0.16, C.sell + e * E8, 0.1));
+  drone(['D2', 'A2'], C.sell, C.sell + 2 * B + 0.05, 0.04, 0.06, 0.05); drone(['F2', 'C3'], C.sell + 2 * B, C.end + 0.05, 0.05, 0.06, 0.05);
+  for (let k = 0; k < 4; k++) tek(C.end - B + k * S16, 0.5 + k * 0.18);
+  dum(C.end - S16, 0.7);
 
-  // ---- bar 7 to the end: the god has his head. A bell of bronze, the strings, and the tune, quietly. ----
-  dum(bar(7), 1.4); bell('E3', 0.24, bar(7), 4.2); bell('E2', 0.12, bar(7), 3.2); bell('B3', 0.08, bar(7) + 0.01, 3);
-  strum(['B2', 'E3', 'B3', 'E4', 'B4', 'E5'], 0.15, bar(7), 0.022);
-  drone(['E2', 'B2'], bar(7), duration, 0.05, 0.08, 0.6, 640);
-  [['E4', 0.6], ['B4', 0.9], ['E5', 1.2], ['G4', 1.8], ['F4', 2.1], ['E4', 2.4]].forEach(([n, dt], i) => lyre(n, i === 5 ? 0.17 : 0.13, bar(7) + dt, 0, 0.6));
-  lyre('E3', 0.1, bar(7) + 2.4, -0.2);
+  // ---- the god has his head. A bell of bronze, the strings, and the tune, quietly. ----
+  dum(C.end, 1.4); bell('E3', 0.24, C.end, 4.2); bell('E2', 0.12, C.end, 3.2); bell('B3', 0.08, C.end + 0.01, 3);
+  strum(['B2', 'E3', 'B3', 'E4', 'B4', 'E5'], 0.15, C.end, 0.022);
+  drone(['E2', 'B2'], C.end, duration, 0.05, 0.08, 0.6, 640);
+  [['E4', 2], ['B4', 3], ['E5', 4], ['G4', 6], ['F4', 7], ['E4', 8]].forEach(([n, e], i) => lyre(n, i === 5 ? 0.17 : 0.13, C.end + e * E8, 0, 0.6));
+  lyre('E3', 0.1, C.end + 8 * E8, -0.2);
 
   // ---- what happened in the shots ----
   for (const e of events) {
@@ -202,14 +209,14 @@ function run(cmd, argv) {
 }
 
 // Render the mix, then master it: gain to -15 LUFS, with a lookahead limiter holding the drum hits under -2 dBFS.
-async function renderScore(browser, { harness, events, out, duration }) {
+async function renderScore(browser, { harness, events, out, duration, cues, beat }) {
   const page = await browser.newPage();
   await page.addInitScript(() => {
     try { localStorage.clear(); localStorage.setItem('emporos-muted', '1'); } catch (e) { /* ignore */ }
     let a = 99; Math.random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   });
   await page.goto('file://' + harness);
-  const b64 = await page.evaluate(compose, { events, duration, SR });
+  const b64 = await page.evaluate(compose, { events, duration, SR, cues, beat });
   await page.close();
   const bytes = Buffer.from(b64, 'base64');
   const pcm = new Float32Array(Uint8Array.from(bytes).buffer);   // a copy, so the floats start on a 4-byte boundary
@@ -234,12 +241,12 @@ async function renderScore(browser, { harness, events, out, duration }) {
 module.exports = { renderScore };
 if (require.main === module) {   // render the score alone: node tools/trailer/score.js
   const { chromium } = require('playwright');
-  const { SHOTS } = require('./shots');
+  const { SHOTS, CUES, BEAT, DURATION } = require('./shots');
   const WORK = path.resolve(process.env.TRAILER_WORK || path.join(__dirname, '..', '..', 'trailer-work'));
   (async () => {
     const events = SHOTS.flatMap(s => { const f = path.join(WORK, 'shots', s.id + '.json'); return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : []; });
     const browser = await chromium.launch();
-    const r = await renderScore(browser, { harness: path.join(WORK, 'harness.html'), events, out: path.join(WORK, 'score.wav'), duration: SHOTS.reduce((a, s) => Math.max(a, s.at + s.dur), 0) });
+    const r = await renderScore(browser, { harness: path.join(WORK, 'harness.html'), events, out: path.join(WORK, 'score.wav'), duration: DURATION, cues: CUES, beat: BEAT });
     await browser.close();
     console.log(`score.wav written: ${events.length} cues; mix ${r.raw.I} LUFS / ${r.raw.TP} dBTP, mastered ${r.got.I} LUFS / ${r.got.TP} dBTP (+${r.gain.toFixed(1)} dB)`);
   })().catch(e => { console.error(e); process.exit(1); });

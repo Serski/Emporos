@@ -8,7 +8,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { ROOT, FW, FH, buildHarness, openPage, chromium } = require('./rig');
 const { makeStates } = require('./states');
-const { SHOTS } = require('./shots');
+const { SHOTS, CUES, BEAT, DURATION } = require('./shots');
 const { renderScore } = require('./score');
 
 const FPS = 60;
@@ -115,8 +115,7 @@ async function encode(audio) {
   const list = path.join(WORK, 'shots.txt');
   fs.writeFileSync(list, SHOTS.map(s => `file '${path.join(WORK, 'shots', s.id + '.mkv')}'`).join('\n') + '\n');
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
-  const dur = SHOTS.reduce((a, s) => Math.max(a, s.at + s.dur), 0);
-  const video = ['-f', 'concat', '-safe', '0', '-i', list, ...(audio ? ['-i', audio] : []), '-map', '0:v', '-t', String(dur),
+  const video = ['-f', 'concat', '-safe', '0', '-i', list, ...(audio ? ['-i', audio] : []), '-map', '0:v', '-t', String(DURATION),
     // Number the frames 0, 1, 2...: the shots' stored timestamps are rounded to the millisecond, and must not cost a frame.
     // Box-average the colour, which cannot ring at the hard edges of pixel art, and convert with the BT.709 matrix the file is tagged with.
     '-vf', `setpts=N/(${FPS}*TB),scale=flags=area+accurate_rnd+full_chroma_int:out_color_matrix=bt709:out_range=limited,format=yuv420p`, '-r', String(FPS),
@@ -125,9 +124,9 @@ async function encode(audio) {
     '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', '-passlogfile', path.join(WORK, 'x264pass')];
   await ffmpeg([...video, '-pass', '1', '-an', '-f', 'mp4', '/dev/null']);
   await ffmpeg([...video, '-pass', '2', ...(audio ? ['-map', '1:a', '-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-ac', '2'] : []), '-movflags', '+faststart', OUT]);
-  // A thumbnail for the store page: Steam wants a 1920 x 1080 frame from the trailer itself. This one is the title card.
-  const end = SHOTS.find(s => s.id === 'end');
-  if (end) await ffmpeg(['-i', path.join(WORK, 'shots', 'end.mkv'), '-vf', `select=eq(n\\,${Math.round(2.5 * FPS)})`, '-frames:v', '1', OUT.replace(/\.mp4$/, '-thumbnail.png')]);
+  // A thumbnail for the store page: Steam wants a 1920 x 1080 frame from the trailer itself (shots.js marks which).
+  const thumb = SHOTS.find(s => s.thumbnail != null);
+  if (thumb) await ffmpeg(['-i', path.join(WORK, 'shots', thumb.id + '.mkv'), '-vf', `select=eq(n\\,${Math.round(thumb.thumbnail * FPS)})`, '-frames:v', '1', OUT.replace(/\.mp4$/, '-thumbnail.png')]);
 }
 
 (async () => {
@@ -150,7 +149,7 @@ async function encode(audio) {
     if (!flag('--no-audio')) {
       const events = SHOTS.flatMap(s => { const f = path.join(WORK, 'shots', s.id + '.json'); return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : []; });
       audio = path.join(WORK, 'score.wav');
-      const r = await renderScore(browser, { harness: path.join(WORK, 'harness.html'), events, out: audio, duration: SHOTS.reduce((a, s) => Math.max(a, s.at + s.dur), 0) });
+      const r = await renderScore(browser, { harness: path.join(WORK, 'harness.html'), events, out: audio, duration: DURATION, cues: CUES, beat: BEAT });
       console.log(`scored ${events.length} cues: mastered ${r.got.I} LUFS, true peak ${r.got.TP} dBTP`);
     }
     await encode(audio);

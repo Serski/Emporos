@@ -143,7 +143,7 @@ The history of the period is real and stays in the background: the siege of Rhod
 - `tools/build.mjs` creates `index.html` from `src/game.html`.
 - `tests/sim.js` plays Chapters I to IX in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
 - `tests/play.js` plays all nine chapters, to the last page, in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
-- `tools/trailer/` makes the 20-second Steam trailer in `trailer/`: it loads real saved games (played by the bots from `tests/sim.js`) into the game in a headless Chromium, films each shot frame by frame, scores it with the game's own sound engine, and encodes it with ffmpeg. The shots, and the words on screen, are in `tools/trailer/shots.js`.
+- `tools/trailer/` makes the Steam trailer (22 seconds) in `trailer/`: it loads real saved games (played by the bots from `tests/sim.js`) into the game in a headless Chromium, films each shot frame by frame, scores it with the game's own sound engine, and encodes it with ffmpeg. The shots, and the words on screen, are in `tools/trailer/shots.js`.
 
 Inside `src/game.html`, the rules sit between `// ===== ENGINE START =====` and `// ===== ENGINE END =====` and never touch the page. That is what lets `tests/sim.js` run them on their own. All the art and sound is drawn and synthesized in code.
 
