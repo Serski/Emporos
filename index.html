@@ -5770,55 +5770,6 @@ function town(W, ground, rows, xFrom, xTo, seed, rowY) {
     }
   }
 }
-// The statue of the Sun, going up inside its scaffolding. Stage 1 is his feet, stage 2 his shins.
-function colossus(cx, gy, stage, t) {
-  R(cx - 9, gy, 20, 3, '#bfae8a'); R(cx - 9, gy, 20, 1, '#d8c9a8');
-  const ramp = 5 + 5 * stage;
-  for (let k = 0; k < ramp; k++) R(cx + 4, gy - ramp + k, Math.round(k * 0.8) + 2, 1, k % 3 ? '#a8875a' : '#8f6f48');   // the hill of earth they build him up inside
-  R(cx - 5, gy - 7, 10, 7, '#ece6d8'); R(cx + 3, gy - 7, 2, 7, '#cfc6b4'); R(cx - 6, gy - 8, 12, 1, '#fffaf0'); R(cx - 6, gy - 1, 12, 1, '#cfc6b4');
-  const top = [0, 4, 9, 14, 19, 24, 24, 24, 24][stage] || 24;
-  for (const lx of [cx - 4, cx + 1]) { R(lx, gy - 8 - top, 3, top, '#b0773a'); R(lx, gy - 8 - top, 1, top, '#e0a860'); R(lx + 2, gy - 8 - top, 1, top, '#7a4a22'); }
-  if (stage >= 5) { R(cx - 5, gy - 11 - top, 10, 4, '#b0773a'); R(cx - 5, gy - 11 - top, 2, 4, '#e0a860'); R(cx + 3, gy - 11 - top, 2, 4, '#7a4a22'); }   // hips, and the start of a waist
-  if (stage >= 6) {   // a chest, and the beginnings of shoulders
-    R(cx - 6, gy - 17 - top, 12, 6, '#b0773a'); R(cx - 6, gy - 17 - top, 2, 6, '#e0a860'); R(cx + 4, gy - 17 - top, 2, 6, '#7a4a22');
-    R(cx - 4, gy - 14 - top, 3, 1, '#7a4a22'); R(cx + 1, gy - 14 - top, 3, 1, '#7a4a22'); R(cx - 7, gy - 17 - top, 14, 1, '#e0a860');
-  }
-  if (stage >= 7) {   // shoulders, and the tops of his arms
-    R(cx - 8, gy - 21 - top, 16, 4, '#b0773a'); R(cx - 8, gy - 21 - top, 16, 1, '#e0a860'); R(cx + 6, gy - 20 - top, 2, 3, '#7a4a22');
-    R(cx - 9, gy - 19 - top, 2, 6, '#b0773a'); R(cx - 9, gy - 19 - top, 1, 6, '#e0a860'); R(cx + 7, gy - 19 - top, 2, 6, '#7a4a22');
-    R(cx - 2, gy - 22 - top, 4, 1, '#7a4a22');   // where the neck will go
-  }
-  if (stage >= 8) {   // the arms, down to the elbows and a little beyond
-    R(cx - 10, gy - 13 - top, 2, 8, '#b0773a'); R(cx - 10, gy - 13 - top, 1, 8, '#e0a860'); R(cx + 8, gy - 13 - top, 2, 8, '#7a4a22');
-    px(cx - 10, gy - 5 - top, '#7a4a22'); px(cx + 9, gy - 5 - top, '#7a4a22');
-  }
-  if (stage >= 10) {   // his head, with a crown of rays: the scaffolding is down, and two ladders are left for polishing
-    const hy = gy - 35 - top;
-    R(cx - 3, hy + 1, 6, 6, '#b0773a'); R(cx - 2, hy, 4, 1, '#b0773a'); R(cx - 3, hy + 1, 1, 6, '#e0a860'); R(cx + 2, hy + 1, 1, 6, '#7a4a22');
-    px(cx - 2, hy + 3, '#4a2a12'); px(cx + 1, hy + 3, '#4a2a12'); px(cx, hy + 4, '#7a4a22'); R(cx - 1, hy + 6, 2, 1, '#7a4a22');   // eyes, nose and mouth
-    for (const a of [-1.25, -0.8, -0.4, 0, 0.4, 0.8, 1.25]) pline(Math.round(cx - 0.5 + Math.sin(a) * 4), Math.round(hy + 3 - Math.cos(a) * 4), Math.round(cx - 0.5 + Math.sin(a) * 7), Math.round(hy + 3 - Math.cos(a) * 7), '#e8b04a');   // the rays of the Sun
-  }
-  if (stage >= 9) {   // a neck, and the beginnings of a jaw
-    R(cx - 1, gy - 25 - top, 3, 4, '#b0773a'); px(cx - 1, gy - 25 - top, '#e0a860'); px(cx - 1, gy - 24 - top, '#e0a860'); R(cx + 1, gy - 25 - top, 1, 4, '#7a4a22');
-    R(cx - 3, gy - 28 - top, 6, 2, '#b0773a'); R(cx - 2, gy - 26 - top, 4, 1, '#b0773a'); R(cx - 3, gy - 28 - top, 1, 2, '#e0a860'); R(cx + 2, gy - 28 - top, 1, 2, '#7a4a22'); px(cx + 1, gy - 26 - top, '#7a4a22');
-  }
-  R(cx - 5, gy - 10, 4, 2, '#b0773a'); R(cx, gy - 10, 4, 2, '#b0773a');
-  if (stage >= 10) {   // finished: only ladders, and men on them with rags
-    pline(cx + 9, gy - 8, cx + 4, gy - 30 - top, '#7a5532'); pline(cx + 11, gy - 8, cx + 6, gy - 30 - top, '#7a5532');
-    for (let k = 1; k < 7; k++) { const y = gy - 8 - k * Math.round((22 + top) / 7), x = cx + 9 - Math.round(k * 5 / 7); R(x, y, 3, 1, '#7a5532'); }
-    const w = Math.floor(t * 1.2) % 2;
-    px(cx + 5 + w, gy - 27 - top, '#c48a58'); px(cx + 5 + w, gy - 26 - top, '#8a5a3a'); px(cx - 7, gy - 12 - (Math.floor(t) % 3), '#c48a58');
-    return;
-  }
-  const sh = gy - 8 - top - (stage >= 9 ? 22 : stage >= 7 ? 17 : stage >= 6 ? 13 : 8);
-  for (const x of [cx - 8, cx - 1, cx + 6]) R(x, sh, 1, gy - sh, '#7a5532');
-  for (let y = sh + 2; y < gy - 8; y += 4) R(cx - 8, y, 15, 1, '#8a6440');
-  const ct = sh - (stage >= 7 ? 4 : stage >= 6 ? 6 : 8), swing = Math.round(Math.sin(t * 0.9) * 1);
-  R(cx + 11, ct, 1, gy - ct, '#6a4a2e'); pline(cx + 11, ct, cx + 1, ct + 3, '#6a4a2e');
-  R(cx + 1 + swing, ct + 4, 1, 6, '#3a2a1e'); R(cx + swing, ct + 10, 3, 2, '#ece6d8');
-  const w = Math.floor(t * 1.5) % 6;
-  px(cx - 7 + w, sh + 1, '#c48a58'); px(cx - 7 + w, sh + 2, '#8a5a3a'); px(cx + 7, gy - 3 - (Math.floor(t) % 3), '#c48a58');
-}
 function mausoleum(cx, gy) {
   R(cx - 8, gy - 6, 16, 6, '#ece6d8'); R(cx + 6, gy - 6, 2, 6, '#cfc6b4'); R(cx - 9, gy - 7, 18, 1, '#fffaf0');
   R(cx - 7, gy - 11, 14, 4, '#d6cebe');
@@ -5828,37 +5779,850 @@ function mausoleum(cx, gy) {
   R(cx - 2, gy - 19, 4, 2, '#b0773a'); px(cx - 2, gy - 20, '#b0773a'); px(cx + 1, gy - 20, '#7a4a22');
 }
 
-function drawRhodes(W, H, t, o) {
-  const tall = H > W * 0.9, pal = dayPal(o.clock), qy = H - 15, stage = o.stage || 1, hz0 = Math.max(6, Math.round(H * (tall ? 0.5 : 0.42)));
-  const hz = stage >= 10 ? Math.max(hz0, Math.min(55, H - 40)) : stage >= 9 ? Math.max(hz0, Math.min(47, H - 40)) : hz0;   // once the god has a neck, the horizon comes down a little, so his jaw stays in the picture
-  const hh = Math.max(19, Math.round(H * (tall ? 0.24 : 0.19))), hill = x => { const k = x / (W * 0.62); return Math.round(hz + 3 - hh * (1 - smooth(0.28, 1, k))); };
-  G.drawImage(layer('rh' + W + 'x' + H + ':' + hz + ':' + Math.round(o.clock * 60), W, H, () => {
-    bands(W, 0, hz + 6, pal.skyTop, pal.skyBot, 8);
-    sunDisc(Math.round(W * 0.84), Math.round(hz * 0.32), 4, pal.sun);
-    ridge(0, W, hz, Math.max(3, hz * 0.22), 26, 3, pal.far);
-    bands(W, hz, qy - hz, pal.seaTop, pal.seaBot, 5);
-    G.fillStyle = mix('#a89b72', pal.far, 0.18);
-    for (let x = 0; x < W * 0.64; x++) { const y = hill(x); G.fillRect(x, y, 1, hz + 6 - y); }
-    for (let k = 0; k < 40; k++) { const x = Math.floor(hash(k * 3.1) * W * 0.6), y = hill(x) + 1 + Math.floor(hash(k * 7.7) * 5); if (y < hz + 4) px(x, y, '#6f7a42'); }
-    temple(Math.round(W * 0.13), hill(W * 0.13) + 1, 12, '#ece6d8');
-    town(W, hill, Math.ceil(hh / 3.2) + 1, 2, Math.round(W * 0.6), 11, r => hz + 5 - Math.round(r * 3.2));
-    R(0, hz + 5, Math.round(W * 0.62), 2, '#cdbb98'); for (let x = 0; x < W * 0.62; x += 3) px(x, hz + 4, '#cdbb98');
-    for (const f of [0.06, 0.29, 0.53]) tower(Math.round(W * f), hz + 7, 4, 7, '#d6c4a0');
-    R(Math.round(W * 0.66), hz + 10, W, 2, '#bfae8a'); R(Math.round(W * 0.66), hz + 10, W, 1, '#d8c9a8');
-    tower(Math.round(W * 0.66), hz + 12, 5, 9, '#d6c4a0');
-  }), 0, 0);
-  for (let k = 0; k < 18; k++) {
-    const y = hz + 7 + Math.floor(hash(k + 50) * Math.max(1, qy - hz - 8)), x = ((hash(k) * W + t * (1 + (k % 3))) % (W + 6)) - 3;
-    R(x, y, 2 + (k % 3), 1, mix(pal.seaTop, pal.wave, 0.55));
+// ---------- the detailed world: twice the pixels, a sun to see by, and shade on everything ----------
+// Rhodes and the title are painted this way so far. Every other picture is still painted flat, at the old size.
+const HD_PORTS = new Set(['rhodes']);
+const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
+const dith = (x, y) => BAYER4[((y & 3) << 2) | (x & 3)];
+// The colour v of the way along a ramp of colours, dithered between the two it falls between. A bigger sharp narrows the dithered band.
+function rampPx(ramp, v, x, y, sharp) {
+  const n = ramp.length - 1, c = v < 0 ? 0 : v > n ? n : v, i = Math.floor(c);
+  let f = c - i;
+  if (sharp) f = clamp((f - 0.5) * sharp + 0.5, 0, 1);
+  return ramp[f > dith(x, y) ? Math.min(n, i + 1) : i];
+}
+function gradRow(x0, y, w, ramp, v, sharp) {   // one row of a dithered gradient
+  const n = ramp.length - 1, c = clamp(v, 0, n), i = Math.floor(c), a = ramp[i], b = ramp[Math.min(n, i + 1)];
+  let f = c - i;
+  if (sharp) f = clamp((f - 0.5) * sharp + 0.5, 0, 1);
+  R(x0, y, w, 1, f > 0.97 ? b : a);
+  if (a === b || f < 0.03 || f > 0.97) return;
+  G.fillStyle = b;
+  for (let x = x0; x < x0 + w; x++) if (f > dith(x, y)) G.fillRect(x, y, 1, 1);
+}
+function rampOf(stops, n) {   // n colours, evenly spaced along a list of colour stops
+  const out = [];
+  for (let i = 0; i < n; i++) { const p = i / (n - 1) * (stops.length - 1), k = Math.min(stops.length - 2, Math.floor(p)); out.push(mix(stops[k], stops[k + 1], p - k)); }
+  return out;
+}
+const hash2 = (x, y) => hash(x * 12.9898 + y * 78.233);
+function vnoise2(x, y, seed) {
+  const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy, ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy), s = seed * 31.7;
+  const a = hash2(ix + s, iy), b = hash2(ix + 1 + s, iy), c = hash2(ix + s, iy + 1), d = hash2(ix + 1 + s, iy + 1);
+  return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+}
+// The light at an hour of the day: the colour of sunlight on things, the colour shadows take, and how low the sun is.
+function lightOf(clock) {
+  const pal = dayPal(clock), c = clamp(clock, 0, 1), low = clamp(1 - Math.min(c, 1 - c) / 0.22, 0, 1);
+  return { pal, low, eve: c > 0.5 ? low : 0, sun: mix('#fff6de', pal.sun, 0.3 + 0.7 * low), shadow: mix('#38367a', pal.skyTop, 0.35) };
+}
+const MATS = new Map();
+function mat(base, Lt) {   // five tones of one material in this light: deep shade, shade, itself, lit, highlight
+  const key = base + Lt.sun + Lt.shadow + Lt.eve;
+  let m = MATS.get(key);
+  if (!m) {
+    const b = mix(mix(base, Lt.sun, 0.05 + 0.15 * Lt.low), '#5a3a5e', 0.22 * Lt.eve);
+    m = [mix(mix(b, '#000000', 0.5), Lt.shadow, 0.3), mix(mix(b, '#000000', 0.24), Lt.shadow, 0.22), b, mix(mix(b, '#ffffff', 0.2), Lt.sun, 0.22), mix(mix(b, '#ffffff', 0.44), Lt.sun, 0.32)];
+    if (MATS.size > 800) MATS.clear();
+    MATS.set(key, m);
   }
-  colossus(Math.round(W * 0.46), hz + 9, stage, t);
-  harbourBoats(W, hz + 16, qy - 4, t);
-  const mb = Math.round(Math.sin(t * 1.1) * 0.5);
-  R(Math.round(W * 0.76), hz + 13 + mb, 18, 3, '#5a3a22'); R(Math.round(W * 0.76), hz + 13 + mb, 18, 1, '#8a5a34'); R(Math.round(W * 0.76) + 8, hz + 3 + mb, 1, 10, '#4a2e1a');
-  drawShip(Math.round(W * 0.58), qy - 3 + Math.round(Math.sin(t * 1.3) * 0.5), { sail: 'furled', crew: 2, t });
-  for (let k = 0; k < 2; k++) gull(((t * (7 + k * 3) + k * 70) % (W + 20)) - 10, 6 + k * 7 + Math.round(Math.sin(t * 2 + k) * 2), t, k);
-  quayFloor(W, H, qy);
-  stalls(W, H, 'rhodes', t, o);
+  return m;
+}
+// Size a pixel canvas for a detailed picture: about twice the art pixels of fitPixels, each one a whole number of device pixels across.
+// With minRows, a wide, short window gets smaller pixels rather than a picture only a few dozen pixels high.
+function fitHD(cv, cssW, cssH, cols, minRows) {
+  const dpr = window.devicePixelRatio || 1, Pd = Math.max(2, Math.round(Math.min(cssW * dpr / cols, minRows ? cssH * dpr / minRows : Infinity)));
+  let W = Math.max(80, Math.ceil(cssW * dpr / Pd));
+  const H = Math.max(40, Math.ceil(cssH * dpr / Pd));
+  if ((W * Pd) & 1) W++;   // an even width, so centring it never lands between device pixels
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const P = Pd / dpr, sw = W * P + 'px', sh = H * P + 'px';
+  if (cv.style.width !== sw) cv.style.width = sw;
+  if (cv.style.height !== sh) cv.style.height = sh;
+  return { W, H, P, ox: (W * P - cssW) / 2 };
+}
+
+// ---- sky, cloud, hills and water ----
+function skyRamp(Lt) {
+  const p = Lt.pal;
+  return rampOf([shade(p.skyTop, -0.08), p.skyTop, mix(p.skyTop, p.skyBot, 0.55), p.skyBot, mix(p.skyBot, Lt.sun, 0.3 + 0.35 * Lt.low)], 28);
+}
+function hdSky(W, h, Lt, sx, sy, sr) {   // the sky, deeper overhead, and the sun in a glow of its own light
+  const ramp = skyRamp(Lt), at = y => Math.pow(clamp(y / Math.max(1, h - 1), 0, 1), 0.85) * (ramp.length - 1);
+  for (let y = 0; y < h; y++) gradRow(0, y, W, ramp, at(y), 2.6);
+  if (!sr) return;
+  const R0 = sr * (3 + 3 * Lt.low);
+  for (let y = Math.max(0, Math.floor(sy - R0)); y < Math.min(h, Math.ceil(sy + R0)); y++) {
+    const sky = ramp[Math.round(at(y))], glow = rampOf([sky, mix(sky, Lt.sun, 0.7), mix(Lt.sun, '#ffffff', 0.3)], 8);
+    for (let x = Math.max(0, Math.floor(sx - R0)); x < Math.min(W, sx + R0); x++) {
+      const d = Math.hypot(x + 0.5 - sx, y + 0.5 - sy);
+      if (d <= sr) { px(x, y, d < sr - 1.6 ? '#fffdf2' : glow[7]); continue; }
+      const g = Math.pow(clamp(1 - (d - sr) / (R0 - sr), 0, 1), 1.8) * 6.4;
+      if (g > 0.05) { const c = rampPx(glow, g, x, y, 2.4); if (c !== sky) px(x, y, c); }
+    }
+  }
+}
+const CLOUDS = new Map();
+function cloudSprite(seed, w, h, ramp, lx, ly) {   // a heap of round puffs on a flat base, lit from the direction (lx, ly)
+  const key = seed + ':' + w + 'x' + h + ':' + lx + ',' + ly + ramp.join('');
+  let c = CLOUDS.get(key);
+  if (c) return c;
+  c = canvasOf(w, h);
+  const g = c.getContext('2d'), n = 3 + Math.floor(hash(seed) * 3), puffs = [];
+  for (let i = 0; i < n; i++) {
+    const k = i / (n - 1), mid = 1 - Math.abs(k - 0.5) * 2, r = h * (0.3 + 0.28 * mid + 0.08 * hash(seed + i * 7.3));
+    puffs.push([w * (0.2 + 0.6 * k) + (hash(seed + i * 3.1) - 0.5) * w * 0.08, h - r * 0.45, r]);
+  }
+  for (let i = 0; i < 2; i++) {   // little puffs heaped on the big ones
+    const b = puffs[1 + Math.floor(hash(seed + i * 9.7) * (n - 2))], a = -0.7 + hash(seed + i * 4.4) * 1.4;
+    puffs.push([b[0] + Math.sin(a) * b[2] * 0.7, b[1] - Math.cos(a) * b[2] * 0.6, b[2] * 0.45]);
+  }
+  const ll = Math.hypot(lx, ly, 0.9), Lx = lx / ll, Ly = ly / ll, Lz = 0.9 / ll;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let best = 0, nx = 0, ny = 0, nz = 0;
+    for (const [cx, cy, r] of puffs) {
+      const dx = x + 0.5 - cx, dy = y + 0.5 - cy, q = r * r - dx * dx - dy * dy;
+      if (q > 0) { const z = Math.sqrt(q); if (z > best) { best = z; nx = dx / r; ny = dy / r; nz = z / r; } }
+    }
+    if (!best) continue;
+    const s = nx * Lx + ny * Ly + nz * Lz - Math.max(0, y - (h - 4)) * 0.16;
+    g.fillStyle = rampPx(ramp, (s * 0.72 + 0.4) * (ramp.length - 1), x, y, 2.6);
+    g.fillRect(x, y, 1, 1);
+  }
+  if (CLOUDS.size > 60) CLOUDS.delete(CLOUDS.keys().next().value);
+  CLOUDS.set(key, c);
+  return c;
+}
+function hdStreaks(W, y0, y1, Lt, seed, n, col) {   // thin streaks of high cloud low in the sky, lit from underneath
+  for (let i = 0; i < n; i++) {
+    const y = Math.round(y0 + hash(seed + i * 2.3) * (y1 - y0)), len = Math.round(16 + hash(seed + i * 5.9) * W * 0.3), x = Math.round(hash(seed + i * 8.1) * (W + len) - len);
+    R(x + 3, y, len - 6, 1, col); R(x, y + 1, len, 1, mix(col, Lt.pal.skyBot, 0.45)); px(x + len - 4, y - 1, mix(col, '#ffffff', 0.3));
+  }
+}
+function hdClouds(W, top, bot, t, Lt, seed, n, light, warm, big) {   // clouds drifting across the sky between top and bot: the bigger ones nearer, higher, and quicker
+  const p = Lt.pal, k = Lt.low, sun = Lt.sun, under = warm || sun;
+  const ramp = [mix(mix('#ffffff', p.skyTop, 0.62), '#5a4a8a', 0.25 * k), mix(mix('#ffffff', p.skyTop, 0.42), '#7a5a9a', 0.15 * k), mix(mix('#ffffff', p.skyBot, 0.3), under, 0.3 * k), mix('#ffffff', under, 0.1 + 0.5 * k), mix('#ffffff', sun, 0.03 + 0.3 * k)];
+  for (let i = 0; i < n; i++) {
+    const near = hash(seed + i * 1.7), h = Math.round((9 + near * 17) * (big || 1)), w = Math.round(h * (2.2 + hash(seed + i * 2.9) * 1.4));
+    const y = Math.round(top + Math.max(0, bot - top - h) * (1 - near) * (0.25 + 0.75 * hash(seed + i * 4.1)));
+    const x = Math.round(((hash(seed + i * 3.3) * (W + w * 2) + t * (0.25 + near * 0.7)) % (W + w * 2)) - w);
+    G.drawImage(cloudSprite(seed + i, w, h, ramp, light[0], light[1]), x, y);
+  }
+}
+// A range of hills along base: the slopes that face the sun lit (lean is 1 with the sun to the right, -1 to the left), and the foot lost in haze.
+function hdRange(W, base, amp, scale, seed, ramp, lean, haze, hazeK, gaps) {
+  const top = x => { const n = fbm(x / scale, seed); return gaps ? (n < gaps ? base + 1 : base - (n - gaps) / (1 - gaps) * amp) : base - amp * n; };
+  for (let x = 0; x < W; x++) {
+    const t0 = top(x);
+    if (t0 > base) continue;
+    const fall = (top(x + 2) - top(x - 2)) * lean;
+    for (let y = Math.round(t0); y < base; y++) {
+      const d = (y - t0) / Math.max(2, base - t0), hz = hazeK * Math.pow(d, 1.5);
+      px(x, y, hz > dith(x + 1, y + 2) ? haze : rampPx(ramp, 1.3 + clamp(fall * 0.45, -1.3, 1.6) * (1 - d * 0.8) + (vnoise2(x / 3, y / 2, seed) - 0.5) * 0.5, x, y, 1.6));
+    }
+  }
+}
+const waterRamp = Lt => { const p = Lt.pal; return rampOf([mix(p.seaTop, p.skyBot, 0.45), p.seaTop, mix(p.seaTop, p.seaBot, 0.55), p.seaBot, shade(p.seaBot, -0.1)], 20); };
+const waterAt = (y, h, n) => Math.pow(clamp(y / Math.max(1, h - 1), 0, 1), 0.75) * (n - 1);
+function hdWater(W, h, Lt) {   // open water: the sky's colour far off, deeper and darker close to
+  const ramp = waterRamp(Lt);
+  for (let y = 0; y < h; y++) gradRow(0, y, W, ramp, waterAt(y, h, ramp.length), 2.4);
+}
+// The water moving: the bright edges of little waves, closer together far off, with the dark of the next wave under them close to.
+// The water moving: streaks of light where the little waves catch the sky, in rows of swell; short and close far off, longer near to.
+// Painted once into a strip twice the width of the picture, which each row then slides along at its own speed.
+function rippleStrip(W, h, base, light, deep, seed) {
+  for (let r = 0; r < h; r++) {
+    const d = r / Math.max(1, h - 1), sc = 2 + d * 11, b = base(r), hi = mix(b, light, 0.28 + 0.12 * d), hi2 = mix(b, light, 0.6), lo = mix(b, deep, 0.32);
+    const band = Math.sin(r * 2 * Math.PI / (2.4 + d * 7) + seed);
+    for (let x = 0; x < W * 2; x++) {
+      const n = vnoise(x / sc, seed + r * 3.3) * 0.7 + vnoise(x / (sc * 0.35), seed + 41 + r * 1.7) * 0.3;
+      if (band > -0.25 && n > 0.75 - 0.08 * band) px(x, r, n > 0.84 ? hi2 : hi);
+      else if (d > 0.3 && band < -0.55 && n < 0.25) px(x, r, lo);
+    }
+  }
+}
+function slideRipples(strip, W, y0, h, t, still) {
+  for (let r = 0; r < h; r++) {
+    const sp = 0.6 + (r / Math.max(1, h - 1)) * 3.6, off = still ? 0 : Math.floor(t * sp + r * 37) % (W * 2), a = Math.min(W, W * 2 - off);
+    G.drawImage(strip, off, r, a, 1, 0, y0 + r, a, 1);
+    if (a < W) G.drawImage(strip, 0, r, W - a, 1, a, y0 + r, W - a, 1);
+  }
+}
+function sunGlints(W, y0, y1, t, sx, col, still, spread) {   // the sun winking off the water below it
+  const tk = still ? 0 : Math.floor(t * 4);
+  for (let y = y0 + 1, r = 0; y < y1; y += 1 + Math.floor((y - y0) / 20), r++) {
+    const d = (y - y0) / Math.max(1, y1 - y0), hw = 3 + d * W * spread;
+    for (let k = 0; k < 2 + Math.round(d * 3); k++) {
+      if (hash(r * 7.3 + k * 1.9 + tk * 0.37) > 0.55) continue;
+      R(Math.round(sx + (hash(r * 3.1 + k * 5.7 + tk * 0.11) * 2 - 1) * hw), y, 1 + Math.round(d * 3 * hash(k + r)), 1, col);
+    }
+  }
+}
+// The reflection of a painted layer in the water under the line wl: upside down, coloured by the water, and stirred by the ripples.
+// The reflection of a painted layer in the water under the line wl: upside down, coloured by the water, and broken up by the ripples, more so further down.
+function hdReflect(src, wl, rows, t, key, tint, still) {
+  const W = src.width, n = Math.max(0, Math.min(rows, wl));
+  if (!n) return;
+  const flip = layer(key, W, n, () => {
+    G.imageSmoothingEnabled = false;
+    G.save(); G.scale(1, -1); G.drawImage(src, 0, wl - n, W, n, 0, -n, W, n); G.restore();
+    G.globalCompositeOperation = 'source-atop'; G.fillStyle = tint;
+    for (let r = 0; r < n; r++) { G.globalAlpha = 0.5 + 0.4 * r / n; G.fillRect(0, r, W, 1); }
+    G.globalAlpha = 1; G.globalCompositeOperation = 'source-over';
+  });
+  for (let r = 0; r < n; r++) {
+    if (hash(r * 7.31 + (still ? 0 : Math.floor(t * 1.5 + r * 0.37))) < 0.08 + 0.6 * r / n) continue;
+    const off = still ? 0 : Math.round(Math.sin(r * 0.7 - t * 1.6 + (r & 3)) * Math.min(2, 0.4 + r * 0.12));
+    G.drawImage(flip, 0, r, W, 1, off, wl + r, W, 1);
+  }
+}
+
+// ---- stone, trees and buildings ----
+function hdStones(x0, y0, w, h, M, seed, course) {   // dressed stone laid in courses: each block catches the light along its top, with mortar under it and between
+  course = course || 3;
+  for (let y = y0, r = 0; y < y0 + h; y += course, r++) {
+    const ch = Math.min(course, y0 + h - y);
+    for (let x = x0 - Math.floor(hash(seed + r * 3.7) * 4), k = 0; x < x0 + w; k++) {
+      const bw = 3 + Math.floor(hash(seed + r * 13.1 + k * 7.7) * 4), a = Math.max(x, x0), b = Math.min(x + bw, x0 + w), tone = hash(seed + k * 1.3 + r * 5.1);
+      if (b > a) {
+        R(a, y, b - a, ch, tone < 0.22 ? mix(M[2], M[1], 0.45) : tone > 0.82 ? mix(M[2], M[3], 0.5) : M[2]);
+        if (ch > 1) R(a, y, b - a, 1, M[3]);
+        if (x + bw <= x0 + w) R(x + bw - 1, y, 1, ch, M[1]);
+      }
+      x += bw;
+    }
+    if (ch > 2) R(x0, y + ch - 1, w, 1, M[1]);
+  }
+}
+function hdWall(x0, x1, top, base, Lt) {   // a city wall along the shore, with battlements, and the stone dark and wet at the foot
+  const M = mat('#d8c8a2', Lt);
+  hdStones(x0, top, x1 - x0, base - top, M, 7, 3);
+  R(x0, top, x1 - x0, 1, M[4]);
+  for (let x = x0; x < x1; x += 4) { R(x, top - 2, 2, 2, M[2]); px(x + 1, top - 2, M[3]); px(x, top - 1, M[1]); }
+  R(x0, base - 1, x1 - x0, 1, M[0]);
+}
+function hdTower(x, base, w, h, Lt, seed) {   // a square tower: battlements, an arrow slit, the sun on its right
+  const M = mat('#d6c49e', Lt), top = base - h;
+  hdStones(x, top, w, h, M, seed || 11, 3);
+  R(x, top, 1, h, M[1]); R(x + w - 1, top, 1, h, M[3]); R(x, top, w, 1, M[4]);
+  for (let k = 0; k < w; k += 3) { R(x + k, top - 2, 2, 2, M[2]); px(x + k + 1, top - 2, M[4]); px(x + k, top - 1, M[1]); }
+  R(x + (w >> 1), top + 4, 1, 3, M[0]); px(x + (w >> 1), top + 7, M[3]);
+  R(x, base - 1, w, 1, M[0]);
+}
+function hdTemple(cx, gy, w, Lt) {   // a Doric temple on its three steps: six columns, a frieze, a pediment, the sun on the right
+  const M = mat('#efe9dc', Lt), x0 = cx - (w >> 1), ch = 10, top = gy - 3 - ch;
+  for (let k = 0; k < 3; k++) { R(x0 - 3 + k, gy - 1 - k, w + 6 - k * 2, 1, k === 2 ? M[3] : M[2]); px(x0 - 3 + k, gy - 1 - k, M[1]); px(x0 + w + 2 - k, gy - 1 - k, M[4]); }
+  R(x0, top, w, ch, mix(M[0], '#3a2a2a', 0.2));   // the shadowed porch behind the columns
+  for (let i = 0; i < 6; i++) { const x = x0 + 1 + i * 4; R(x, top, 2, ch, M[2]); px(x + 1, top + 1, M[4]); R(x + 1, top + 2, 1, ch - 2, M[3]); R(x - 1, top, 4, 1, M[3]); }
+  R(x0 - 1, top - 2, w + 2, 2, M[2]); R(x0 - 1, top - 2, w + 2, 1, M[3]);   // the architrave
+  R(x0 - 1, top - 4, w + 2, 2, M[2]); for (let x = x0; x < x0 + w; x += 3) R(x, top - 4, 1, 2, M[1]);   // the frieze, with its triglyphs
+  R(x0 - 2, top - 5, w + 4, 1, M[4]); R(x0 - 2, top - 4, w + 4, 1, mix(M[2], M[1], 0.5));
+  const ph = Math.max(3, Math.round(w / 6));
+  for (let k = 0; k < ph; k++) {
+    const ww = Math.round((w + 4) * (1 - k / ph)), a = cx - (ww >> 1), y = top - 6 - k;
+    R(a, y, ww, 1, k ? M[2] : M[1]); px(a, y, M[3]); px(a + ww - 1, y, M[4]);
+  }
+  px(cx, top - 6 - ph, '#e3b453');
+}
+const WALLS_HD = ['#f2e8d4', '#ead8b4', '#dcc29a', '#f6f0e4', '#e4cea6', '#d6b48a'];
+const ROOFS_HD = ['#b85a32', '#a44c2c', '#c86c3c', '#9a4426', '#b4643a'];
+function hdHouse(x, gy, w, h, wall, roof, kind, Lt, s) {   // a house from the front: a tiled roof, a flat one, or a gable; the sun on its right
+  const Wm = mat(wall, Lt), Rf = mat(roof, Lt), top = gy - h;
+  R(x, top, w, h, Wm[2]); R(x, top, 1, h, Wm[1]); R(x + w - 1, top, 1, h, Wm[3]);
+  const n = Math.max(1, Math.floor((w - 2) / 3));
+  for (let i = 0; i < n; i++) {
+    if (hash(s + i * 3.7) < 0.3) continue;
+    const wx = x + 1 + Math.floor((i + 0.5) * (w - 2) / n);
+    R(wx, top + 2, 1, 2, Wm[0]); px(wx, top + 4, Wm[4]);
+  }
+  if (h >= 6 && hash(s * 1.9) > 0.45) { const dx = x + 1 + Math.floor(hash(s * 2.3) * (w - 3)); R(dx, gy - 3, 2, 3, mix(Wm[0], '#24160f', 0.35)); }
+  if (kind === 'flat') {   // a flat roof behind a little parapet
+    R(x, top - 1, w, 1, Wm[3]); R(x + (w >> 1), top - 1, w - (w >> 1), 1, Wm[4]); R(x, top, w, 1, Wm[1]);
+  } else if (kind === 'gable') {   // the gable end towards us
+    const gh = Math.max(2, Math.round(w / 3)), c = x + w / 2;
+    for (let j = 0; j < gh; j++) {
+      const hw = (j + 1) * (w / 2 + 1) / gh, a = Math.round(c - hw), b = Math.round(c + hw) - 1, y = top - gh + j;
+      R(a, y, b - a + 1, 1, j === gh - 1 ? Rf[1] : Wm[2]); px(a, y, Rf[2]); px(b, y, Rf[3]);
+    }
+  } else {   // the eaves towards us: tiles in rows, a shadow under them
+    R(x - 1, top - 1, w + 2, 1, Rf[1]); R(x, top - 2, w, 1, Rf[2]); R(x + 1, top - 3, w - 2, 1, Rf[3]);
+    for (let i = x + (s & 1); i < x + w - 1; i += 2) px(i, top - 2, Rf[1]);
+    px(x + w - 2, top - 3, Rf[4]); R(x, top, w, 1, Wm[1]);
+  }
+}
+function hdCypress(x, gy, h, Lt) {   // a cypress: dark, narrow and pointed, the sun down one side
+  const M = mat('#40603a', Lt);
+  for (let j = 0; j < h; j++) {
+    const k = j / h, w = k < 0.1 ? 1 : k < 0.25 ? 2 : k < 0.45 ? 3 : k > 0.9 ? 3 : 4, y = gy - h + j, a = x - (w >> 1);
+    R(a, y, w, 1, M[1]); if (w > 1) px(a + w - 1, y, M[2]); if (w > 2 && (j % 3) === 1) px(a + w - 2, y, M[3]); if (j % 4 === 2) px(a, y, M[0]);
+  }
+  px(x, gy, '#4a3424');
+}
+function hdTree(cx, gy, r, Lt, s, col) {   // a round tree: leaves in clumps, lit on top and on the right
+  const M = mat(col || '#728a4a', Lt), cy = gy - r - 2;
+  R(cx, gy - 3, 1, 3, mix(M[0], '#3a2618', 0.5));
+  for (let y = -r; y <= r; y++) for (let x = -r - 1; x <= r + 1; x++) {
+    const d = (x * x) / ((r + 1) * (r + 1)) + (y * y) / (r * r), n = vnoise2((cx + x) / 2, (cy + y) / 2, s);
+    if (d + (n - 0.5) * 0.8 > 1) continue;
+    px(cx + x, cy + y, rampPx(M, 2 + (x / (r + 1)) * 0.9 - (y / r) * 0.9 + (n - 0.5) * 1.6, cx + x, cy + y, 1.8));
+  }
+}
+
+// ---- the city of Rhodes, the god in his scaffolding, and the harbour ----
+function farCoast(W, hz, Lt, amp) {   // the coast of Asia across the strait, blue with distance, and lower hills in front of it
+  const p = Lt.pal;
+  hdRange(W, hz, amp, 52, 3, [mix(p.far, Lt.shadow, 0.3), mix(p.far, Lt.shadow, 0.1), p.far, mix(mix(p.far, '#ffffff', 0.3), Lt.sun, 0.25)], 1, mix(p.far, p.skyBot, 0.55), 0.55);
+  hdRange(W, hz, Math.max(3, amp * 0.42), 30, 8, [mix(p.near, p.far, 0.25), mix(p.near, p.far, 0.5), mix(p.near, p.far, 0.75), mix(p.far, Lt.sun, 0.3)], 1, mix(p.far, p.skyBot, 0.35), 0.4);
+}
+function paintRhodesCity(W, Lt, hz, hh, hill) {   // the hill, the houses climbing it, the temple on top, and the walls along the water
+  const xEnd = Math.round(W * 0.64), shore = hz + 14, grass = mat('#9ea65c', Lt), bare = mat('#c6b47c', Lt);
+  for (let x = 0; x < xEnd; x++) {
+    const y0 = hill(x), fall = hill(x + 3) - hill(x - 3);
+    for (let y = y0; y <= shore; y++) {
+      const n = vnoise2(x / 7, y / 5, 4) * 0.65 + vnoise2(x / 2.5, y / 2, 9) * 0.35;
+      px(x, y, rampPx(n > 0.6 ? bare : grass, 2 + (n - 0.5) * 2 + clamp(fall * 0.12, -0.5, 0.8) + (y - y0 < 2 ? 0.8 : 0), x, y, 1.4));
+    }
+  }
+  for (let k = 0; k < 26; k++) {   // olive trees and scrub on the hill above the houses
+    const x = Math.floor(hash(k * 5.3 + 1) * xEnd), y = hill(x) + 4 + Math.floor(hash(k * 2.9) * 10);
+    if (y < shore - 8) hdTree(x, y, 2 + Math.floor(hash(k * 4.1) * 2), Lt, k, hash(k * 1.9) > 0.5 ? '#7a8c52' : '#5e7a44');
+  }
+  const rows = Math.ceil(hh / 6.4) + 1, rowY = r => hz + 10 - Math.round(r * 6.4);
+  for (let r = rows - 1; r >= 0; r--) {
+    for (let x = 1 + Math.floor(hash(17 + r) * 6), k = 0; x < xEnd - 6; k++) {
+      const s = 17 + r * 31 + k * 7, w = 6 + Math.floor(hash(s) * 6), h = 5 + Math.floor(hash(s + 1) * 4), y = rowY(r), roll = hash(s + 2);
+      if (y - h - 5 < hill(x) + 1 || y - h - 5 < hill(x + w) + 1) { x += 4; continue; }
+      if (roll < 0.1) hdCypress(x + 2, y, 10 + Math.floor(hash(s + 3) * 6), Lt);
+      else if (roll < 0.17) hdTree(x + 3, y, 3, Lt, s);
+      else hdHouse(x, y, w, h, WALLS_HD[Math.floor(hash(s + 5) * WALLS_HD.length)], ROOFS_HD[Math.floor(hash(s + 6) * ROOFS_HD.length)], roll < 0.28 ? 'flat' : roll < 0.38 ? 'gable' : 'tile', Lt, s);
+      x += (roll < 0.17 ? 6 : w) + Math.floor(hash(s + 4) * 3);
+    }
+  }
+  const tx = Math.round(W * 0.13);
+  hdCypress(tx - 18, hill(tx - 18) + 3, 13, Lt); hdCypress(tx + 17, hill(tx + 17) + 3, 11, Lt);
+  hdTemple(tx, hill(tx) + 2, 24, Lt);
+  hdWall(0, xEnd - 2, hz + 8, shore, Lt);
+  for (const f of [0.06, 0.29, 0.53]) hdTower(Math.round(W * f) - 2, shore, 9, 16, Lt, Math.round(f * 100));
+}
+const BRONZES = new Map();
+function bronzeOf(Lt) {
+  const key = Lt.sun + Lt.eve;
+  if (!BRONZES.has(key)) BRONZES.set(key, ['#2e1a12', '#5a3218', '#8a5226', '#b87634', '#e2a452', '#ffe8a8'].map(c => mix(mix(c, Lt.sun, 0.12 * Lt.low), '#5a3a5e', 0.15 * Lt.eve)));
+  return BRONZES.get(key);
+}
+// How high the god stands at each stage, in pixels above his platform: his feet at 1, shins, knees, thighs, hips, chest, shoulders, arms, neck and jaw, and his head at 10.
+const GOD_BUILT = [0, 24, 34, 44, 54, 71, 83, 90, 90, 100, 112];
+function godSpans(cx, h, stage) {   // the god's bronze in one row, h pixels above his platform: a list of [from, to, part]
+  const out = [];
+  if (h <= GOD_BUILT[stage]) {
+    if (h < 64) { const k = (h - 16) / 48, w = Math.round(5 + 3 * k) + (k > 0.12 && k < 0.36 ? 1 : 0), g = k > 0.88 ? 0 : 1; out.push([cx - g - w, cx - g, 0], [cx + g, cx + g + w, 0]); }
+    else if (h < 71) { const w = h < 66 ? 9 : 10; out.push([cx - w, cx + w, 1]); }
+    else if (h < 83) { const w = 9 + Math.round(3 * (h - 71) / 11); out.push([cx - w, cx + w, 2]); }
+    else if (h < 91) { const w = h < 88 ? 17 : h < 90 ? 15 : 12; out.push([cx - w, cx + w, 3]); }
+    else if (h < 96) out.push([cx - 3, cx + 3, 4]);
+    else { const k = (h - 96) / 16, w = k < 0.1 ? 4 : k < 0.25 ? 5 : k < 0.8 ? 6 : k < 0.92 ? 5 : 3; out.push([cx - w, cx + w, 5]); }
+  }
+  if (stage >= 7 && h >= 74 && h < 88) { const a = h >= 84 ? 18 : 17, b = h >= 78 ? 12 : 13; out.push([cx - a, cx - b, 6], [cx + b, cx + a, 6]); }   // the tops of his arms
+  if (stage >= 8 && h >= 56 && h < 74) { const a = h === 56 ? 17 : 18, b = h === 56 ? 14 : h < 61 ? 13 : 14; out.push([cx - a, cx - b, 6], [cx + b, cx + a, 6]); }   // forearms, and hands
+  return out;
+}
+const bronzeAt = u => 0.25 + 2.9 * Math.pow(Math.sin(u * Math.PI), 0.55) + 1.4 * (u - 0.5) + 1.5 * Math.exp(-Math.pow((u - 0.7) / 0.09, 2));   // round, lit from the right, with a streak where it catches the sun
+function paintGod(cx, gy, stage, B) {
+  const top = GOD_BUILT[stage];
+  for (let h = 16; h <= Math.max(top, stage >= 7 ? 88 : 0); h++) {
+    const y = gy - h;
+    for (const [a, b, part] of godSpans(cx, h, stage)) for (let x = a; x < b; x++) {
+      const v = bronzeAt((x - a + 0.5) / (b - a)) + ((part === 3 && h >= 88) || (part === 5 && h >= 109) ? 0.7 : 0) - (part === 1 && h === 64 ? 0.9 : 0) - (part === 6 && (h === 74 || h === 61) ? 0.6 : 0);
+      px(x, y, rampPx(B, v, x, y, 2.2));
+    }
+  }
+  for (const a of [cx - 9, cx + 1]) for (let h = 17; h <= 20; h++) for (let x = a; x < a + 8; x++) px(x, gy - h, rampPx(B, bronzeAt((x - a + 0.5) / 8) + (h === 20 ? 0.6 : 0), x, gy - h, 2.2));   // his feet
+  if (stage >= 6) { R(cx - 9, gy - 78, 7, 1, B[1]); R(cx + 2, gy - 78, 7, 1, B[2]); R(cx, gy - 81, 1, 8, B[1]); px(cx, gy - 72, B[1]); }   // chest and belly
+  if (stage >= 10) {   // a face, curls, and the crown of rays
+    R(cx - 4, gy - 104, 2, 1, B[0]); R(cx + 2, gy - 104, 2, 1, B[1]); R(cx - 4, gy - 105, 2, 1, B[3]); R(cx + 2, gy - 105, 2, 1, B[5]);
+    R(cx, gy - 103, 1, 3, B[4]); px(cx - 1, gy - 101, B[1]); R(cx - 2, gy - 99, 4, 1, B[1]);
+    for (let x = cx - 5; x <= cx + 4; x += 2) { px(x, gy - 109, B[1]); px(x + 1, gy - 111, B[2]); }
+    for (const a of [-1.3, -0.87, -0.43, 0, 0.43, 0.87, 1.3]) for (let r = 9; r <= 15; r++) px(Math.round(cx - 0.5 + Math.sin(a) * r), Math.round(gy - 104 - Math.cos(a) * r), r > 12 ? B[5] : B[4]);
+  } else {   // the top of the casting so far: an open rim, dark inside, and the iron frame sticking up out of it
+    for (const [a, b] of godSpans(cx, top, stage)) {
+      if (b - a < 3) continue;
+      const y = gy - top;
+      px(a, y, B[3]); R(a + 1, y, b - a - 2, 1, B[0]); px(b - 1, y, B[4]);
+      for (let x = a + 2; x < b - 1; x += 4) R(x, y - 4, 1, 4, '#4a4a56');
+    }
+  }
+}
+const scaffoldTop = (gy, stage) => gy - GOD_BUILT[stage] - 16;
+const craneTop = (gy, stage) => scaffoldTop(gy, stage) - 12;
+const scaffoldHalf = stage => stage >= 7 ? 21 : 16;
+const moundW = (k, rampH) => 4 + Math.round(rampH * 0.6 * Math.pow(k / rampH, 0.75));   // the width of the hill of earth, k rows down from its top
+// The statue of the Sun on his platform in the harbour, going up inside his scaffolding beside a hill of earth. Stage 1 is his feet; at 10 he is finished.
+function paintColossus(cx, gy, stage, Lt) {
+  const B = bronzeOf(Lt), St = mat('#c8b490', Lt), Mb = mat('#efe9dc', Lt);
+  hdStones(cx - 18, gy, 40, 6, St, 23, 3); R(cx - 18, gy, 40, 1, St[4]);
+  R(cx - 10, gy - 14, 20, 14, Mb[2]); R(cx - 10, gy - 14, 3, 14, Mb[1]); R(cx + 5, gy - 14, 4, 14, Mb[3]); R(cx + 9, gy - 14, 1, 14, Mb[4]);
+  R(cx - 11, gy - 2, 22, 2, Mb[3]); R(cx - 11, gy - 1, 22, 1, Mb[1]);
+  R(cx - 12, gy - 16, 24, 2, Mb[2]); R(cx - 12, gy - 16, 24, 1, Mb[4]); R(cx - 10, gy - 14, 20, 1, Mb[0]);
+  for (let x = cx - 5; x < cx + 5; x += 2) { px(x, gy - 10, Mb[1]); px(x + 1, gy - 8, Mb[1]); }   // the dedication, cut in the stone
+  const rampH = 10 + 10 * stage, E = mat('#a8875a', Lt);
+  for (let k = 0; k < rampH; k++) {   // the hill of earth they heap beside him, to build him higher
+    const y = gy - rampH + k, w = moundW(k, rampH), x0 = cx + 8;
+    for (let x = x0; x < x0 + w; x++) {
+      const n = vnoise2(x / 3, y / 2, 13), edge = x0 + w - x;
+      px(x, y, rampPx(E, 2 + (n - 0.5) * 1.6 - (x - x0 < 2 ? 1 : 0) + (edge <= 2 ? 1.1 : 0) + ((k + Math.round(edge * 0.5)) % 14 === 0 ? 0.8 : 0), x, y, 1.6));
+    }
+  }
+  paintGod(cx, gy, stage, B);
+  const T = mat('#8a6440', Lt), hw = scaffoldHalf(stage);
+  if (stage < 10) {   // the scaffolding, and the crane
+    const sh = scaffoldTop(gy, stage), ct = craneTop(gy, stage), cm = cx + hw + 6;
+    for (const x of [cx - hw, cx - 2, cx + hw - 4]) { R(x, sh, 2, gy - 16 - sh, T[1]); R(x + 1, sh, 1, gy - 16 - sh, T[3]); }
+    for (let y = sh + 4, b = 0; y < gy - 16; y += 8, b++) {
+      R(cx - hw - 1, y, hw * 2 - 1, 1, T[3]); R(cx - hw - 1, y + 1, hw * 2 - 1, 1, T[0]);
+      if (y + 9 < gy - 16) { const a = b % 2 ? cx - hw + 2 : cx; pline(a, y + 2, a + hw - 6, y + 8, T[1]); }
+    }
+    R(cm, ct, 2, gy - ct, T[1]); R(cm + 1, ct, 1, gy - ct, T[3]);
+    pline(cm, ct, cx + 2, ct + 6, T[1]); pline(cm, ct + 1, cx + 2, ct + 7, T[3]);
+    pline(cm + 2, ct, cm + 12, gy - 1, '#3a2a1e');
+  } else {   // finished: the scaffolding is down, and two ladders are left for polishing
+    for (const dx of [0, 3]) pline(cx + 24 + dx, gy - 16, cx + 8 + dx, gy - 100, T[2]);
+    for (let k = 1; k < 14; k++) { const f = k / 14, y = Math.round(gy - 16 - f * 84), x = Math.round(cx + 24 - f * 16); R(x, y, 4, 1, T[3]); }
+  }
+}
+function hdWorker(x, gy, t, k, basket) {   // a workman, about nine pixels tall
+  const step = Math.floor(t * 3 + k) % 2, tu = ['#8a6a4a', '#6b7a44', '#9a4a3a', '#5a6a7a'][k % 4];
+  R(x - 1, gy - 7, 3, 4, tu); px(x + 1, gy - 7, shade(tu, 0.18));
+  R(x - 1, gy - 9, 3, 2, '#c48a58'); R(x - 1, gy - 10, 3, 1, '#2a1d14');
+  px(x - 1 + step, gy - 3, '#8a5a3a'); px(x - 1 + step, gy - 2, '#8a5a3a'); px(x + 1 - step, gy - 3, '#8a5a3a'); px(x + 1 - step, gy - 2, '#8a5a3a');
+  if (basket) { R(x - 2, gy - 12, 5, 2, '#b88a50'); R(x - 2, gy - 12, 5, 1, '#d8b070'); }
+}
+function colossusLive(cx, gy, stage, t, Lt, still) {   // what moves at the works: the crane's load, the men on the planks, a basket going up the hill
+  const B = bronzeOf(Lt), rampH = 10 + 10 * stage, hw = scaffoldHalf(stage);
+  if (stage < 10) {
+    const sh = scaffoldTop(gy, stage), ct = craneTop(gy, stage), swing = still ? 0 : Math.round(Math.sin(t * 0.9) * 1.5), ly = ct + 14 - (still ? 0 : Math.round((Math.sin(t * 0.35) + 1) * 3));
+    pline(cx + 2, ct + 7, cx + 2 + swing, ly, '#2a1e16');
+    R(cx - 1 + swing, ly + 1, 7, 3, B[3]); R(cx - 1 + swing, ly + 1, 7, 1, B[4]); R(cx - 1 + swing, ly + 3, 7, 1, B[1]);
+    for (let k = 0; k < 2; k++) {
+      const y = sh + 4 + 8 * (k + 1);
+      if (y >= gy - 16) continue;
+      hdWorker(cx - hw + 3 + Math.round((Math.sin(t * (0.4 + k * 0.15) + k * 2) + 1) * (hw - 4)), y, t, k);
+    }
+  } else hdWorker(cx + 13 + (still ? 0 : Math.floor(t * 1.2) % 2), gy - 84, t, 1);   // polishing his shoulder
+  const p = still ? 0.5 : (t * 0.04 + 0.3) % 1, k = Math.round((rampH - 1) * (1 - p));
+  hdWorker(cx + 8 + moundW(k, rampH) - 2, gy - rampH + k, t, 3, true);
+}
+function pennant(x, y, t, col, still) {   // a flag on a pole, streaming in the wind
+  R(x, y, 1, 8, '#4a3424');
+  for (let i = 0; i < 7; i++) { const wv = still ? 0 : Math.round(Math.sin(t * 5 - i * 0.9) * 0.8); R(x + 1 + i, y + wv + (i > 4 ? 1 : 0), 1, i < 5 ? 3 : 1, i % 2 ? shade(col, -0.18) : col); }
+}
+function paintHarbour(W, Lt, hz, cx, stage) {   // everything standing in the water at the harbour mouth: the mole and its tower, and the god at his works
+  const mx0 = Math.round(W * 0.66), M = mat('#cdb994', Lt);
+  hdStones(mx0, hz + 20, W - mx0, 4, M, 31, 2); R(mx0, hz + 20, W - mx0, 1, M[4]);
+  hdTower(mx0 - 1, hz + 24, 11, 20, Lt, 5);
+  paintColossus(cx, hz + 18, stage, Lt);
+}
+
+// ---- ships and boats ----
+const HD_HULLS = {
+  small: { L: 60, fb: 8, stern: 8, bow: 6, mast: 0.45, mh: 42, yard: 38, wood: '#8a5430', band: '#3f6f8e' },
+  medium: { L: 80, fb: 11, stern: 10, bow: 7, mast: 0.52, mh: 54, yard: 48, cabin: 14, neck: 'goose', fore: 1, wood: '#7a4a28', band: '#8b3240' },
+  large: { L: 96, fb: 15, stern: 12, bow: 9, mast: 0.52, mh: 62, yard: 56, cabin: 18, neck: 'swan', fore: 1, rail: 1, wood: '#86522e', band: '#2f4a6a' },
+  trader: { L: 44, fb: 7, stern: 6, bow: 5, mast: 0.5, mh: 32, yard: 28, wood: '#6a4a34', band: '#6a6a52', plain: 1 },
+};
+const hdHullOf = () => S && S.hull === 'large' ? 'large' : S && bigShip(S) ? 'medium' : 'small';
+const sheerOf = (D, i, y) => { const u = i / (D.L - 1); return Math.round(y - D.fb - D.stern * Math.pow(Math.max(0, 1 - u / 0.17), 2) - D.bow * Math.pow(Math.max(0, (u - 0.85) / 0.15), 2)); };
+function rose(cx, cy) {   // the rose of Rhodes, painted on the sail
+  const red = '#b8323a', lit = '#e2604e', deep = '#6a1420', leaf = '#4e7a36';
+  px(cx - 1, cy - 3, red); px(cx + 1, cy - 3, red);
+  R(cx - 2, cy - 2, 5, 2, red); px(cx - 1, cy - 2, lit); px(cx + 1, cy - 2, lit); px(cx, cy - 1, deep); px(cx + 1, cy - 1, lit);
+  R(cx - 1, cy, 3, 1, red); px(cx, cy, lit);
+  px(cx, cy + 1, leaf); px(cx, cy + 2, leaf); px(cx - 1, cy + 2, leaf); px(cx, cy + 3, leaf);
+}
+function neck(x, y, k, Hm, B) {   // a goose's or a swan's neck curling up over the stern, with a gilded beak
+  const pts = [[0, 0], [-1, -1], [-1, -2], [-2, -3], [-2, -4], [-2, -5], [-1, -6], [0, -7], [1, -7], [2, -6]].map(([a, b]) => [Math.round(a * k), Math.round(b * k)]);
+  for (let i = 1; i < pts.length; i++) { pline(x + pts[i - 1][0], y + pts[i - 1][1], x + pts[i][0], y + pts[i][1], Hm[2]); pline(x + pts[i - 1][0] + 1, y + pts[i - 1][1], x + pts[i][0] + 1, y + pts[i][1], Hm[3]); }
+  const [hx, hy] = pts[pts.length - 1];
+  R(x + hx, y + hy, 2, 2, Hm[3]); px(x + hx + 1, y + hy, '#1a120d'); px(x + hx + 2, y + hy + 1, B); px(x + hx + 3, y + hy + 1, B);
+}
+// Paint a ship without her crew: x is her stern, y her waterline, her bow to the right. sunLeft when the light comes from behind her.
+function paintShipHD(x, y, D, sail, Lt, sunLeft) {
+  const L = D.L, Hm = mat(D.wood, Lt), Bm = mat(D.band, Lt), Cl = mat('#efe4cc', Lt), Sp = mat('#9a6a3e', Lt), rope = mix(Hm[0], Hm[1], 0.45), lit = sunLeft ? -1 : 1;
+  const sh = i => sheerOf(D, i, y), keel = i => { const u = i / (L - 1); return y + 1 - Math.round(Math.max(0, 0.07 - u) * 70) - Math.round(Math.max(0, u - 0.95) * 60); };
+  const mi = Math.round(L * D.mast), mx = x + mi, deck = sh(mi), half = D.yard >> 1, yy = deck - D.mh + 3;
+  pline(mx + 1, deck - D.mh, x + L - 3, sh(L - 3) - 2, rope); pline(mx, deck - D.mh, x + 4, sh(4) - 2, rope);   // the stays, behind the sail
+  R(mx, deck - D.mh, 2, D.mh, Sp[1]); R(mx + (lit > 0 ? 1 : 0), deck - D.mh, 1, D.mh, Sp[3]); px(mx, deck - D.mh - 1, Sp[2]);
+  if (D.fore) {   // the artemon: a little mast leaning out over the bow, with its own sail
+    const fx = x + L - 12, fy = sh(L - 12), tx = x + L + 6, ty = fy - Math.round(D.mh * 0.42);
+    pline(fx, fy, tx, ty, Sp[1]); pline(fx + 1, fy, tx + 1, ty, Sp[3]);
+    R(tx - 6, ty + 1, 12, 1, Sp[2]);
+    if (sail === 'full') { for (let r = 0; r < 8; r++) for (let i = 0; i < 11; i++) px(tx - 6 + i + (r > 3 ? 1 : 0), ty + 2 + r, rampPx(Cl, 1.6 + 1.6 * Math.sin((i + 0.5) / 11 * Math.PI) * 0.8 + (lit > 0 ? i / 11 - 0.5 : 0.5 - i / 11), tx + i, ty + r, 2)); }
+    else R(tx - 5, ty + 2, 10, 2, Cl[2]);
+    pline(tx, ty, x + L - 2, sh(L - 2) - 3, rope);
+  }
+  R(mx - half, yy, half * 2 + 1, 1, Sp[3]); R(mx - half, yy + 1, half * 2 + 1, 1, Sp[1]); px(mx - half, yy, Sp[2]); px(mx + half, yy + 1, Sp[0]);   // the yard
+  if (sail === 'full') {
+    const top = yy + 2, bot = deck - 8, hg = bot - top;
+    for (let r = 0; r <= hg; r++) {
+      const k = r / hg, Y = top + r, x0 = mx - half + 2 + Math.round(Math.sin(k * Math.PI)), x1 = mx + half - 2 + Math.round(Math.sin(k * Math.PI) * 3);
+      for (let X = x0; X <= x1; X++) {
+        const u = (X - x0) / Math.max(1, x1 - x0), side = lit > 0 ? u : 1 - u;
+        let v = 1.5 + 1.2 * Math.sin(u * Math.PI) + 1.3 * (side - 0.5) - (k < 0.07 ? 0.9 : 0) - (k > 0.93 ? 0.5 : 0);
+        if ((X - x0) % 5 === 2) v -= 0.55;   // the brails, down the sail
+        if (r % 6 === 5) v -= 0.4;   // the bands across it
+        px(X, Y, rampPx(Cl, v, X, Y, 2));
+      }
+    }
+    if (!D.plain) rose(mx + 1, top + Math.round(hg * 0.42));
+    pline(mx - half + 3, bot, x + 6, sh(6) - 2, rope); pline(mx + half - 1, bot, x + L - 9, sh(L - 9) - 2, rope);
+  } else {   // furled: gathered up in a roll under the yard, and tied
+    for (let i = -half + 1; i <= half - 1; i++) {
+      const k = (i + half) % 7, sag = k === 0 ? 0 : k === 3 || k === 4 ? 1 : 0;
+      R(mx + i, yy + 2, 1, 3 + sag, Cl[2]); px(mx + i, yy + 2, Cl[3]); px(mx + i, yy + 4 + sag, Cl[1]);
+      if (k === 0) R(mx + i, yy + 2, 1, 3, Sp[1]);
+    }
+    px(mx - half + 1, yy + 3, Cl[1]); px(mx + half - 1, yy + 2, Cl[4]);
+  }
+  if (D.cabin) {   // a cabin aft
+    const C = mat('#b88a5a', Lt), c0 = x + 7, cb = sh(7 + D.cabin) - 1, chh = 8;
+    R(c0, cb - chh, D.cabin, chh + 3, C[2]); R(c0, cb - chh, 1, chh + 3, C[1]); R(c0 + D.cabin - 1, cb - chh, 1, chh + 3, C[3]);
+    for (let k = c0 + 3; k < c0 + D.cabin - 2; k += 4) R(k, cb - chh + 3, 2, 2, C[0]);
+    R(c0 - 1, cb - chh - 2, D.cabin + 2, 2, Hm[1]); R(c0 - 1, cb - chh - 2, D.cabin + 2, 1, Hm[3]);
+  }
+  for (let i = 0; i < L; i++) {   // the hull: a rail in the sun, a painted band, the planking darker towards the water, pitch at the waterline
+    const t0 = sh(i), b = keel(i), u = i / (L - 1), side = (lit > 0 ? u : 1 - u) - 0.5;
+    for (let Y = t0; Y <= b; Y++) {
+      const r = Y - t0;
+      let c;
+      if (r === 0) c = Hm[4];
+      else if (r <= 2) c = r === 1 ? Bm[2] : Bm[1];
+      else if (Y >= y) c = mix(Hm[0], '#140c0a', 0.35);
+      else c = rampPx(Hm, 2.7 - (r / Math.max(1, b - t0)) * 1.6 + side * 0.8 - ((r - 3) % 3 === 2 ? 0.9 : 0), x + i, Y, 2);
+      px(x + i, Y, c);
+    }
+  }
+  if (D.rail) { for (let i = 10; i < L - 12; i++) px(x + i, sh(i) - 3, Hm[3]); for (let i = 10; i < L - 12; i += 4) R(x + i, sh(i) - 2, 1, 2, Hm[2]); }
+  if (D.neck) neck(x + 2, sh(2) - 1, D.neck === 'swan' ? 2.2 : 1.7, Hm, '#e3b453');
+  else for (const [dx, dy] of [[0, 0], [-1, -1], [-1, -2], [-1, -3], [-1, -4], [0, -5], [1, -6], [2, -6], [3, -5]]) { px(x + 1 + dx, sh(1) + dy, Hm[2]); px(x + 2 + dx, sh(1) + dy, Hm[3]); }   // the stern post, curling forward
+  const bx = x + L - 1, by = sh(L - 1);
+  px(bx, by - 1, Hm[3]); px(bx + 1, by - 2, Hm[3]); px(bx + 1, by - 3, Hm[2]); px(bx, by - 4, Hm[2]);   // the stem, curling back
+  const ex = x + L - 11, ey = sh(L - 11) + 4;   // her eye, to see her way
+  R(ex, ey, 4, 2, '#f2ead8'); px(ex, ey, Hm[1]); px(ex + 3, ey + 1, Hm[1]); R(ex + 1, ey + 1, 2, 1, '#1a1210');
+  pline(x + 9, sh(9) - 3, x + 3, y + 2, Hm[1]); pline(x + 10, sh(9) - 3, x + 4, y + 2, Hm[3]); R(x + 2, y - 1, 3, 4, Hm[1]);   // the steering oar
+}
+const SHIPS_HD = new Map();
+function shipSpriteHD(kind, sail, Lt, sunLeft) {   // a ship painted once for this light, and kept
+  const key = kind + sail + Lt.sun + Lt.shadow + Lt.eve + (sunLeft ? 'L' : 'R');
+  let s = SHIPS_HD.get(key);
+  if (!s) {
+    const D = HD_HULLS[kind], ox = 16, oy = D.mh + D.fb + D.stern + 8, c = canvasOf(D.L + 40, oy + 8), prev = G;
+    G = c.getContext('2d'); paintShipHD(ox, oy, D, sail, Lt, sunLeft); G = prev;
+    s = { c, ox, oy, D, flips: {} };
+    if (SHIPS_HD.size > 24) SHIPS_HD.delete(SHIPS_HD.keys().next().value);
+    SHIPS_HD.set(key, s);
+  }
+  return s;
+}
+const CREW_TUNICS = ['#efe3cc', '#3f6f8e', '#9a6a3a', '#c8623a', '#6b7a44', '#7a5a3a', '#8b3240', '#d2b27a'];
+function shipCrewHD(D, x, y, n, t, still) {   // the crew from the waist up over the rail, the first of them at the steering oar
+  const mi = Math.round(D.L * D.mast);
+  for (let k = 0; k < n; k++) {
+    let i = k === 0 ? 10 : Math.round(18 + (k - 1) * (D.L - 32) / Math.max(1, n - 2));
+    if (Math.abs(i - mi) < 3) i += 4;
+    const top = sheerOf(D, i, y), b = still ? 0 : Math.sin(t * 1.9 + k * 2.1) > 0.7 ? -1 : 0, X = x + i, tu = CREW_TUNICS[k % CREW_TUNICS.length], hair = k === 0 ? '#d8d2c4' : '#2a1d14';
+    R(X - 1, top - 4 + b, 3, 4, tu); px(X + 1, top - 4 + b, shade(tu, 0.18)); px(X - 1, top - 3 + b, shade(tu, -0.2));
+    R(X - 1, top - 7 + b, 3, 3, k % 3 ? '#c48a58' : '#b07a4c'); R(X - 1, top - 8 + b, 3, 1, hair); px(X - 1, top - 7 + b, hair); px(X + 1, top - 6 + b, '#dca878');
+  }
+}
+function shipWake(D, x, y, t, Lt, still) {   // white water off her stern, and a wave curling off her bow
+  const foam = mix('#ffffff', Lt.sun, 0.2), foam2 = mix(Lt.pal.wave, Lt.pal.seaTop, 0.35), ph = still ? 0 : Math.floor(t * 6) % 3;
+  for (let k = 0; k < 18; k++) {
+    const fx = x - 1 - k * 3 - ph, sp = Math.round(k * 0.3);
+    px(fx, y + 1 + sp, k < 6 ? foam : foam2); if (k % 2) px(fx - 1, y + 1 - Math.min(1, sp), foam2); if (k < 4) px(fx + 1, y + 2 + sp, foam);
+  }
+  const bx = x + D.L - 1, f = still ? 0 : Math.floor(t * 4) % 2;
+  px(bx + 1, y - 1, foam); px(bx + 2, y, foam); px(bx + 3 + f, y + 1, foam2); px(bx - 2, y + 1, foam); px(bx - 5 - f, y + 2, foam2); px(bx + 1, y + 1, foam);
+}
+function shipReflect(s, x, y, t, tint, still, rows) {   // her reflection: upside down under her, coloured by the water, broken by the ripples
+  let f = s.flips[tint];
+  if (!f) {
+    f = canvasOf(s.c.width, s.c.height);
+    const g = f.getContext('2d');
+    g.scale(1, -1); g.drawImage(s.c, 0, -s.c.height); g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.66; g.fillStyle = tint; g.fillRect(0, 0, f.width, f.height);
+    s.flips[tint] = f;
+  }
+  const h = s.c.height, w = s.c.width;
+  for (let r = 0; r < rows; r++) {
+    if (r > 1 && hash(r * 5.17 + (still ? 0 : Math.floor(t * 2 + r * 0.29))) < 0.1 + 0.6 * r / rows) continue;
+    const off = still ? 0 : Math.round(Math.sin(r * 0.8 - t * 2 + (r & 3)) * Math.min(2, 0.3 + r * 0.15));
+    G.drawImage(f, 0, h - s.oy + r, w, 1, x - s.ox + off, y + 1 + r, w, 1);
+  }
+}
+function hdShipAt(kind, x, y, o) {   // a ship, with her reflection under her and her crew aboard; x is her stern, y the waterline
+  const s = shipSpriteHD(kind, o.sail, o.Lt, o.sunLeft);
+  if (o.rows > 0) shipReflect(s, x, y, o.t, o.tint, o.still, o.rows);
+  if (o.wake) shipWake(s.D, x, y, o.t, o.Lt, o.still);
+  G.drawImage(s.c, x - s.ox, y - s.oy);
+  if (o.crew) shipCrewHD(s.D, x, y, o.crew, o.t, o.still);
+}
+function hdBoat(x, y, dir, t, k, Lt, still) {   // a fishing boat with a man rowing; x is her middle, y the waterline, her bow towards dir
+  const M = mat(['#7a4a2a', '#56687a', '#8a5a32'][k % 3], Lt), st = still ? 0 : Math.floor(t * 2.2 + k) % 2;
+  R(x - 7, y + 1, 15, 1, mix(Lt.pal.seaTop, Lt.pal.seaBot, 0.75));
+  for (let i = -7; i <= 7; i++) {
+    const e = 7 - Math.abs(i), rise = e < 2 ? 2 - e : 0, X = x + i;
+    R(X, y - 3 - rise, 1, 3 + rise, M[2]); px(X, y - 3 - rise, M[4]); px(X, y, M[1]);
+  }
+  const rx = x - dir * 2, tu = ['#efe3cc', '#c8623a', '#3f6f8e'][k % 3];
+  R(rx - 1, y - 7, 3, 4, tu); px(rx + 1, y - 7, shade(tu, 0.2)); R(rx - 1, y - 9, 3, 2, '#c48a58'); R(rx - 1, y - 10, 3, 1, '#2a1d14');
+  pline(rx, y - 5, rx + dir * (2 + st * 3), y + 2, '#5a3a20');
+  if (k === 1) { R(x + dir * 4 - 1, y - 5, 3, 2, '#8a6a4a'); px(x + dir * 4, y - 6, '#c8a070'); }   // the morning's catch, in a basket
+}
+function hdBoats(W, y0, y1, t, Lt, still) {   // fishing boats rowing slowly about the harbour
+  if (y1 - y0 < 10) return;
+  for (let k = 0; k < 3; k++) {
+    const y = Math.round(y0 + (y1 - y0) * (0.12 + 0.36 * k)), dir = k % 2 ? -1 : 1, sp = 2.2 + k, span = W + 40, p = (t * sp + k * 97) % span;
+    hdBoat(Math.round(dir > 0 ? p - 20 : W + 20 - p), y, dir, t, k, Lt, still);
+  }
+}
+function hdGull(x, y, t, k) {   // a gull, wings beating, grey at the tips
+  const up = [1, 0, -1, 0][Math.floor(t * 5 + k * 1.7) % 4];
+  x = Math.round(x); y = Math.round(y);
+  R(x - 1, y, 3, 1, '#f8f8f4'); px(x + 2, y - 1, '#f8f8f4'); px(x + 3, y - 1, '#e8a040');
+  for (const s of [-1, 1]) { px(x + s * 2, y - up, '#f2f2ee'); px(x + s * 3, y - up * 2, '#b8c0c8'); }
+  px(x, y + 1, '#c8cdd2');
+}
+
+// ---- the quay, its stalls and the people on it ----
+function paintQuay(W, h, Lt) {   // the quay: big blocks along the water's edge, and paving, the slabs bigger towards us
+  const F = mat('#a8977a', Lt), M = mat('#bcab8c', Lt);
+  for (let x = -Math.floor(hash(3) * 6), k = 0; x < W; k++) {
+    const bw = 9 + Math.floor(hash(k * 3.1) * 6);
+    R(x, 0, bw, 4, F[2]); R(x, 0, bw, 1, F[4]); R(x + bw - 1, 0, 1, 4, F[1]); R(x, 3, bw, 1, F[0]);
+    x += bw;
+  }
+  for (let y = 4, r = 0; y < h; r++) {
+    const ch = Math.min(h - y, 3 + Math.min(3, r));
+    for (let x = -Math.floor(hash(r * 7.7) * 10), k = 0; x < W; k++) {
+      const bw = ch * 2 + 3 + Math.floor(hash(r * 11.3 + k * 2.9) * 6), tone = hash(r * 5.1 + k * 1.7);
+      R(x, y, bw, ch, tone < 0.25 ? mix(M[2], M[1], 0.35) : tone > 0.8 ? mix(M[2], M[3], 0.45) : M[2]);
+      R(x, y, bw, 1, M[3]); R(x + bw - 1, y, 1, ch, M[1]); if (ch > 2) R(x, y + ch - 1, bw, 1, mix(M[1], M[2], 0.4));
+      if (tone > 0.93) pline(x + 2, y + 1, x + 4, y + ch - 2, M[1]);   // a crack
+      x += bw;
+    }
+    y += ch;
+  }
+}
+const BUSTS = {};
+function bustSprite(id, f) { const k = id + ':' + f; return BUSTS[k] || (BUSTS[k] = makeBust(lookOf(id), f)); }
+function makeBust(L, f) {   // a merchant from the waist up, to stand behind a counter: f is 0 at rest, 1 blinking, 2 with a hand raised
+  return sprite(18, 17, P => {
+    const sk = L.skin, sk0 = mix(shade(sk, -0.26), '#4a3060', 0.12), sk2 = shade(sk, 0.14), hr = L.hair, hr0 = shade(hr, -0.3), hr2 = shade(hr, 0.2);
+    const rb = L.robe, rb0 = mix(shade(rb, -0.28), '#2a2050', 0.12), rb2 = shade(rb, 0.16), tr = L.trim;
+    P(5, 10, rb, 8, 1); P(4, 11, rb, 10, 1); P(3, 12, rb, 12, 4);
+    P(3, 12, rb0, 1, 4); P(4, 11, rb0); P(14, 12, rb2, 1, 4); P(13, 11, rb2);
+    P(7, 13, rb0, 1, 3); P(10, 13, rb0, 1, 3); P(12, 12, rb2, 1, 2);
+    P(7, 10, tr, 4, 1); P(8, 11, tr, 2, 1);
+    P(4, 14, sk, 2, 2); P(4, 15, sk0, 2, 1);
+    if (f === 2) { P(13, 7, rb, 2, 4); P(14, 7, rb2, 1, 4); P(13, 5, sk, 2, 2); P(14, 5, sk2); }
+    else { P(12, 14, sk, 2, 2); P(13, 14, sk2); }
+    P(8, 9, sk0, 2, 1);
+    P(6, 3, sk, 6, 5); P(7, 8, sk, 4, 1);
+    P(6, 4, sk0, 1, 4); P(11, 4, sk2, 1, 3); P(7, 8, sk0);
+    P(5, 5, sk0, 1, 2); P(12, 5, sk, 1, 2);
+    if (f === 1) { P(7, 5, sk0); P(10, 5, sk0); } else { P(7, 5, '#1a110c'); P(10, 5, '#1a110c'); }
+    P(7, 4, hr0); P(10, 4, hr0);
+    P(8, 6, sk0); P(8, 7, '#7a3a30', 2, 1);
+    const st = L.style;
+    if (st === 'veil') {
+      const v = L.veil, v0 = shade(v, -0.25), v2 = shade(v, 0.18);
+      P(6, 1, v, 6, 1); P(5, 2, v, 8, 1); P(5, 3, v, 1, 8); P(12, 3, v, 1, 8); P(4, 6, v, 1, 6); P(13, 6, v, 1, 6);
+      P(6, 1, v2, 3, 1); P(4, 6, v0, 1, 6); P(13, 6, v2, 1, 6); P(7, 3, hr, 4, 1);
+    } else if (st === 'bald') {
+      P(7, 1, sk, 4, 1); P(6, 2, sk, 6, 1); P(9, 2, sk2, 2, 1); P(5, 4, hr, 1, 2); P(12, 4, hr, 1, 2);
+    } else {
+      P(7, 1, hr, 4, 1); P(6, 2, hr, 6, 1); P(6, 3, hr, 1, 2); P(11, 3, hr, 1, 2); P(9, 1, hr2, 2, 1);
+      if (st === 'long') { P(5, 3, hr, 1, 8); P(12, 3, hr, 1, 8); P(5, 7, hr0, 1, 4); }
+      if (st === 'curly') { P(6, 1, hr); P(11, 1, hr); P(7, 0, hr); P(9, 0, hr); P(10, 0, hr2); P(8, 2, hr0); P(10, 2, hr0); P(5, 3, hr, 1, 2); P(12, 3, hr, 1, 2); }
+    }
+    if (L.beard) {
+      P(6, 6, hr, 1, 2); P(11, 6, hr, 1, 2); P(7, 8, hr, 4, 1);
+      if (L.beard > 1) { P(6, 6, hr, 1, 3); P(11, 6, hr, 1, 3); P(7, 7, hr, 4, 2); P(8, 9, hr, 2, 1); P(8, 7, '#5a2a20', 2, 1); P(10, 8, hr2); }
+    }
+    if (L.hat === 'petasos') { P(3, 2, '#7a5a3a', 12, 1); P(6, 0, '#8a6a44', 6, 2); P(3, 2, '#9a7a54', 4, 1); P(10, 0, '#a08058', 2, 1); }
+    if (L.hat === 'pilos') { P(7, 0, '#a07a4a', 4, 1); P(6, 1, '#a07a4a', 6, 2); P(8, 0, '#c09060', 2, 1); P(6, 2, '#7a5a34'); }
+    if (L.hat === 'band') P(6, 3, tr, 6, 1);
+  }, '#1c120d');
+}
+const WALKERS_HD = [
+  { skin: '#c48a58', hair: '#2a1d14', robe: '#3f6f8e', trim: '#efe3cc', carry: 'sack' },
+  { skin: '#b98050', hair: '#3a2818', robe: '#6b7a44', trim: '#d9a441', veil: '#c8623a', carry: 'basket' },
+];
+const WALKS = {};
+function walkerSprite(k, f, dir) { const key = k + ':' + f + ':' + dir; return WALKS[key] || (WALKS[key] = makeWalker(WALKERS_HD[k], f, dir)); }
+function makeWalker(L, f, dir) {   // somebody walking along the quay, side on: f is the step, 0 to 3, and dir 1 is to the right
+  return sprite(16, 28, P0 => {
+    const P = (x, y, c, w, h) => P0(dir > 0 ? x : 16 - x - (w || 1), y, c, w, h);
+    const sk = L.skin, sk0 = shade(sk, -0.28), rb = L.robe, rb0 = shade(rb, -0.28), rb2 = shade(rb, 0.15), up = f % 2 ? 0 : 1;
+    const fwd = [[0, 0], [0, 1], [1, 2], [1, 3], [2, 4], [2, 5]], back = fwd.map(([a, b]) => [-a, b]), still = fwd.map(([, b]) => [0, b]);
+    const legs = f === 1 ? [back, fwd] : f === 3 ? [fwd, back] : [still, still];
+    legs.forEach((lg, i) => { const c = i ? sk : sk0, hx = i ? 8 : 7; for (const [a, b] of lg) P(hx + a, 19 + b + up, c); const [a] = lg[5]; P(hx + a, 25, '#5a3a22', 2, 1); });
+    P(5, 9 + up, rb, 6, 10); P(4, 16 + up, rb, 8, 3); P(5, 9 + up, rb0, 1, 10); P(4, 16 + up, rb0, 1, 3); P(10, 10 + up, rb2, 1, 9); P(11, 16 + up, rb2, 1, 3);
+    P(5, 13 + up, L.trim, 6, 1);
+    const hand = [[9, 17], [7, 16], [9, 17], [11, 16]][f];
+    P(8, 10 + up, rb2, 2, 4); P(hand[0], hand[1] + up - 2, rb, 2, 2); P(hand[0], hand[1] + up, sk, 2, 1);
+    P(8, 8 + up, sk0, 2, 1);
+    P(6, 3 + up, sk, 5, 5); P(10, 4 + up, sk, 1, 2); P(11, 5 + up, sk); P(9, 4 + up, '#1a110c'); P(10, 7 + up, sk0); P(7, 5 + up, sk0);
+    if (L.veil) { P(5, 2 + up, L.veil, 5, 2); P(5, 4 + up, L.veil, 2, 6); P(4, 6 + up, shade(L.veil, -0.2), 1, 5); P(6, 2 + up, shade(L.veil, 0.2), 3, 1); }
+    else { P(6, 2 + up, L.hair, 5, 2); P(6, 4 + up, L.hair, 2, 2); P(8, 2 + up, shade(L.hair, 0.25), 2, 1); }
+    if (L.carry === 'sack') { P(2, 4 + up, '#c9a46a', 5, 6); P(2, 4 + up, '#e6c891', 4, 1); P(2, 9 + up, '#957044', 5, 1); P(6, 7 + up, sk, 2, 2); }
+    if (L.carry === 'basket') { P(10, 13 + up, '#a87a44', 5, 4); P(10, 13 + up, '#d8b070', 5, 1); P(11, 12 + up, '#6e3a52', 3, 1); }
+  }, '#1c120d');
+}
+const GOODS_HD = {};
+function goodSprite(g) {   // a good on a counter: its little picture at twice the size, lit from above and inked round like the people
+  if (g in GOODS_HD) return GOODS_HD[g];
+  const a = canvasOf(8, 8), prev = G;
+  G = a.getContext('2d'); mini(g, 2, 7); G = prev;
+  const d = a.getContext('2d').getImageData(0, 0, 8, 8).data, on = (x, y) => x >= 0 && y >= 0 && x < 8 && y < 8 && d[(y * 8 + x) * 4 + 3] > 0;
+  let x0 = 8, y0 = 8, x1 = -1, y1 = -1;
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (on(x, y)) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  if (x1 < 0) return (GOODS_HD[g] = null);
+  return (GOODS_HD[g] = sprite((x1 - x0 + 1) * 2 + 2, (y1 - y0 + 1) * 2 + 2, P => {
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      if (!on(x, y)) continue;
+      const i = (y * 8 + x) * 4, c = '#' + ((1 << 24) | (d[i] << 16) | (d[i + 1] << 8) | d[i + 2]).toString(16).slice(1), X = 1 + (x - x0) * 2, Y = 1 + (y - y0) * 2;
+      P(X, Y, c, 2, 2);
+      if (!on(x, y - 1)) P(X, Y, shade(c, 0.22), 2, 1);
+      if (!on(x - 1, y)) P(X, Y + 1, shade(c, -0.2));
+      if (!on(x + 1, y) && on(x, y - 1)) P(X + 1, Y, shade(c, 0.1));
+    }
+  }, '#1c120d'));
+}
+function coinMark(cx, y) {   // a gold coin over a stall: this merchant buys something aboard
+  const ink = '#1c120d';
+  R(cx - 2, y, 5, 1, ink); R(cx - 2, y + 6, 5, 1, ink); R(cx - 3, y + 1, 1, 5, ink); R(cx + 3, y + 1, 1, 5, ink);
+  R(cx - 2, y + 1, 5, 5, '#eac05a'); R(cx - 1, y + 1, 3, 1, '#fff0a8'); px(cx - 2, y + 2, '#fff0a8'); R(cx + 2, y + 2, 1, 3, '#a87a28'); R(cx - 1, y + 5, 3, 1, '#a87a28');
+  R(cx - 1, y + 3, 2, 1, '#a87a28');
+}
+const STALLS_HD = new Map();
+function stallFront(id, cloth, Lt) {   // a stall without its merchant, painted once for this light: posts, a counter with some of the goods on it, and a striped awning
+  const m = MERCHANTS[id], o = S ? offer(S, id) : m, gs = m.bank ? [] : m.talker ? ['scroll', 'scroll'] : Object.keys(o.sells).concat(Object.keys(o.buys)).slice(0, 3);
+  const key = id + (cloth ? 'c' : 'w') + gs.join() + Lt.sun + Lt.shadow + Lt.eve;
+  let c = STALLS_HD.get(key);
+  if (c) return c;
+  c = canvasOf(31, 39);
+  const prev = G, L = m.look, cx = 15, gy = 38, x0 = cx - 13, Wd = mat('#8a5a34', Lt), Cl = mat(L.robe, Lt), Bn = mat('#efe3cc', Lt);
+  G = c.getContext('2d');
+  for (const p of [x0 + 1, x0 + 24]) { R(p, gy - 32, 2, 32, Wd[1]); R(p + 1, gy - 32, 1, 32, Wd[3]); }
+  R(x0, gy - 12, 27, 2, Wd[3]); R(x0, gy - 12, 27, 1, Wd[4]);
+  if (cloth) {   // a cloth over the front of the counter
+    R(x0, gy - 10, 27, 10, Cl[2]); R(x0, gy - 10, 27, 1, Cl[1]); R(x0, gy - 4, 27, 1, Bn[2]); R(x0, gy - 3, 27, 1, Cl[1]);
+    for (let x = x0 + 2; x < x0 + 26; x += 4) R(x, gy - 9, 1, 5, Cl[1]);
+    for (let x = x0; x < x0 + 27; x += 2) px(x, gy - 2, Bn[1]);
+  } else {
+    R(x0, gy - 10, 27, 10, Wd[2]);
+    for (let x = x0; x < x0 + 27; x += 4) { R(x, gy - 10, 1, 10, Wd[1]); px(x + 2, gy - 7 + (x & 3), Wd[1]); }
+    R(x0, gy - 10, 27, 1, Wd[1]);
+  }
+  R(x0, gy - 1, 27, 1, Wd[0]);
+  if (m.bank) {   // the banker's silver, in stacks
+    for (const [sx, n] of [[x0 + 6, 4], [x0 + 11, 6], [x0 + 17, 3]]) for (let k = 0; k < n; k++) { R(sx, gy - 13 - k, 4, 1, k % 2 ? '#aeb6bc' : '#e4e8ec'); px(sx + 3, gy - 13 - k, '#7a8288'); }
+  } else gs.forEach((g, i) => { const sp = goodSprite(g); if (sp) G.drawImage(sp, Math.round(x0 + 4 + (i + 0.5) * 19 / gs.length - sp.width / 2), gy - 11 - sp.height); });
+  const ay = gy - 38;
+  for (let r = 0; r < 6; r++) {
+    const l = x0 + 1 - Math.round(r * 0.34), rr = x0 + 25 + Math.round(r * 0.34), w = rr - l + 1, tone = [3, 3, 2, 2, 2, 1][r];
+    for (let x = l; x <= rr; x++) px(x, ay + r, (Math.floor((x - l) * 7 / w) % 2 ? Cl : Bn)[tone]);
+  }
+  for (let k = 0; k < 7; k++) {
+    const a = x0 - 1 + Math.round(k * 29 / 7), b = x0 - 1 + Math.round((k + 1) * 29 / 7) - 1, M = k % 2 ? Cl : Bn;
+    R(a, ay + 6, b - a + 1, 1, M[1]); R(a + 1, ay + 7, Math.max(1, b - a - 1), 1, M[0]);
+  }
+  G = prev;
+  if (STALLS_HD.size > 40) STALLS_HD.delete(STALLS_HD.keys().next().value);
+  STALLS_HD.set(key, c);
+  return c;
+}
+function hdStall(cx, gy, id, t, lit, Lt, still) {   // a merchant behind a counter under a striped awning: blinks now and then, and waves at passers-by
+  const ph = (t * 0.7 + hash(cx) * 9) % 9, f = still ? 0 : ph < 0.15 ? 1 : ph > 6.5 && ph < 7.6 && !MERCHANTS[id].bank ? 2 : 0;
+  G.drawImage(bustSprite(id, f), cx - 9, gy - 28);
+  G.drawImage(stallFront(id, hash(cx * 1.7) > 0.5, Lt), cx - 15, gy - 38);
+  if (lit) coinMark(cx, gy - 48 - (still ? 0 : Math.floor(t * 2) % 2));
+}
+// The quay in front: a stall for each merchant, and people going by. Records where to tap.
+function hdStalls(W, H, port, t, Lt, o, still) {
+  const gy = H - 1, spots = [];
+  for (const id of merchantsAt(port, S ? S.ch : 1).filter(id => !MERCHANTS[id].noStall)) {
+    const cx = Math.round(14 + MERCHANTS[id].at * (W - 28));
+    hdStall(cx, gy, id, t, o.wants && o.wants.has(id), Lt, still);
+    spots.push({ id, kind: 'merchant', x0: cx - 14, x1: cx + 14, y0: gy - 40, y1: H });
+  }
+  if (o.walkers !== false) for (let k = 0; k < 2; k++) {
+    const sp = 7 + k * 3, dir = k ? -1 : 1, span = W + 40, p = (t * sp + k * 131) % span, x = Math.round(dir > 0 ? p - 20 : W + 20 - p);
+    G.drawImage(walkerSprite(k, still ? 0 : Math.floor(t * sp / 4) % 4, dir), x - 8, gy - 26);
+  }
+  if (o.spots) o.spots.push(...spots);
+}
+
+// ---- the pictures ----
+function drawRhodes(W, H, t, o) {
+  const tall = H > W * 0.9, Lt = lightOf(o.clock), pal = Lt.pal, still = reduceMotion, qy = H - 30, stage = o.stage || 1;
+  const hz0 = Math.max(12, Math.round(H * (tall ? 0.5 : 0.42)));
+  const hz = stage >= 10 ? Math.max(hz0, Math.min(110, H - 80)) : stage >= 9 ? Math.max(hz0, Math.min(94, H - 80)) : hz0;   // once the god has a neck, the horizon comes down a little, so his jaw stays in the picture
+  const hh = Math.max(38, Math.round(H * (tall ? 0.24 : 0.19))), hill = x => Math.round(hz + 6 - hh * (1 - smooth(0.28, 1, x / (W * 0.62))));
+  const shore = hz + 14, wl = hz + 24, cx = Math.round(W * 0.46), sun = [Math.round(W * 0.84), Math.round(hz * (0.3 + 0.5 * Lt.low))], amp = Math.max(6, Math.round(hz * 0.22));
+  const key = 'rh' + W + 'x' + H + ':' + hz + ':' + Math.round(o.clock * 60), tint = mix(pal.seaTop, pal.seaBot, 0.45), sea = qy - hz;
+  G.drawImage(layer(key + 'sky', W, hz, () => { hdSky(W, hz, Lt, sun[0], sun[1], 5); farCoast(W, hz, Lt, amp); }), 0, 0);
+  hdClouds(W, 2, Math.max(12, hz - amp - 4), t, Lt, 21, tall ? 6 : 4, [0.6, -0.7]);
+  G.drawImage(layer(key + 'sea', W, sea, () => hdWater(W, sea, Lt)), 0, hz);
+  const city = layer(key + 'city', W, shore + 1, () => paintRhodesCity(W, Lt, hz, hh, hill));
+  const port = layer(key + 'port' + stage, W, wl + 1, () => paintHarbour(W, Lt, hz, cx, stage));
+  hdReflect(city, shore, Math.min(qy - shore, Math.round(hh * 0.6)), t, key + 'rc', tint, still);
+  hdReflect(port, wl, Math.min(qy - wl, 40), t, key + 'rp' + stage, tint, still);
+  const wr = waterRamp(Lt);
+  slideRipples(layer(key + 'rip', W * 2, sea, () => rippleStrip(W, sea, r => wr[Math.round(waterAt(r, sea, wr.length))], pal.wave, '#0a1c3a', 17)), W, hz, sea, t, still);
+  sunGlints(W, hz, Math.min(qy, hz + 50), t, sun[0], mix(pal.wave, '#ffffff', 0.6), still, 0.12);
+  G.drawImage(city, 0, 0);
+  G.drawImage(port, 0, 0);
+  colossusLive(cx, hz + 18, stage, t, Lt, still);
+  pennant(Math.round(W * 0.66) + 4, hz - 6, t, '#c0403c', still);
+  hdBoats(W, hz + 34, qy - 22, t, Lt, still);
+  const bob = still ? 0 : Math.round(Math.sin(t * 1.3) * 0.6), kind = hdHullOf(), sy = qy - 13 + bob;
+  hdShipAt('trader', Math.round(W * 0.76), hz + 28 + (still ? 0 : Math.round(Math.sin(t * 1.1) * 0.5)), { sail: 'furled', t, Lt, still, rows: 9, tint });
+  hdShipAt(kind, Math.round(W * 0.58) - (kind === 'large' ? 18 : kind === 'medium' ? 10 : 0), sy, { sail: 'furled', crew: 2, t, Lt, still, rows: qy - sy - 2, tint });
+  for (let k = 0; k < 3; k++) hdGull(((t * (8 + k * 3) + k * 90) % (W + 30)) - 15, 10 + k * 9 + Math.sin(t * 1.5 + k) * 3, t, k);
+  G.drawImage(layer(key + 'quay', W, H - qy, () => paintQuay(W, H - qy, Lt)), 0, qy);
+  hdStalls(W, H, 'rhodes', t, Lt, o, still);
+}
+// The title: first light at sea, the ship running before the wind.
+function drawDawn(W, H, t, o) {
+  const Lt = lightOf(o.clock), pal = Lt.pal, still = reduceMotion, hz = Math.round(H * 0.5), sx = Math.round(W * 0.24), sy = Math.round(hz * 0.6);
+  const key = 'dawn' + W + 'x' + H + ':' + Math.round(o.clock * 60), isl = Math.max(5, Math.round(hz * 0.1)), sea = H - hz, gold = mix(Lt.sun, '#ffffff', 0.35);
+  G.drawImage(layer(key + 's', W, hz, () => {
+    hdSky(W, hz, Lt, sx, sy, 8);
+    hdStreaks(W, Math.round(hz * 0.55), hz - isl - 4, Lt, 3, 9, mix('#ffd0a8', Lt.sun, 0.4));
+    hdRange(W, hz, isl, 46, 5, [mix(pal.far, Lt.shadow, 0.25), pal.far, mix(pal.far, pal.skyBot, 0.35), mix(pal.far, Lt.sun, 0.55)], -1, mix(pal.far, pal.skyBot, 0.6), 0.5, 0.42);
+    hdRange(W, hz, Math.round(isl * 0.55), 28, 9, [mix(pal.near, Lt.shadow, 0.2), pal.near, mix(pal.near, pal.far, 0.5), mix(pal.near, Lt.sun, 0.5)], -1, mix(pal.near, pal.skyBot, 0.4), 0.35, 0.5);
+  }), 0, 0);
+  hdClouds(W, 3, Math.round(hz * 0.62), t, Lt, 7, 7, [-0.9, 0.5], '#ffb488', 1.3);
+  const wr = rampOf([mix(pal.skyBot, Lt.sun, 0.3), mix(pal.seaTop, pal.skyBot, 0.5), pal.seaTop, mix(pal.seaTop, pal.seaBot, 0.55), pal.seaBot, shade(pal.seaBot, -0.15)], 24);
+  const at = r => Math.pow(clamp(r / Math.max(1, sea - 1), 0, 1), 0.6) * (wr.length - 1);
+  G.drawImage(layer(key + 'w', W, sea, () => { for (let y = 0; y < sea; y++) gradRow(0, y, W, wr, at(y), 2.4); }), 0, hz);
+  G.drawImage(layer(key + 'road', W, sea, () => {   // the sun's road on the water: streaks of light, brightest down the middle, wider towards us
+    for (let r = 0; r < sea; r++) {
+      const d = r / sea, hw = 2 + d * W * 0.12, base = wr[Math.round(at(r))];
+      if (r > 2 && hash(r * 1.37) < 0.25) continue;
+      for (let k = 0; k < 2 + Math.round(d * 6); k++) {
+        const u = hash(r * 3.7 + k * 9.1) + hash(r * 5.3 + k * 2.3) - 1, len = 1 + Math.round(hash(r + k * 7.7) * (2 + d * 9));
+        R(Math.round(sx + u * hw - len / 2), r, len, 1, mix(base, Lt.sun, 0.75 - 0.45 * Math.abs(u) - 0.2 * d));
+      }
+    }
+  }), 0, hz);
+  slideRipples(layer(key + 'rip', W * 2, sea, () => rippleStrip(W, sea, r => wr[Math.round(at(r))], mix(pal.wave, Lt.sun, 0.45), '#1a1440', 29)), W, hz, sea, t, still);
+  sunGlints(W, hz, H, t, sx, gold, still, 0.13);
+  const kind = hdHullOf(), D = HD_HULLS[kind], wy = hz + Math.round(sea * (H > W * 0.9 ? 0.42 : 0.68)), bob = still ? 0 : Math.round(Math.sin(t * 1.6) * 0.8);
+  hdShipAt(kind, Math.round(W * 0.44 - D.L / 2), wy + bob, { sail: 'full', crew: kind === 'small' ? 5 : 7, t, Lt, still, sunLeft: true, wake: true, rows: Math.min(D.mh, H - wy - 2), tint: mix(pal.seaTop, pal.seaBot, 0.35) });
+  for (let k = 0; k < 3; k++) hdGull(((t * (6 + k * 2) + k * 120) % (W + 30)) - 15, hz * 0.3 + k * 14 + Math.sin(t * 1.3 + k) * 3, t, k);
 }
 function drawHalic(W, H, t, o) {
   const tall = H > W * 0.9, pal = dayPal(o.clock), hz = Math.max(6, Math.round(H * (tall ? 0.5 : 0.44))), qy = H - 15, cx = Math.round(W * 0.46);
@@ -7822,18 +8586,19 @@ function seaOpts() {
   return { clock: v.clock, storm: UI.storm, calm: v.wind === 'calm', wind: v.wind, row: v.row && !S.pending, crew: Math.min(bigShip(S) ? 10 : 8, S.crew.length), seed: 3 + idx * 5, scroll: idx * 700 + v.prog * 240, pirate: UI.pirate, patrol: UI.patrol, dolphins: UI.dolphins, raiders: lemboi(S), open: openSea(S), deckLoad: S.items.filter(i => i.where === 'deck').length };
 }
 function drawMain(t) {
-  const fit = fitPixels(els.scene, els.stage.clientWidth, els.stage.clientHeight, 140);
+  const sea = S.phase === 'sea' && S.voyage, camp = S.phase === 'camp' && S.camp, port = S.port || 'rhodes', hd = !sea && !camp && HD_PORTS.has(port);
+  const fit = hd ? fitHD(els.scene, els.stage.clientWidth, els.stage.clientHeight, 270) : fitPixels(els.scene, els.stage.clientWidth, els.stage.clientHeight, 140);
   G = els.scene.getContext('2d'); G.imageSmoothingEnabled = false;
-  if (S.phase === 'sea' && S.voyage) { syncSpots([], fit, 'none'); drawSea(fit.W, fit.H, t, seaOpts()); return; }
-  if (S.phase === 'camp' && S.camp) { syncSpots([], fit, 'none'); if (S.camp.stop === 'atsea') drawAnchor(fit.W, fit.H, t); else if (CAMPS[S.camp.stop].afloat) drawNightSail(fit.W, fit.H, t); else drawCamp(fit.W, fit.H, t, S.camp.stop); return; }
-  const spots = [], port = S.port || 'rhodes';
+  if (sea) { syncSpots([], fit, 'none'); drawSea(fit.W, fit.H, t, seaOpts()); return; }
+  if (camp) { syncSpots([], fit, 'none'); if (S.camp.stop === 'atsea') drawAnchor(fit.W, fit.H, t); else if (CAMPS[S.camp.stop].afloat) drawNightSail(fit.W, fit.H, t); else drawCamp(fit.W, fit.H, t, S.camp.stop); return; }
+  const spots = [];
   (PORT_SCENES[port] || drawRhodes)(fit.W, fit.H, t, { clock: S.ch > 1 ? 0.4 : 0.3, stage: chapter(S).stage[S.home ? 1 : 0], spots, wants: UI.wants });
   if (S.phase === 'port' && !els.app.classList.contains('compact')) syncSpots(spots, fit, port + fit.W + 'x' + fit.H + ':' + fit.P + ':' + S.ch); else syncSpots([], fit, 'none');
 }
 function drawTheater(t) {
-  const view = els.tcanvas.parentElement, fit = fitPixels(els.tcanvas, view.clientWidth, view.clientHeight, 150), C = chapter(S);
+  const view = els.tcanvas.parentElement, fit = fitHD(els.tcanvas, view.clientWidth, view.clientHeight, 270, 180), C = chapter(S);
   G = els.tcanvas.getContext('2d'); G.imageSmoothingEnabled = false;
-  if (TH.mode === 'title') drawSea(fit.W, fit.H, t, { clock: S.ch > 1 ? 0.12 : 0.06, storm: 0, calm: false, wind: 'fair', row: false, crew: 6, seed: 11, scroll: t * 6, pirate: null, dolphins: 0 });
+  if (TH.mode === 'title') drawDawn(fit.W, fit.H, t, { clock: S.ch > 1 ? 0.12 : 0.06 });
   else drawRhodes(fit.W, fit.H, t, { clock: TH.mode === 'summary' ? 0.93 : C.season === 'summer' ? 0.42 : 0.3, stage: C.stage[TH.mode === 'summary' ? 1 : 0], walkers: true });
 }
 let lastFrame = 0, uiAcc = 1, saveAcc = 0;

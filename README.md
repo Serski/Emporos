@@ -194,6 +194,8 @@ The history of the period is real and stays in the background: the siege of Rhod
 
 Inside `src/game.html`, the rules sit between `// ===== ENGINE START =====` and `// ===== ENGINE END =====` and never touch the page. That is what lets `tests/sim.js` run them on their own. All the art and sound is drawn and synthesized in code.
 
+The art comes in two styles. Rhodes (the quay, the opening and the end of each season) and the title screen are painted in a detailed style, under "the detailed world" in `src/game.html`. It uses about twice as many pixels, with each one a whole number of device pixels, sunlight and shade on every surface, dithered skies and water, reflections, and outlined people. The other ports, the sea and the night camps are still painted flat, at the old size. To move a port over, add it to `HD_PORTS` and draw its picture with the same helpers.
+
 ## Working on it
 
 After editing `src/game.html`, regenerate the standalone page:
