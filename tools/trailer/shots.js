@@ -10,6 +10,8 @@
 //   frame:    runs before each frame; may move the pointer, click, drag, or nudge the state.
 //   captions: positions in frame pixels (1920 x 1080), times relative to the start of the shot.
 const BEAT = 0.65;
+// The isometric town is busier than the game's own picture, so the title card's words get a darker wash behind them there.
+const EBOY = process.argv.includes('--eboy');
 const BAR = 4 * BEAT;
 
 // The words on screen. "Wishlist now on Steam" suits a store page before release; change it here for launch.
@@ -183,7 +185,8 @@ const SHOTS = [
     thumbnail: 2.6,   // the frame the store-page thumbnail is cut from: the whole title card, before the fade
     // The god stands left of centre, so the title sits in the open sky to his right.
     captions: [
-      { html: '<div class="logo">Emporos</div>', x: 1470, y: 290, from: BEAT, to: 9, inT: 0.3, rise: 24, scrim: [960, 440] },
+      { html: '<div class="logo">Emporos</div>', x: 1470, y: 290, from: BEAT, to: 9, inT: 0.3, rise: 24, scrim: EBOY ? [1240, 900] : [960, 440],
+        scrimBg: EBOY ? 'radial-gradient(closest-side, rgba(16,11,8,0.78), rgba(16,11,8,0.62) 55%, rgba(16,11,8,0))' : null },
       { html: `<div class="small" style="font-size:28px;letter-spacing:0.16em;color:#f2e6cb">${TEXT.tagline}</div><div class="tr-meander" style="width:432px"></div>`, x: 1470, y: 432, from: 1.7 * BEAT, to: 9, inT: 0.3, rise: 12 },
       { html: `<div class="cta">${TEXT.cta}</div>`, x: 1470, y: 590, from: 2.5 * BEAT, to: 9, inT: 0.25, rise: 12 },
     ],

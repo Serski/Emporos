@@ -88,7 +88,7 @@ function overlay(FW, FH) {
       }
       for (const c of spec.captions || []) {
         const el = document.createElement('div'); el.className = 'cap';
-        el.innerHTML = (c.scrim ? `<div class="scrim" style="width:${c.scrim[0]}px;height:${c.scrim[1]}px"></div>` : '') + c.html;
+        el.innerHTML = (c.scrim ? `<div class="scrim" style="width:${c.scrim[0]}px;height:${c.scrim[1]}px${c.scrimBg ? ';background:' + c.scrimBg : ''}"></div>` : '') + c.html;
         for (const m of el.querySelectorAll('.tr-meander')) { m.style.backgroundImage = meander; if (!m.style.width) m.style.width = '384px'; }
         box.appendChild(el);
         caps.push({ el, x: c.x, y: c.y, from: c.from, to: c.to, inT: c.inT ?? 0.14, outT: c.outT ?? 0.12, rise: c.rise ?? 18, align: c.align || 'center' });

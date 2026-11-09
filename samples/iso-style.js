@@ -846,11 +846,11 @@ function drawSeaIso(W, H, t, o) {
   // dolphins playing at the bow
   if (o.dolphins > 0 || title) for (let k = 0; k < 3; k++) { const a = (t * 0.6 + k * 0.33) % 1, z = Math.sin(a * Math.PI) * 3 - 0.6; if (z > -0.2) all.push(['p', DOLPHIN, mt.L + 4 + k * 4 + a * 6, 6 + k * 2, z, false]); }
   // trouble: pirates, raiders, the king's patrol, coming up alongside
-  if (o.pirate) { const F = foes(), near = o.pirate.near, x = mt.L * 0.4 + (1 - near) * 90, y = mt.HW + 9, m = o.raiders ? F.lemb : F.hemi;
+  if (o.pirate) { const F = foes(), near = o.pirate.near, x = mt.L * 0.4 + (1 - near) * 90, y = mt.HW + 13, m = o.raiders ? F.lemb : F.hemi;
     all.push(['v', m, x, y, 0, -1, true]);
     const men = o.raiders ? [[3, 0], [6, 0], [9, 0], [12, 0], [9, -6], [12, -6], [15, -6]] : [[6, 0], [9, 0], [12, 0], [15, 0], [18, 0], [21, 0]];
     men.forEach(([dx, dy], i) => all.push(['p', PIRATE[i % 2], x + dx, y + dy, 1 + (o.pirate.fight ? Math.abs(Math.sin(t * 9 + i)) * 0.6 : 0), true])); }
-  if (o.patrol) { const near = o.patrol.near, x = mt.L * 0.3 + (1 - near) * 90, y = mt.HW + 9;
+  if (o.patrol) { const near = o.patrol.near, x = mt.L * 0.3 + (1 - near) * 90, y = mt.HW + 13;
     all.push(['v', foes().patrol, x, y, 0, -1, true]);
     for (let i = 0; i < 6; i++) all.push(['p', ARCHER, x + 8 + i * 4, y, 2, true], ['p', ARCHER, x + 16 + i * 4, y - 9, 2, true]); }
   // the wake behind her, and the bow wave
@@ -893,7 +893,7 @@ function drawSeaIso(W, H, t, o) {
   const rope = (a, b, c) => { const x0 = sx(a[0], a[1]) + 2, y0 = sy(a[0], a[1], a[2] + bob) + 1, x1 = sx(b[0], b[1]) + 2, y1 = sy(b[0], b[1], b[2] + bob) + 1, n = Math.max(1, Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let i = 0; i <= n; i++) put(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c); };
   rope(mt.top, mt.bow, '#5a4a40'); rope(mt.top, mt.stern, '#5a4a40');
   { const X = sx(mt.top[0], mt.top[1]) + 2, Y = sy(mt.top[0], mt.top[1], mt.top[2] + bob); for (let i = 0; i < 7; i++) put(X - 1 - i, Y - 1 + Math.round(Math.sin(t * 6 - i) * (i / 7)), i < 4 ? P.band : mix(P.band, '#2a2850', 0.3)); }
-  if (o.patrol) { const x = mt.L * 0.3 + (1 - o.patrol.near) * 90 + 34, y = mt.HW + 9, X = sx(x, y) + 2, Y = sy(x, y, 8); for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) put(X + 1 + i, Y + j + Math.round(Math.sin(t * 4 + i) * (i / 5)), j === 1 && i > 1 ? '#c9a040' : '#efe3cc'); }
+  if (o.patrol) { const x = mt.L * 0.3 + (1 - o.patrol.near) * 90 + 34, y = mt.HW + 13, X = sx(x, y) + 2, Y = sy(x, y, 8); for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) put(X + 1 + i, Y + j + Math.round(Math.sin(t * 4 + i) * (i / 5)), j === 1 && i > 1 ? '#c9a040' : '#efe3cc'); }
   // gulls, each with a little shadow on the water
   const lane = (c, s) => c >= 0 ? [c + 2 * s, s] : [2 * s, -c / 2 + s];   // a point on the line X - 2Y = c, s steps down it to the right
   for (let k = 0; k < (o.night ? 0 : title ? 5 : 4); k++) {
