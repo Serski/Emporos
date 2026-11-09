@@ -122,7 +122,7 @@ Autumn, 288 BC: the last voyage of the year, and of the game. Three days south a
 
 ## Worth seeing: a side story in every port
 
-Every port has something worth seeing, a short walk from the quay: seventeen in all, one in each. Each is a short story with a choice, and the choice has a small consequence. You can see each one once in the whole game. Its card is on the quay, under **Worth seeing**.
+Every port has something worth seeing, a short walk from the quay: seventeen in all, one in each. Each is a short story with a choice, and the choice has a small consequence. You can see each one once in the whole game. Its card is on the quay under **In the town**, side by side with the place to go after dark.
 
 - **Rhodes.** The hill of earth round the god, and the god inside it, finished as far as he has got.
 - **Halicarnassus.** The tomb of King Mausolus, with an old guardian who knows everyone in town.
@@ -146,7 +146,7 @@ The ledger lists what you have seen, and the end of each chapter counts it.
 
 ## After dark: somewhere to go in every port
 
-Every port also has somewhere to go after dark, up a side street from the harbour: a wine shop, a dinner, a game, a show. Its card is on the quay, under **After dark**, and like the sights you can go to each one once in the whole game. Some of them hand you an errand for the next port: something to carry, or somebody to find. The errand happens when you get there, as a short scene with a choice of its own, and the ledger lists the ones still open. The dice in these places are their own, so a night out never changes the weather or the pirates still to come.
+Every port also has somewhere to go after dark, up a side street from the harbour: a wine shop, a dinner, a game, a show. Its card is on the quay under **In the town**, next to the sight, and like the sights you can go to each one once in the whole game. Some of them hand you an errand for the next port: something to carry, or somebody to find. The errand happens when you get there, as a short scene with a choice of its own, and the ledger lists the ones still open. The dice in these places are their own, so a night out never changes the weather or the pirates still to come.
 
 - **Rhodes.** The wine shop by the ship sheds, where old Kleoboulos, who sailed with Ariston's father, has half a broken knucklebone for a guest-friend's family in your next port. Their answer can come home to him.
 - **Halicarnassus.** Knucklebones in a wine shop under the theatre, against a Carian who throws the Aphrodite every time. Glaukos has been watching the bones.

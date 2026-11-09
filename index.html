@@ -157,6 +157,12 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 .person.want { border-color: var(--clay-deep); }
 .flag { font: 500 11px/1 var(--font-pixel); color: var(--on-clay); background: var(--gold); padding: 3px 5px; }
 .flag.aboard { background: var(--olive); }
+/* the two places in a port, side by side: the picture and what kind of place on top, then the name and a line about it */
+.people.places { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.person.place { grid-template-columns: 40px minmax(0, 1fr); align-items: start; align-content: start; column-gap: 8px; row-gap: 4px; }
+.person.place img { grid-row: auto; width: 40px; height: 40px; }
+.person.place > .flag { justify-self: start; align-self: center; }
+.person.place .nm, .person.place .rl, .person.place .tr { grid-column: 1 / -1; }
 
 /* ---------- sheets: merchants, events, decisions ---------- */
 #sheet { position: fixed; inset: 0; z-index: 20; display: grid; align-items: end; background: rgba(8, 5, 3, 0.62); }
@@ -7138,22 +7144,21 @@ function quayPanel() {
   }
   const ids = merchantsAt(S.port, S.ch), off = ids.filter(id => MERCHANTS[id].noStall).sort((a, b) => offStageBusy(b) - offStageBusy(a)), hires = hiresAt(S, S.port);   // whoever has business with you first
   if (off.length || hires.length) h += '<h2 class="sec">Around the harbour</h2><div class="people">' + off.map(personCard).join('') + hires.map(hireCard).join('') + '</div>';   // not in the picture, so first
-  if (SIGHTS[S.port]) h += '<h2 class="sec">Worth seeing</h2><div class="people">' + placeCard('sight', S.port) + '</div>';
-  if (NIGHTS[S.port]) h += '<h2 class="sec">After dark</h2><div class="people">' + placeCard('night', S.port) + '</div>';
+  const places = Object.keys(PLACE).filter(k => PLACE[k].table()[S.port]);   // something worth seeing, and somewhere to go after dark, side by side
+  if (places.length) h += '<h2 class="sec">In the town</h2><div class="people places">' + places.map(k => placeCard(k, S.port)).join('') + '</div>';
   h += '<h2 class="sec">At the stalls</h2><div class="people">';
   for (const id of ids.filter(id => !MERCHANTS[id].noStall)) h += personCard(id);
   return h + '</div>';
 }
-// The sight worth seeing in this port: a card on the quay, like the people.
-// Something worth seeing, and somewhere to go after dark: a card each on the quay, and a sheet with the story and the choice.
+// Something worth seeing, and somewhere to go after dark: a card each on the quay, side by side, and a sheet with the story and the choice.
 const PLACE = {
-  sight: { table: () => SIGHTS, book: () => S.sights, icon: k => sightIconURL(k), flag: 'Worth seeing', done: 'Seen', where: 'A short walk from the quay', count: () => sightsSeen(S) + ' of ' + Object.keys(SIGHTS).length + ' seen', sub: 'worth seeing' },
-  night: { table: () => NIGHTS, book: () => S.nights, icon: k => nightIconURL(k), flag: 'After dark', done: 'Been', where: 'Up a side street from the harbour', count: () => nightsOut(S) + ' of ' + Object.keys(NIGHTS).length + ' nights out', sub: 'after dark' },
+  sight: { table: () => SIGHTS, book: () => S.sights, icon: k => sightIconURL(k), flag: 'Worth seeing', done: 'Seen', count: () => sightsSeen(S) + ' of ' + Object.keys(SIGHTS).length + ' seen', sub: 'worth seeing' },
+  night: { table: () => NIGHTS, book: () => S.nights, icon: k => nightIconURL(k), flag: 'After dark', done: 'Been', count: () => nightsOut(S) + ' of ' + Object.keys(NIGHTS).length + ' nights out', sub: 'after dark' },
 };
 function placeCard(kind, port) {
-  const K = PLACE[kind], G = K.table()[port], seen = K.book()[port];
-  return `<button class="person${seen ? '' : ' want'}" type="button" data-place="${kind}" data-port="${port}"><img class="pix" src="${K.icon(G.icon)}" alt=""><span class="nm">${esc(G.name)}<span class="flag${seen ? ' aboard' : ''}">${seen ? K.done : K.flag}</span></span><span class="rl">${esc(G.hook)}</span>` +
-    `<span class="tr">${seen ? 'You went in Chapter ' + NUMERALS[seen.ch] : K.where} · <b>${esc(K.count().split(' ')[0])}</b> ${esc(K.count().split(' ').slice(1).join(' '))}</span></button>`;
+  const K = PLACE[kind], G = K.table()[port], seen = K.book()[port], [n, ...of] = K.count().split(' ');
+  return `<button class="person place${seen ? '' : ' want'}" type="button" data-place="${kind}" data-port="${port}"><img class="pix" src="${K.icon(G.icon)}" alt=""><span class="flag${seen ? ' aboard' : ''}">${seen ? K.done : K.flag}</span>` +
+    `<span class="nm">${esc(G.name)}</span><span class="rl">${esc(G.hook)}</span><span class="tr">${seen ? 'Chapter ' + NUMERALS[seen.ch] + ' · ' : ''}<b>${esc(n)}</b> ${esc(of.join(' '))}</span></button>`;
 }
 function placeSheet(kind, port) {
   const K = PLACE[kind], G = K.table()[port], seen = K.book()[port], here = S.phase === 'port' && S.port === port && !S.pending;
@@ -7541,7 +7546,7 @@ function onPhase() {
   UI.queue = []; UI.shownAt = -1e9;
   if (S.phase === 'port') {
     banner(PORTS[S.port].name, S.home ? 'Home' : 'In port'); setTab('main'); Snd.arrive(); nudgeOffStage();
-    if (S.port !== 'rhodes' && SIGHTS[S.port] && !S.sights[S.port]) setTimeout(() => { if (S.phase === 'port') tipOnce('sight', 'Every port has something worth seeing, and somewhere to go after dark. Look further down the quay.'); }, 900);
+    if (S.port !== 'rhodes' && SIGHTS[S.port] && !S.sights[S.port]) setTimeout(() => { if (S.phase === 'port') tipOnce('sight', 'Every port has something worth seeing, and somewhere to go after dark. Look under In the town, further down the quay.'); }, 900);
   }
   else if (S.phase === 'camp') { banner(STOPS[S.camp.stop].name, CAMPS[S.camp.stop].afloat ? 'Night, under sail' : 'Night'); setTab('main'); }
   else if (S.phase === 'sea' && prev.split(':')[0] !== 'sea') setTab('main');
