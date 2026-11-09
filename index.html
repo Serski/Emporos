@@ -2204,6 +2204,7 @@ function newGame(seed) {
     log: [], said: {}, summary: null,
     sights: {}, nights: {},   // the places seen, and the nights out, for the whole game
     errands: {},   // errands taken on in one port for another, on this voyage
+    fire: {}, arc: {},   // evenings with the crew at the night stops, and what was chosen there, for the whole game
   };
   addItem(s, 'barley', 'hold', 1, 6, 0);
   addItem(s, 'water', 'hold', 2, 6, 0);
@@ -2224,7 +2225,7 @@ function migrate(s) {
   if (s.v === VERSION) {
     s.contracts = s.contracts || []; s.shipOrdered = !!s.shipOrdered;
     s.sights = s.sights || {};   // saves from before the side stories
-    s.nights = s.nights || {}; s.errands = s.errands || {};
+    s.nights = s.nights || {}; s.errands = s.errands || {}; s.fire = s.fire || {}; s.arc = s.arc || {};
     delete s.store;   // and the storehouse, which was tried for a while, and is gone
     if (s.hull === 'medium' && !holdInShape(s)) {   // the wide Tyche, from before she was reshaped
       const trial = JSON.parse(JSON.stringify(s)), n = trial.items.length;
@@ -3707,7 +3708,7 @@ function summarize(s) {
     rescue: s.flags.rescue || null, homeBy: s.flags.homeBy || null, hauled: s.flags.hauled || 0, calm: s.flags.calm || null, died: s.flags.died || [], campanians: s.flags.campanians || null, blockade: s.flags.blockade || null, blockout: s.flags.blockout || null, seized: s.flags.seized || 0,
     landfall: s.flags.landfall || null, aground: s.flags.aground || null, homeStorm: s.flags.homeStorm || null, customs: s.flags.customs || 0, lateGrain: s.flags.lateGrain || 0,
     sights: sightsSeen(s), sightsCh: Object.keys(s.sights).filter(p => s.sights[p].ch === s.ch).length,
-    nights: nightsOut(s), nightsCh: Object.keys(s.nights).filter(p => s.nights[p].ch === s.ch).length, errands: Object.keys(s.errands).filter(id => s.errands[id].done && s.errands[id].ch === s.ch).length,
+    nights: nightsOut(s), nightsCh: Object.keys(s.nights).filter(p => s.nights[p].ch === s.ch).length, errands: Object.keys(s.errands).filter(id => s.errands[id].done && s.errands[id].ch === s.ch).length, fires: Object.keys(s.fire).filter(id => s.fire[id].ch === s.ch).length,
     rating: chapter(s).ratings.find(r => profit >= r[0])[1],
   };
 }
@@ -4456,6 +4457,313 @@ const ERRANDS = {
     } },
 };
 for (const id in ERRANDS) EVENTS['errand_' + id] = errandEvent(id);
+
+// ---------- round the fire: the crew, at the night stops ----------
+// Two evenings a voyage, one on the way out and one on the way home: a short scene with the crew, and a choice.
+// Together they tell how Mikkos grew up and Glaukos grew old. What you choose is kept in s.arc, for the last page.
+const homeLeg = s => !!s.flags['reached_' + chapter(s).dest];
+const val = (x, s) => typeof x === 'function' ? x(s) : x;
+const brothersAlive = s => ['nikias', 'lysis'].filter(id => alive(s, id));
+const NAME = id => (CREW.find(c => c.id === id) || {}).name || id;
+const groomOf = s => brothersAlive(s)[0] || null;   // Nikias if he lives, or else his brother
+const skills = s => { const a = s.arc; return [a.fish, a.stars, a.oar, a.night5, a.steer, a.watch === 'alone', a.eyes === 'mikkos', a.pharos === 'steer'].filter(Boolean).length; };   // how much Mikkos has learned
+const FIRES = [
+  { id: 'first', ch: 1, leg: 'out', who: 'mikkos', title: 'Mikkos’s first voyage', hook: 'Mikkos cannot sleep.',
+    text: () => ['It was Mikkos’s first voyage. He lay by the fire with his eyes open, listening to the sea, which at night always sounds closer than it is.',
+      'After a while he asked Ariston, very quietly, whether his father had been afraid the first time he went to sea.',
+      'Ariston’s father had been sick over the side for three days, and had cried on the second, and had told the story at every dinner for the rest of his life. Mikkos was waiting.'],
+    choices: () => [
+      { id: 'truth', label: 'Tell him the truth', hint: 'Sick for three days, and crying on the second. Damon told it himself, every chance he got.' },
+      { id: 'brave', label: 'Tell him Damon was never afraid of anything', hint: 'It is what boys want to hear.' },
+      { id: 'glaukos', label: 'Let Glaukos answer', hint: 'He is pretending to be asleep, and listening.' }],
+    resolve(s, id) {
+      s.arc.first = id;
+      if (id === 'truth') return ['Mikkos laughed so much that Glaukos told him to be quiet, and then laughed himself. A little later, when Ariston looked across, the boy was asleep.'];
+      if (id === 'brave') return ['Mikkos thought about this for a long time. “Then I am not like him,” he said at last, and turned over. Ariston lay awake a good deal longer than Mikkos did.'];
+      return ['Glaukos did not open his eyes. “Every sailor is afraid,” he said. “The ones who say they are not are liars, or drowned.” Then he began to snore, very convincingly, and Mikkos fell asleep trying to work out which kind Glaukos was.'];
+    } },
+  { id: 'brothers', ch: 1, leg: 'home', who: 'nikias', when: s => brothersAlive(s).length === 2, title: 'The brothers from Lindos', hook: 'Nikias and Lysis want the captain to settle something.',
+    text: s => ['Nikias and Lysis were brothers from Lindos, and had been arguing since Halicarnassus about which of them had rowed harder on the way out. By the fire it came to a head.',
+      (alive(s, 'pamphilos') ? 'Pamphilos, who said very little, moved his blanket further away. ' : '') + 'Glaukos said that in his day brothers argued about girls, like civilised people.',
+      'In the end they asked Ariston to decide. Everyone else had refused.'],
+    choices: () => [
+      { id: 'nikias', label: 'Say that Nikias rowed harder', hint: 'He is the elder. He will mention it for the rest of the year.' },
+      { id: 'lysis', label: 'Say that Lysis rowed harder', hint: 'He is the younger. He will mention it for the rest of his life.' },
+      { id: 'both', label: 'Say they both rowed like Corinthians', hint: 'It is not a compliment.' }],
+    resolve(s, id) {
+      s.arc.brothers = id;
+      if (id === 'nikias') return ['Nikias was insufferable all the way to Rhodes. Lysis rowed so hard to prove him wrong that the ship went noticeably faster, which Ariston had not planned, and took the credit for anyway.'];
+      if (id === 'lysis') return ['Lysis was insufferable all the way to Rhodes. Nikias did not speak to him until the next evening, and then only to say that he had been holding back.'];
+      return ['For the first time anybody could remember, the brothers agreed about something: that Ariston knew nothing about rowing. They told him so, together, until the fire went out. Glaukos said that was what captains were for.'];
+    } },
+  { id: 'fish', ch: 2, leg: 'out', who: s => alive(s, 'pamphilos') ? 'pamphilos' : 'glaukos', title: 'Mikkos learns to fish',
+    hook: s => (alive(s, 'pamphilos') ? 'Pamphilos' : 'Glaukos') + ' is going fishing off the rocks, and Mikkos wants to go too.',
+    text: s => alive(s, 'pamphilos')
+      ? ['Pamphilos, who said very little, went down to the rocks at dusk with a line and a lump of bread. Mikkos followed him, talking.',
+        'Pamphilos fished, and Mikkos talked. After a while Pamphilos handed him the line without a word, and showed him with his big hands how to feel for a bite.',
+        'Up on the beach there was cargo to check and water jars to fill, and somebody had to do it.']
+      : ['Glaukos went down to the rocks at dusk with a line and a lump of bread, saying that fish could tell an honest man from a liar. Mikkos followed him, asking which kind bit.',
+        'Glaukos fished, and Mikkos asked questions. After a while Glaukos handed him the line to make him stop.',
+        'Up on the beach there was cargo to check and water jars to fill, and somebody had to do it.'],
+    choices: () => [
+      { id: 'stay', label: 'Let them fish until dark', hint: 'The jars can wait. So, probably, can the cargo. If he catches anything, it is breakfast.' },
+      { id: 'work', label: 'Call Mikkos back to help with the jars', hint: 'He is the ship’s boy. That is what ship’s boys are for.' }],
+    resolve(s, id) {
+      const who = alive(s, 'pamphilos') ? 'Pamphilos' : 'Glaukos';
+      s.arc.fish = id === 'stay';
+      if (id === 'work') return ['Mikkos came back up the beach slowly, the way boys walk when they want you to know how slowly they are walking. ' + who + ' stayed on the rocks until dark, and caught nothing, and seemed content.'];
+      s.fresh += mouths(s);
+      return ['By dark Mikkos had caught six fish, all small, and ' + who + ' had caught none, because he had been watching Mikkos. They grilled them for breakfast, and Mikkos told everyone how he had caught each one.', 'That was a day’s food the barley sacks did not have to give.'];
+    } },
+  { id: 'weasel', ch: 2, leg: 'home', who: 'glaukos', title: 'The weasel', hook: 'A weasel has crossed Glaukos’s path, and he will not take another step.',
+    text: () => ['On the way up from the beach a weasel ran across the path in front of Glaukos, and Glaukos stopped dead.',
+      'Everybody knew what that meant, he said. Nobody did. It meant, he explained, that he could not go one step further until somebody had thrown three stones across the path, or the voyage home would go wrong.',
+      'It was getting dark, and the stones were all on the other side of the path.'],
+    choices: s => [
+      { id: 'stones', label: 'Find three stones and throw them', hint: 'It costs nothing but dignity.' },
+      { id: 'carry', label: alive(s, 'pamphilos') ? 'Ask Pamphilos to carry him across' : 'Carry him across yourself', hint: 'Glaukos is not heavy. Glaukos is, however, Glaukos.' },
+      { id: 'mikkos', label: 'Send Mikkos for the stones', hint: 'Mikkos likes throwing things.' }],
+    resolve(s, id) {
+      s.arc.weasel = id;
+      if (id === 'stones') return ['Ariston found three stones in the dark and threw them across the path, one at a time, while Glaukos watched closely to make sure each one went all the way. Then Glaukos walked on as if nothing had happened.', 'In the morning he told everyone that the voyage home had been saved, and by whom. He seemed to think it was himself.'];
+      if (id === 'carry') return [(alive(s, 'pamphilos') ? 'Pamphilos' : 'Ariston') + ' picked Glaukos up and carried him across the path like a sack of barley, with Glaukos shouting all the way that this did not count.', 'Nothing went wrong on the way home. Glaukos said that proved nothing, and that the weasel was biding its time.'];
+      return ['Mikkos threw five stones, to be safe. Glaukos said five was worse than none, and that everyone knew it, and they argued about it until the fire burned down.', 'When Ariston woke in the night they were still arguing, and Glaukos had thrown a sixth stone, which he said made it all right again.'];
+    } },
+  { id: 'stars', ch: 3, leg: 'out', who: 'glaukos', title: 'The stars', hook: 'Glaukos is naming the stars, and Mikkos is listening.',
+    text: () => ['The autumn sky was clear and enormous. Glaukos lay on his back by the fire and named the stars for Mikkos: the Bear, which never sets, and points north; the Pleiades, which go down in the autumn and close the sea; the Dog, which brings the summer heat.',
+      'Mikkos asked how many there were. Glaukos said a sailor needed about twenty, and the rest were for poets and Babylonians.',
+      'It was late, and there was rowing in the morning.'],
+    choices: () => [
+      { id: 'learn', label: 'Let Mikkos stay up and learn them', hint: 'He will be useless at the oar tomorrow.' },
+      { id: 'sleep', label: 'Send him to sleep', hint: 'The stars will still be there next year. So, probably, will Glaukos.' }],
+    resolve(s, id) {
+      s.arc.stars = id === 'learn';
+      return id === 'learn' ? ['Mikkos learned eleven stars that night, and three more that Glaukos may have made up. In the morning he was useless at the oar, and very proud, and kept pointing at the sky, although there was nothing in it.']
+        : ['Mikkos went to sleep, complaining. Glaukos went on naming the stars to nobody for some time, and then, more quietly, to himself.'];
+    } },
+  { id: 'wedding', ch: 3, leg: 'home', who: s => groomOf(s), when: s => !!groomOf(s), title: s => NAME(groomOf(s)) + ' wants to marry', hook: s => NAME(groomOf(s)) + ' has something to ask the captain.',
+    text: s => { const g = NAME(groomOf(s)), other = brothersAlive(s).length === 2 ? 'Lysis' : null;
+      return ['On the way home, ' + g + ' sat down beside Ariston by the fire, which he never did, and asked for an advance on next year’s wages.',
+        'There was a girl in Lindos, he said, a potter’s daughter. Her father wanted to see silver before he would see ' + g + '.' + (other ? ' From the other side of the fire, ' + other + ' said that the girl had better taste than that.' : '')]; },
+    choices: () => [
+      { id: 'gift', label: 'Give him ten drachmas, as a wedding gift', hint: 'Not an advance. A gift.', price: 10 },
+      { id: 'save', label: 'Tell him to save his wages, like a sensible man', hint: 'It is good advice. He will not take it.' }],
+    resolve(s, id) {
+      const g = NAME(groomOf(s));
+      s.arc.wedding = id === 'gift' ? groomOf(s) : 'saved';
+      if (id === 'save') return [g + ' said he would. He did not. He married the potter’s daughter that winter anyway, and her father did not speak to him for a year, which ' + g + ' said was the best wedding present he got.'];
+      gainRep(s, 'rhodes', 2);
+      return [g + ' took the silver in both hands, as if it might break. Then he went and sat by himself, and looked at it, for a long time.', 'He married the potter’s daughter in Lindos that winter. Word got round the harbour that Ariston had paid for the wedding, which was not quite true, and did him no harm at all.'];
+    } },
+  { id: 'oar', ch: 4, leg: 'out', who: 'mikkos', title: 'An oar of his own', hook: 'Mikkos, thirteen now, wants to row with the men.',
+    text: s => ['Over the winter Mikkos had grown a hand taller and a great deal hungrier. He had also noticed that the men at the oars were paid more than ship’s boys.',
+      'By the fire he asked Ariston for an oar of his own. ' + (alive(s, 'hagnon') ? 'Hagnon, one of the new hands, said that a boy that size would catch crabs all day. Mikkos said he would like to see Hagnon try catching crabs.' : 'One of the men said that a boy that size would catch crabs all day. Mikkos said he would like to see him try catching crabs.'),
+      'Glaukos said nothing, and looked at Ariston.'],
+    choices: () => [
+      { id: 'oar', label: 'Give him an oar', hint: 'And a man’s place at the bench, which is the part he is really asking about.' },
+      { id: 'wait', label: 'Tell him: next year', hint: 'He is thirteen. There is time.' }],
+    resolve(s, id) {
+      s.arc.oar = id === 'oar';
+      return id === 'oar' ? ['Mikkos rowed the whole of the next day. He caught two crabs, and would not let anyone see his hands that night. By the end of the voyage he was rowing as well as most of the men, which none of them mentioned, and all of them noticed.']
+        : ['Mikkos said nothing at all, which was so unusual that Glaukos asked him if he was ill.'];
+    } },
+  { id: 'ithaca', ch: 4, leg: 'home', at: ['ithaca'], who: 'glaukos', title: 'Odysseus’s harbour', hook: 'Mikkos wants to know why it took Odysseus ten years to get home.',
+    text: () => ['They spent the night at Ithaca, below the cave where people still leave tripods for Odysseus. Mikkos wanted to know why it had taken Odysseus ten years to get home.',
+      'Glaukos said it was because Odysseus was a king, and kings do not listen to their helmsmen. Any helmsman worth his bread could have had him home in a season.',
+      'Then Mikkos asked Glaukos where he would go home to, when he stopped sailing. Glaukos did not answer for a long time.'],
+    choices: () => [
+      { id: 'ask', label: 'Ask him yourself, gently', hint: 'You have known him all your life, and never asked.' },
+      { id: 'wind', label: 'Ask him about tomorrow’s wind instead', hint: 'He would rather talk about the wind.' }],
+    resolve(s, id) {
+      s.arc.home = id === 'ask' ? 'lindos' : 'sea';
+      return id === 'ask' ? ['Glaukos said he had a sister in Lindos, with a house and a fig tree, who had been expecting him home for thirty years, and could wait a little longer. Then he said the wind would be from the west in the morning.', 'It was.']
+        : ['Glaukos told them about the wind, at length, with great relief. Mikkos looked at Ariston across the fire, and Ariston shook his head.'];
+    } },
+  { id: 'nosight', ch: 5, leg: 'out', at: ['midsea'], who: 'glaukos', title: 'Out of sight of land', hook: 'For the first time in forty years, Glaukos cannot see land.',
+    text: s => ['For forty years Glaukos had never once lost sight of land. Now there was none, in any direction, and the night was coming down over all of it.',
+      'He stayed at the steering oar and did not complain, which frightened everyone more than anything he could have said.',
+      s.arc.stars ? 'Then Mikkos came aft and stood beside him, and pointed up. “The Bear,” he said. “She never sets. She points north. You told me.”'
+        : 'Mikkos came aft and stood beside him, and asked which star they were steering by. Glaukos told him, and then, as if he could not help it, told him the names of all the others.'],
+    choices: () => [
+      { id: 'stay', label: 'Leave the two of them at the oar', hint: 'It is a long night.' },
+      { id: 'take', label: 'Take the oar yourself, and send them both to sleep', hint: 'You are the captain. Somebody has to be.' }],
+    resolve(s, id) {
+      s.arc.night5 = id === 'stay';
+      return id === 'stay' ? [s.arc.stars ? 'They steered all night, the old man and the boy, naming the stars to each other in turn, so quietly that nobody else could hear.' : 'They steered all night together, the old man naming stars and the boy saying the names back to him.',
+        'In the morning Glaukos said that the open sea was not so bad, if you had company. He said it to the sea, not to Mikkos.']
+        : ['Glaukos went to sleep at once, which he had never done in his life while somebody else was steering. Mikkos lay awake a long time, watching the stars over the stern.'];
+    } },
+  { id: 'eyes', ch: 5, leg: 'home', who: 'glaukos', title: 'Glaukos’s eyes', hook: 'Glaukos asks Ariston which star is which.',
+    text: () => ['On the way home, by the light of the stern lamp, Glaukos asked Ariston which star that was, low down in the west. He said the lamp was in his eyes.',
+      'The lamp was behind him. Ariston told him which star it was. For a while neither of them said anything at all.'],
+    choices: () => [
+      { id: 'secret', label: 'Keep it between the two of you', hint: 'He would do the same for you.' },
+      { id: 'mikkos', label: 'Say Mikkos should stand the night watches with him from now on', hint: 'So the boy can learn, you say. Glaukos will know what you mean.' }],
+    resolve(s, id) {
+      s.arc.eyes = id;
+      return id === 'secret' ? ['Glaukos nodded, once. For the rest of the voyage he steered by day and slept at night, and when anyone asked, he said that at his age a man had earned his sleep.']
+        : ['Glaukos said he did not need a nursemaid. Then he said that the boy had better learn properly, and it might as well be from somebody who knew.', 'From then on Mikkos stood the night watches beside him, and told him which star was which when he asked, and never once asked why.'];
+    } },
+  { id: 'steer', ch: 6, leg: 'out', who: 'mikkos', title: 'The steering oar', hook: 'Mikkos asks to steer tomorrow, in the morning calm.',
+    text: () => ['The weather off Crete was settled, and in the mornings the sea was as flat as oil. By the fire, Mikkos asked if he could take the steering oar tomorrow, for an hour, while it was calm.',
+      'Glaukos said nothing, and looked at Ariston. It was Ariston’s ship.'],
+    choices: () => [
+      { id: 'yes', label: 'Let him steer, with Glaukos beside him', hint: 'An hour, in a calm. What could happen?' },
+      { id: 'no', label: 'Tell him: not this year', hint: 'There is a fortune in the hold.' }],
+    resolve(s, id) {
+      s.arc.steer = id === 'yes';
+      return id === 'yes' ? ['Mikkos steered for an hour in the morning calm, and then for another, while Glaukos stood beside him with his arms folded and never once touched the oar.',
+        'When it was over, Glaukos said that he had seen worse. From Glaukos that was a laurel wreath, and everybody aboard knew it, including Mikkos, who did not stop smiling for two days.']
+        : ['Mikkos said he understood. Glaukos said, to nobody in particular, that he had steered his first ship at twelve, into a rock, and had turned out all right.'];
+    } },
+  { id: 'share', ch: 6, leg: 'home', who: 'pamphilos', when: s => alive(s, 'pamphilos'), title: 'Pamphilos speaks', hook: 'Pamphilos, who says very little, has something to say.',
+    text: () => ['Pamphilos had said perhaps forty words since Rhodes, most of them about rope. On the way home he sat down beside Ariston and said a whole sentence.',
+      'He said that he had been saving his wages for six years, in a jar under his sister’s floor, and that he would like to buy a share in the ship with them. A small share. Twenty drachmas.',
+      'Then he stopped, as if he had used up the year’s words, and waited.'],
+    choices: () => [
+      { id: 'take', label: 'Take his twenty drachmas, and give him a share', hint: 'His name on a wax tablet, as part owner of the ship.' },
+      { id: 'keep', label: 'Tell him to keep his silver', hint: 'Ships sink. Jars under floors do not.' }],
+    resolve(s, id) {
+      s.arc.pshare = id === 'take';
+      if (id === 'keep') return ['Pamphilos nodded, and put the silver back in his belt, and did not say another word until Rhodes. He did not seem offended. He seemed relieved to have said it.'];
+      earnDr(s, 20);
+      return ['Pamphilos counted out twenty drachmas, very slowly, one at a time, and Ariston wrote his name on a wax tablet as part owner of ' + shipName(s) + '. Pamphilos looked at the tablet for a long time.', 'For the rest of the voyage he called the ship “ours”. It was the most anybody had ever heard him say.'];
+    } },
+  { id: 'lastyear', ch: 7, leg: 'out', who: 'glaukos', title: 'Glaukos’s last year', hook: 'Glaukos has been talking to the fire. Now he wants to talk to you.',
+    text: s => ['Glaukos sat by the fire a long time after the others had gone to sleep. Then he told Ariston that this would be his last year at sea.',
+      'He was not ill, he said. He could still steer better than anyone in Rhodes. But a man should stop before the sea decides for him, and out there, on the way to Italy, he had felt it deciding.',
+      s.arc.home === 'lindos' ? 'His sister in Lindos had a house and a fig tree, and a great deal to say about his life. He supposed he would let her say it.' : 'He did not say where he would go. Ariston did not ask.'],
+    choices: () => [
+      { id: 'share', label: 'Promise him a share of the last voyage', hint: 'Fifty drachmas, paid at the end of the year. A helmsman’s farewell.' },
+      { id: 'stay', label: 'Ask him to stay one more year', hint: 'Mikkos is not ready. Or perhaps you are not.' },
+      { id: 'nod', label: 'Nod, and say nothing', hint: 'Some things do not need an answer.' }],
+    resolve(s, id) {
+      s.arc.glaukos = id;
+      if (id === 'share') return ['Glaukos said that was too much, and then that it was about right, and then that he would think of something to spend it on. He thought about it, aloud, for most of the voyage.'];
+      if (id === 'stay') return ['Glaukos said he would think about it. He thought about it for a day and a night, and then said no, and then, a day later, that he might.'];
+      return ['Glaukos nodded too. They sat by the fire together until it went out, which said more than either of them could have.'];
+    } },
+  { id: 'watch', ch: 7, leg: 'home', at: ['midsea'], who: 'mikkos', title: 'The middle watch', hook: 'Mikkos asks to stand the middle watch alone.',
+    text: () => ['On the night out from Paphos, Mikkos asked to stand the middle watch alone: the dead hours after midnight, when one man steers by the stars and everybody else sleeps.',
+      'Glaukos usually stood it himself. He said nothing at all, which in Glaukos was a vote.'],
+    choices: s => [
+      { id: 'alone', label: 'Let him stand it alone', hint: s.arc.stars || s.arc.steer || s.arc.night5 ? 'He knows the stars, and he has steered before.' : 'He has never steered at night. He has hardly steered at all.' },
+      { id: 'with', label: 'Stand it with him', hint: 'And say nothing, which is harder than steering.' }],
+    resolve(s, id) {
+      if (id === 'with') { s.arc.watch = 'with'; return ['Ariston sat by the steering oar while Mikkos steered, and did not say one word all night, which was harder than any watch he had ever stood himself.', 'At dawn Mikkos asked how he had done. Ariston said, “We are still afloat,” which was what his father used to say.']; }
+      const ready = s.arc.stars || s.arc.steer || s.arc.night5;
+      s.arc.watch = ready ? 'alone' : 'rough';
+      return ready ? ['Mikkos stood the middle watch alone, and held her on the star Glaukos had shown him, and woke Glaukos at dawn, as he had been told to.', 'Glaukos, who had not slept at all, pretended to wake up.']
+        : ['Mikkos stood the watch alone, and held her more or less, though by morning they were a good way south of where they should have been, and Glaukos said so, several times, to everybody.', 'Mikkos said he would do better next time. Glaukos said there had better be a next time, then.'];
+    } },
+  { id: 'lindos', ch: 8, leg: 'out', who: s => brothersAlive(s).length === 2 ? 'nikias' : brothersAlive(s)[0], when: s => brothersAlive(s).length > 0,
+    title: s => brothersAlive(s).length === 2 ? 'The brothers' : NAME(brothersAlive(s)[0]),
+    hook: s => brothersAlive(s).length === 2 ? 'Nikias and Lysis have stopped arguing, which worries everybody.' : NAME(brothersAlive(s)[0]) + ' is sitting apart from the others.',
+    text: s => {
+      if (brothersAlive(s).length === 2) return ['Nikias and Lysis had argued their way across the whole sea for three years. On the way to Phoenicia, they stopped.',
+        s.arc.wedding === 'nikias' || s.arc.wedding === 'saved' ? 'Nikias’s wife had sent word from Lindos: a second child was coming, and she wanted her husband at home to see this one born.' : 'Their father in Lindos was old now, and the olive trees needed somebody, and Nikias was the elder.',
+        'Nikias would go home after this year, he said. Lysis said that he would stay with the ship. Then neither of them said anything, which nobody aboard had ever heard before.'];
+      const n = NAME(brothersAlive(s)[0]);
+      return [n + ' sat apart from the others, looking at the sea in the direction of Lindos.', 'He had argued with his brother every day of his life, he said, and now there was nobody to argue with, and he kept starting to.', 'He asked Ariston whether he thought the dead could hear you.'];
+    },
+    choices: s => brothersAlive(s).length === 2 ? [
+      { id: 'place', label: 'Promise Nikias his place back, whenever he wants it', hint: 'There will always be an oar for him.' },
+      { id: 'letters', label: 'Tell them they can argue by letter', hint: 'Lysis can write. Nikias says he can.' }] : [
+      { id: 'yes', label: 'Say that they can', hint: 'Glaukos certainly thinks so.' },
+      { id: 'argue', label: 'Tell him to argue with you instead', hint: 'You will lose, but it might help.' }],
+    resolve(s, id) {
+      s.arc.lindos = id;
+      if (id === 'place') return ['Nikias said that was kind, and that he would not need it, and then that he might. Lysis said he would keep the oar warm. For the rest of the voyage they argued again, about nothing, and everybody aboard was very relieved.'];
+      if (id === 'letters') return ['Lysis laughed first, and then Nikias. They agreed that Lysis would write and Nikias would answer, and that whoever wrote the shorter letters had lost. They were arguing about the rules before the night was out.'];
+      const n = NAME(brothersAlive(s)[0]);
+      if (id === 'yes') return [n + ' nodded. Later, when he thought everybody was asleep, Ariston heard him talking quietly to the sea, and then, quite clearly, saying that he had rowed harder, and always had.'];
+      return ['So they argued, about rowing, and then about Lindos, and then about nothing, until ' + n + ' was laughing, and then not laughing, and then asleep.'];
+    } },
+  { id: 'favour', ch: 8, leg: 'home', who: 'glaukos', title: 'Glaukos asks a favour', hook: 'Glaukos has one thing to ask, for the last voyage.',
+    text: s => ['On the way home Glaukos asked Ariston for one thing, for the last voyage of the year, which would be his own last voyage.',
+      'On the last day, he said, coming into Rhodes, he would like Mikkos to have the steering oar. Not himself. Mikkos.' + (s.arc.glaukos === 'stay' ? ' He did not mention staying another year. Neither did Ariston.' : ''),
+      skills(s) >= 3 ? 'The boy was ready, he said. He had seen to that.' : 'The boy was not ready yet, he admitted. But there was one more voyage to get him ready.'],
+    choices: () => [
+      { id: 'promise', label: 'Promise', hint: 'It is his last voyage, and his favour.' },
+      { id: 'see', label: 'Say you will see how the boy does in Egypt', hint: 'It is your ship, and a fortune in her.' }],
+    resolve(s, id) {
+      s.arc.favour = id;
+      return id === 'promise' ? ['Glaukos said “Good,” and went to sleep at once, like a man who has put down something heavy.']
+        : ['Glaukos said that was fair, and that he would have said the same at Ariston’s age, and been wrong. Then he went to teach Mikkos something, in the dark, that took until morning.'];
+    } },
+  { id: 'pharos', ch: 9, leg: 'out', who: 'mikkos', when: s => !!s.voyage && (s.voyage.afloatN || 0) >= 2, title: 'The fire on Pharos', hook: 'A light on the sea ahead, where no light should be.',
+    text: () => ['Late in the second night out, Mikkos saw a light low on the sea ahead, and shouted. Everybody came to look. It was a fire, burning on top of the half-built tower on Pharos, so that ships could find Alexandria in the dark.',
+      'Glaukos looked at it for a long time. In his day, he said, you found Egypt by the colour of the water and the smell of the river, and if you missed it you went on to Libya, and were eaten.',
+      'Mikkos said that one day there would be fires like that on every cape in the world, and nobody would ever be lost again.'],
+    choices: s => [
+      { id: 'steer', label: 'Let Mikkos steer for the light', hint: s.arc.steer ? 'He has steered before, in a calm. This is not a calm.' : 'He has never steered at night. It is a fire on a tower. How hard can it be?' },
+      { id: 'watch', label: 'Let Glaukos steer, and watch the light with the boy', hint: 'There will not be many more nights like this.' }],
+    resolve(s, id) {
+      s.arc.pharos = id;
+      return id === 'steer' ? ['Mikkos steered for the light all night, with Glaukos at his elbow saying nothing in a very loud way. At dawn the tower was in plain sight, and the ship was pointing straight at it.', 'Glaukos said that any fool could steer for a fire. Then he said that he had never had one to steer for.']
+        : ['Ariston and Mikkos sat in the bow and watched the fire on Pharos come slowly closer, while Glaukos steered for it behind them, humming.', 'When Mikkos said again that nobody would ever be lost again, Glaukos said that would be a terrible thing, and smiled in the dark, where he thought nobody could see.'];
+    } },
+  { id: 'last', ch: 9, leg: 'home', who: 'glaukos', title: 'The last night', hook: 'The last voyage of the year, and Glaukos’s last voyage.',
+    text: () => ['It was the last voyage of the year. In a few days, if the wind held, they would see the god of Rhodes, finished now as far as his jaw.',
+      'Glaukos took something out of his belt: a length of old rope, tied in the knot his grandfather had used, which nobody else in Rhodes could tie. He untied it, slowly, and showed Mikkos how, three times, and then made him do it until he could do it with his eyes shut.',
+      'Then he looked at Ariston, and waited to hear who would bring her into Rhodes.'],
+    choices: s => [
+      { id: 'mikkos', label: 'Mikkos will bring her in', hint: (skills(s) >= 3 ? 'The boy is ready. Glaukos has seen to that.' : 'The boy is not ready. The harbour of Rhodes is very narrow.') + (s.arc.favour === 'promise' ? ' And you promised.' : '') },
+      { id: 'glaukos', label: 'Glaukos will take her in, one last time', hint: 'It is his last voyage.' + (s.arc.favour === 'promise' ? ' You promised otherwise.' : '') }],
+    resolve(s, id) {
+      s.arc.helm = id;
+      const lines = id === 'mikkos' ? ['Ariston said that Mikkos would bring her in. Mikkos did not sleep at all that night. He sat by the steering oar tying the knot and untying it, and Glaukos sat beside him, pretending not to watch.']
+        : ['Glaukos said nothing. He tied the knot again, slowly, and put it back in his belt, and went to sleep with his hand on it.'];
+      if (s.arc.glaukos === 'share') {
+        const paid = fineDr(s, 50); s.arc.paid = paid;
+        lines.push(paid >= 50 ? 'Before he slept, Ariston counted out the fifty drachmas he had promised and gave them to Glaukos, who counted them twice, and then a third time, and said he would buy a boat with them. A small one.'
+          : 'Before he slept, Ariston gave Glaukos what he had promised, or as much of it as he had: ' + (paid ? num(paid) + ' drachmas' : 'nothing yet, and a promise') + '. Glaukos said it would do, and that a promise from Damon’s son was worth more than silver anyway.');
+      }
+      return lines;
+    } },
+];
+// Tonight's scene, if there is one: the first one this voyage still has to tell, here.
+function fireFor(s) {
+  if (s.phase !== 'camp' || !s.camp) return null;
+  if (s.camp.fire) return FIRES.find(F => F.id === s.camp.fire) || null;
+  const home = homeLeg(s);
+  return FIRES.find(F => F.ch === s.ch && !s.fire[F.id] && (F.leg === 'home') === home && (!F.at || F.at.includes(s.camp.stop)) && (!F.when || F.when(s))) || null;
+}
+function sitByFire(s, id) {
+  const F = fireFor(s);
+  if (!F || s.fire[F.id]) return fail('Not tonight.');
+  const c = F.choices(s).find(x => x.id === id);
+  if (!c) return fail('Not now.');
+  if (c.price && s.silver < c.price) return fail('You need ' + c.price + ' dr.');
+  if (c.price) { s.silver -= c.price; s.stats.spent += c.price; }
+  s.fire[F.id] = { ch: s.ch, pick: id }; s.camp.fire = F.id;
+  const lines = F.resolve(s, id) || [];
+  say(s, val(F.title, s) + ': ' + c.label + '.', 'choice');
+  for (const l of lines) say(s, l, 'told');
+  return { ok: true, lines };
+}
+const firesHeard = s => Object.keys(s.fire || {}).length;
+// The last page: what became of them, from what was chosen by the fire.
+function crewFates(s) {
+  const a = s.arc || {}, out = [], k = skills(s);
+  if (!firesHeard(s)) return out;
+  if (a.helm === 'mikkos') out.push(k >= 3 ? 'Mikkos brought her into Rhodes, between the moles and under the god, without touching a thing, while half the harbour watched. Glaukos stood beside him with his arms folded. His eyes were wet, and he said it was the wind.'
+    : 'Mikkos brought her into Rhodes, and touched the mole only once, quite gently. Glaukos told everyone it was the best landing he had ever seen, and dared anybody to say otherwise.');
+  else if (a.helm === 'glaukos') out.push('Glaukos brought her into Rhodes himself, one last time, between the moles and under the god, without a word to anybody, and tied her up to the quay with his grandfather’s knot.');
+  out.push(a.glaukos === 'stay' ? 'Glaukos did not retire after all. He sailed one more year, and then another, and then said he had always meant to.'
+    : a.glaukos === 'share' && a.paid ? (a.home === 'lindos' ? 'Glaukos went home to his sister in Lindos, and bought a little fishing boat, and never once took it out of sight of land.' : 'Glaukos bought a little fishing boat, and never once took it out of sight of land.')
+      : a.home === 'lindos' ? 'Glaukos went home to his sister in Lindos, and complained about the weather to people who had never been to sea.' : 'Glaukos stayed on the quay at Rhodes, and told every helmsman who came in what he had done wrong.');
+  out.push(k >= 4 ? 'Mikkos became the youngest helmsman in Rhodes, and then the best, and in time the master of a ship of his own. He called her Glauke, which means the grey-green of the sea, and never told anybody why.'
+    : k >= 2 ? 'Mikkos became a sailor, and a good one, and stayed hungry all his life.'
+      : 'Mikkos went to work for a baker in Rhodes and never went to sea again, which surprised nobody who had watched him eat.');
+  const b = brothersAlive(s);
+  if (b.length === 2) out.push((a.lindos === 'letters' ? 'Nikias went home to Lindos, and the brothers argued by letter for the rest of their lives. Lysis always wrote more.'
+    : a.lindos === 'place' ? 'Nikias went home to Lindos and the olive trees, and came back to the ship every spring for a month, to argue with his brother.' : 'Nikias and Lysis were still arguing.')
+    + (a.wedding === 'nikias' ? ' Nikias’s eldest son was called Ariston.' : ''));
+  else if (b.length === 1) out.push(NAME(b[0]) + ' sailed on with Ariston for many years, and argued with everybody, in memory of his brother.' + (a.wedding === b[0] ? ' His eldest son was called Ariston.' : ''));
+  if (alive(s, 'pamphilos')) out.push(a.pshare ? 'Pamphilos owned a twentieth of the ship, and called her “ours”, which for Pamphilos was a speech.' : 'Pamphilos said very little, to the end.');
+  return out;
+}
 
 // Coming home: Aristokles pays for the measurements of the Zeus of Taras, if Ariston took them.
 function homeNews(s) {
@@ -7160,6 +7468,21 @@ function placeCard(kind, port) {
   return `<button class="person place${seen ? '' : ' want'}" type="button" data-place="${kind}" data-port="${port}"><img class="pix" src="${K.icon(G.icon)}" alt=""><span class="flag${seen ? ' aboard' : ''}">${seen ? K.done : K.flag}</span>` +
     `<span class="nm">${esc(G.name)}</span><span class="rl">${esc(G.hook)}</span><span class="tr">${seen ? 'Chapter ' + NUMERALS[seen.ch] + ' · ' : ''}<b>${esc(n)}</b> ${esc(of.join(' '))}</span></button>`;
 }
+// An evening with the crew at the night stop: a card in the camp list, and a sheet with the scene and the choice.
+const fireWord = () => S.camp && (S.camp.stop === 'atsea' || (CAMPS[S.camp.stop] || {}).afloat) ? 'on watch' : 'round the fire';
+function fireCard(F) {
+  const done = S.fire[F.id];
+  return `<button class="person${done ? '' : ' want'}" type="button" data-fire="${F.id}"><img class="pix" src="${faceURL(val(F.who, S))}" alt=""><span class="nm">${esc(val(F.title, S))}<span class="flag${done ? ' aboard' : ''}">${done ? 'Done' : 'Tonight'}</span></span><span class="rl">${esc(val(F.hook, S))}</span></button>`;
+}
+function fireSheet(id) {
+  const F = FIRES.find(x => x.id === id), here = fireFor(S) === F && !S.fire[F.id];
+  const h = `<header class="sheet-head"><img class="pix" src="${faceURL(val(F.who, S))}" alt=""><div><h2>${esc(val(F.title, S))}</h2><p>${esc(S.camp ? STOPS[S.camp.stop].name : '')} · ${fireWord()}</p></div></header>`;
+  if (UI.outcome) return h + `<div class="ev-text">${UI.outcome.lines.map(l => `<p class="out">${esc(l)}</p>`).join('')}</div>` + closeBtn();
+  const story = `<div class="ev-text">${F.text(S).map(l => `<p>${esc(l)}</p>`).join('')}</div>`;
+  if (!here) return h + story + closeBtn();
+  const choice = c => `<button class="btn choice" type="button" data-act="fire" data-c="${c.id}"${c.price && S.silver < c.price ? ' disabled' : ''}>${esc(c.label)}${c.hint ? `<small>${esc(c.hint)}</small>` : ''}</button>`;
+  return h + story + `<div class="choices">${F.choices(S).map(choice).join('')}<button class="btn wide" type="button" data-act="close">Not now</button></div>`;
+}
 function placeSheet(kind, port) {
   const K = PLACE[kind], G = K.table()[port], seen = K.book()[port], here = S.phase === 'port' && S.port === port && !S.pending;
   const h = `<header class="sheet-head"><img class="pix" src="${K.icon(G.icon)}" alt=""><div><h2>${esc(G.name)}</h2><p>${esc(PORTS[port].name)} · ${K.sub}</p></div></header>`;
@@ -7324,7 +7647,7 @@ function renderSheet(first) {
   if (!UI.sheet) return;
   const { kind, arg } = UI.sheet;
   setHTML(els.sheetCard, kind === 'merchant' ? merchantSheet(arg) : kind === 'hire' ? hireSheet(arg) : kind === 'event' ? eventSheet() : kind === 'sail' ? sailSheet()
-    : kind === 'sight' || kind === 'night' ? placeSheet(kind, arg) : menuSheet());
+    : kind === 'sight' || kind === 'night' ? placeSheet(kind, arg) : kind === 'fire' ? fireSheet(arg) : menuSheet());
   if (first) els.sheetCard.scrollTop = 0;
 }
 function closeSheet() { UI.sheet = null; UI.reply = null; UI.outcome = null; els.sheet.hidden = true; els.sheetCard._html = ''; }
@@ -7385,6 +7708,8 @@ function campPanel() {
     }
     h += '</div>';
   }
+  const F = fireFor(S);
+  if (F) h += `<h2 class="sec">${fireWord() === 'on watch' ? 'On watch' : 'Round the fire'}</h2><div class="people">${fireCard(F)}</div>`;
   const beach = dockItems(S).length;
   if (beach) h += `<p class="note">${cap(num(beach))} thing${beach > 1 ? 's are' : ' is'} on the beach. Pack ${beach > 1 ? 'them' : 'it'} into the hold, or ${beach > 1 ? 'they stay' : 'it stays'} here.</p>`;
   h += '<h2 class="sec">At dawn</h2>';
@@ -7635,6 +7960,7 @@ function showSummary() {
     (m.sightsCh ? row('Worth seeing', num(m.sightsCh) + ' this voyage, ' + num(m.sights) + ' in all') : '') +
     (m.nightsCh ? row('After dark', num(m.nightsCh) + (m.nightsCh > 1 ? ' nights' : ' night') + ' out, ' + num(m.nights) + ' in all') : '') +
     (m.errands ? row('Errands', num(m.errands) + ' done') : '') +
+    (m.fires ? row('Round the fire', num(m.fires) + (m.fires > 1 ? ' evenings' : ' evening') + ' with the crew') : '') +
     row('Broken on the way', m.broken ? num(m.broken) : 'Nothing') + row('Crew lost', m.lost.length ? m.lost.map(l => esc(l.name)).join(', ') : 'Nobody') +
     ((m.friends || []).length ? row('Friends', m.friends.map(f => esc(f.name) + ', ' + esc(f.port)).join('; ')) : '') +
     `<dt class="total">Profit</dt><dd class="total">${m.profit >= 0 ? '+' : ''}${m.profit} dr</dd></dl><p>${closing}</p>${S.ch === 3 ? shipSummary(m) : ''}${N ? '' : voyagesSummary(m)}</div>`;
@@ -7647,12 +7973,13 @@ function showSummary() {
 const listWords = a => a.length > 1 ? a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : a[0] || '';
 function voyagesSummary(m) {   // the last page: every voyage, and what came of them all
   const all = S.history.filter(h => h && h.ch && CHAPTERS[h.ch]).concat([m]), total = all.reduce((a, h) => a + (h.profit || 0), 0);
-  const ports = Object.keys(S.proxenos).length, aboardStill = id => S.crew.some(c => c.id === id), seen = sightsSeen(S);
+  const ports = Object.keys(S.proxenos).length, aboardStill = id => S.crew.some(c => c.id === id), seen = sightsSeen(S), fates = crewFates(S);
   const rows = all.map(h => `<dt>${NUMERALS[h.ch]} · ${esc(CHAPTERS[h.ch].name)}</dt><dd>${h.profit >= 0 ? '+' : ''}${h.profit} dr<small>${esc(h.rating || '')}</small></dd>`).join('');
   return `<div class="voyages"><h3>The voyages of Ariston</h3><dl class="tally">${rows}<dt class="total">${cap(num(all.length))} voyages</dt><dd class="total">${total >= 0 ? '+' : ''}${total} dr</dd></dl>` +
     `<p>Ariston, son of Damon, had sailed out of Rhodes with a small ship, a sea loan of a hundred and fifty drachmas, and a great deal of advice. He came home from Alexandria with ${listWords([esc(shipName(S)), S.silver + ' drachmas', S.debt ? 'a debt of ' + S.debt : '', ports ? 'friends in ' + num(ports) + (ports > 1 ? ' ports' : ' port') : ''].filter(Boolean))}.</p>` +
     (seen ? `<p>${seen >= Object.keys(SIGHTS).length ? 'He had seen something worth seeing in every port he sailed to, all ' + seen + ' of them' : 'He had seen ' + num(seen) + ' of the ' + Object.keys(SIGHTS).length + ' sights worth seeing in the ports he sailed to'}${S.sights.alexandria && S.sights.alexandria.pick === 'tell' && seen > 1 ? ', and somewhere in Alexandria a young man from Cyrene was writing them into a book of wonders, without his name.' : '.'}</p>` : '') +
-    `<p>In the spring they began to dig away the hill of earth from around the god, so that he could see the harbour he stood in. Ariston went to watch, with half of Rhodes.${aboardStill('glaukos') ? ' Glaukos came too, and said that next year he would retire. He said it every winter.' : ''}${aboardStill('mikkos') ? ' Mikkos, who was taller than Glaukos now, climbed one of the god’s ladders to see better, and was told to come down, and did not.' : ''}</p></div>`;
+    `<p>In the spring they began to dig away the hill of earth from around the god, so that he could see the harbour he stood in. Ariston went to watch, with half of Rhodes.${fates.length ? '' : (aboardStill('glaukos') ? ' Glaukos came too, and said that next year he would retire. He said it every winter.' : '') + (aboardStill('mikkos') ? ' Mikkos, who was taller than Glaukos now, climbed one of the god’s ladders to see better, and was told to come down, and did not.' : '')}</p>` +
+    (fates.length ? `<h3>What became of them</h3>${fates.map(f => `<p>${esc(f)}</p>`).join('')}` : '') + '</div>';
 }
 function shipSummary(m) {
   if (S.shipOrdered) return `<p class="shipnote">${m.shipLent ? `Ariston paid Nausikrates ${m.shipPaid} dr, and Antimachos lent the other ${m.shipLent}. He wants ${m.shipDue} dr back at the end of next season.` : 'Ariston paid Nausikrates six hundred drachmas in silver. The new ship will be ready in the spring.'} Elpis goes in part exchange. ${S.silver ? S.silver + ' dr left for next season’s cargo.' : 'There was nothing left over for next season’s cargo, but there would be a ship to put it in.'}</p>`;
@@ -7780,6 +8107,12 @@ function doAct(act, b) {
       if (S.errands && errandsOpen(S).length) tipOnce('errand', 'An errand for another port. It is in the Ledger, and it happens when you get there.');
       break;
     }
+    case 'fire': {
+      const r = sitByFire(S, b.dataset.c);
+      if (!r.ok) { Snd.nope(); toast(r.msg); break; }
+      Snd.yes(); UI.outcome = { lines: r.lines }; renderSheet(true);
+      break;
+    }
     case 'sound': toggleSound(); renderSheet(); break;
     case 'restart': if (UI.armed === 'restart') { closeSheet(); freshGame(); playIntro(); } else { UI.armed = 'restart'; renderSheet(); } break;
   }
@@ -7805,6 +8138,7 @@ document.addEventListener('click', e => {
   if (b.dataset.m) return openSheet('merchant', b.dataset.m);
   if (b.dataset.hire) return openSheet('hire', b.dataset.hire);
   if (b.dataset.place) return openSheet(b.dataset.place, b.dataset.port);
+  if (b.dataset.fire) return openSheet('fire', b.dataset.fire);
 });
 els.strip.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTab('ledger'); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && UI.sheet && UI.sheet.kind !== 'event') closeSheet(); });
@@ -7900,7 +8234,7 @@ function start(data) {
 const hotApi = window.claude && window.claude.hot;
 if (hotApi && typeof hotApi.snapshot === 'function') { try { hotApi.snapshot(() => ({ state: S, tab: UI.tab })); } catch (e) { /* ignore */ } }
 window.__emp = { state: () => S, speed: v => { DEV.speed = v; }, ui: UI, hold: HOLD, icons: { sight: sightIconURL, night: nightIconURL, nights: () => Object.values(NIGHTS).map(n => n.icon) }, fns: { buy, sell, haggle, hire, autoPack, setSail, campAct, sleep, needsRoute, resolveEvent, repay, sailCheck, provisions, moveItem, fits, dockItems, atRisk, eta, countGood, sellPrice, merchantsAt, isCargo, takeLoan, nextChapter, offer, fitted, changeHull, buyShip, orderShip, fillCrew,
-  seeSight, sightsSeen, goOut, nightsOut, visitPlace, errandsOpen, perilsAhead } };
+  seeSight, sightsSeen, goOut, nightsOut, visitPlace, errandsOpen, perilsAhead, fireFor, sitByFire, crewFates } };
 if (hotApi && typeof hotApi.ready === 'function') hotApi.ready(start);
 else start((hotApi && hotApi.data) || {});
 })();

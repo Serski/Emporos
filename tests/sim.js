@@ -14,7 +14,8 @@ return { newGame, begin, buy, sell, haggle, hire, autoPack, setSail, tick, setRo
   atRisk, stockLeft, cargoValue, sailCheck, isCargo, takeLoan, nextChapter, migrate, offer, routeFrom, CHAPTERS, fitted, freeSquares, toll,
   takeFreight, orderShip, jettisonPlan, SHIP_PRICE, hiresAt, shipTerms, buyShip, changeHull, holdCells, feeOf, dockOf, holdInShape, HULLS, DAYS, fitted, tooSmall, bestSpot, EVENTS, takeFare, campOdds, roomFor, hasDeck, flipItem, warGoods, warValue, bribeOf, runPatrol,
   SIGHTS, SIGHT_PAY, seeSight, sightsSeen, needItem, homeNews, roughSea, woundLines, woundCrew, wants, openVisit, stow, addItem, countGood,
-  NIGHTS, ERRANDS, goOut, nightsOut, startErrand, errandsOpen, errandsFor, nextPort, perilsAhead, daysAhead, arrivePort };`)();
+  NIGHTS, ERRANDS, goOut, nightsOut, startErrand, errandsOpen, errandsFor, nextPort, perilsAhead, daysAhead, arrivePort,
+  FIRES, fireFor, sitByFire, crewFates, skills };`)();
 
 // Each strategy: what to carry out and home, who to hire, and what to do when things go wrong.
 const STRATEGIES = {
@@ -1063,10 +1064,44 @@ console.log('-- Side stories --');
     check(E.daysAhead(atN('kos', 2)).includes('n_kos_tri') && E.daysAhead(atN('rhodes', 1)).includes('tri_rho'), 'the days ahead should run all the way home, either way at the fork');
   }
   say('The stars, and the dreams, see what is ahead', from);
+  // Round the fire: two evenings with the crew each voyage, at the night stops. Every scene offers itself where it should, tells its story once, and remembers the choice.
+  from = bad;
+  {
+    const campAt = (ch, home, stop, setup) => { const s = E.newGame(777); E.begin(s); s.ch = ch; s.phase = 'camp'; s.silver = 500; if (home) s.flags['reached_' + E.CHAPTERS[ch].dest] = true;
+      s.voyage = { route: 'out', afloatN: 2 }; s.camp = { stop, did: {}, n: {}, from: 0 }; if (setup) setup(s); return s; };
+    const STOP = { first: 'symi', brothers: 'triopion', fish: 'loryma', weasel: 'triopion', stars: 'nisyros', wedding: 'astypalaia', oar: 'astypalaia', ithaca: 'ithaca', nosight: 'midsea', eyes: 'midsea',
+      steer: 'karpathos', share: 'midsea', lastyear: 'patara', watch: 'midsea', lindos: 'megiste', favour: 'midsea', pharos: 'midsea', last: 'midsea' };
+    const short = l => typeof l === 'string' && l.length >= 5 && !/undefined|NaN|\[object|null/.test(l);
+    check(E.FIRES.length === 18 && [1, 2, 3, 4, 5, 6, 7, 8, 9].every(ch => ['out', 'home'].every(leg => E.FIRES.some(F => F.ch === ch && F.leg === leg))), 'every voyage should have an evening with the crew on the way out and on the way home');
+    let n = 0;
+    for (const F of E.FIRES) {
+      const s0 = campAt(F.ch, F.leg === 'home', STOP[F.id]), got = E.fireFor(s0);
+      check(got && got.id === F.id && F.text(s0).every(short), F.id + ': the scene should offer itself at ' + STOP[F.id] + ', and read');
+      if (!got || got.id !== F.id) continue;
+      check(!E.fireFor(campAt(F.ch, F.leg !== 'home', STOP[F.id])) || E.fireFor(campAt(F.ch, F.leg !== 'home', STOP[F.id])).id !== F.id, F.id + ': the scene should keep to its half of the voyage');
+      for (const c of F.choices(s0)) {
+        const s = campAt(F.ch, F.leg === 'home', STOP[F.id]), before = s.silver, r = E.sitByFire(s, c.id);
+        check(r.ok && r.lines.length > 0 && r.lines.every(short) && s.fire[F.id] && s.fire[F.id].pick === c.id && !E.sitByFire(s, c.id).ok, F.id + ': ' + c.id + ' should tell its story once');
+        check(Number.isFinite(s.silver) && s.silver >= 0 && (!c.price || before - s.silver >= c.price), F.id + ': ' + c.id + ' should cost what it says');
+        n++;
+      }
+    }
+    { const s = campAt(1, true, 'triopion', t => { t.crew = t.crew.filter(c => c.id !== 'lysis'); }); check(!E.fireFor(s) || E.fireFor(s).id !== 'brothers', 'the brothers’ argument should need both brothers'); }
+    { const s = campAt(8, false, 'megiste', t => { t.crew = t.crew.filter(c => c.id !== 'nikias'); }); check(E.fireFor(s).id === 'lindos' && /Lysis/.test(E.fireFor(s).text(s)[0]), 'with one brother dead, the other should remember him'); }
+    { const s = campAt(9, true, 'midsea'); s.fire = { first: { ch: 1 } }; s.arc = { fish: true, stars: true, oar: true, steer: true, watch: 'alone', helm: 'mikkos', glaukos: 'share', paid: 50, home: 'lindos', pshare: true };
+      const f = E.crewFates(s); check(E.skills(s) === 5 && f.length >= 4 && f.every(short) && /helmsman/.test(f.join(' ')) && /Lindos/.test(f.join(' ')), 'a boy who learned everything should become a helmsman, and Glaukos should go home to Lindos'); }
+    { const s = campAt(9, true, 'midsea'); check(E.crewFates(s).length === 0, 'a game with no evenings by the fire should keep the old last page'); }
+    for (const F of E.FIRES) { const s = campAt(F.ch, F.leg === 'home', STOP[F.id]), cs = F.choices(s), c = cs[cs.length - 1], before = s.silver, fresh = s.fresh; E.sitByFire(s, c.id);
+      check(s.silver === before && s.fresh === fresh, F.id + ': the last choice by the fire should neither cost nor give anything'); }
+    say(`Round the fire: ${E.FIRES.length} evenings, ${n} choices, each told once, and what became of the crew`, from);
+  }
   // A whole game, played the smart way, but stopping in every port to see the sight.
   if (ONLY.includes(9)) {
     from = bad;
-    const realSail = E.setSail, realRepay = E.repay;
+    const realSail = E.setSail, realRepay = E.repay, realSleep = E.sleep;
+    // By the fire it takes the last choice, which never costs or gives anything, so the dice of the voyages that follow stay the same.
+    // (A few drachmas either way would change what the bots buy, then their haggling, then every pirate after.) Each choice is tested on its own above.
+    const fireSide = s => { const F = E.fireFor(s); if (F && !s.fire[F.id]) { const cs = F.choices(s), c = cs[cs.length - 1]; if (!E.sitByFire(s, c.id).ok) throw new Error('could not sit by the fire: ' + F.id); } };
     const side = (s, when) => {
       while (s.pending && s.pending.startsWith('errand_')) E.resolveEvent(s, E.EVENTS[s.pending].choices(s)[0].id);   // an errand waiting on the quay
       const afford = c => (!c.price || s.silver >= c.price) && (!c.need || E.needItem(s, c.need));
@@ -1088,11 +1123,14 @@ console.log('-- Side stories --');
     for (let k = 0; k < G; k++) plain.push(fullGame(41000 + k * 7919));
     E.setSail = s => { if (s.phase === 'port' && !s.home) side(s, 'leaving'); return realSail(s); };
     E.repay = s => { if (s.phase === 'port' && s.home) side(s, 'home'); return realRepay(s); };
-    try { for (let k = 0; k < G; k++) sided.push(fullGame(41000 + k * 7919)); } finally { E.setSail = realSail; E.repay = realRepay; }
+    E.sleep = (s, route) => { if (s.phase === 'camp') fireSide(s); return realSleep(s, route); };
+    try { for (let k = 0; k < G; k++) sided.push(fullGame(41000 + k * 7919)); } finally { E.setSail = realSail; E.repay = realRepay; E.sleep = realSleep; }
     const mean = a => Math.round(a.reduce((x, y) => x + y, 0) / a.length);
     const p0 = mean(plain.map(total)), p1 = mean(sided.map(total));
-    const done = s => Object.keys(s.errands).filter(id => s.errands[id].done).length;
-    console.log(`A whole game with side trips (${G} games): sights seen ${mean(sided.map(s => E.sightsSeen(s)))} of ${Object.keys(E.SIGHTS).length}, nights out ${mean(sided.map(s => E.nightsOut(s)))} of ${Object.keys(E.NIGHTS).length}, errands done ${mean(sided.map(done))}, profit over nine voyages ${p1} dr against ${p0} without`);
+    const done = s => Object.keys(s.errands).filter(id => s.errands[id].done).length, fires = s => Object.keys(s.fire).length;
+    const always = E.FIRES.filter(F => !F.when || ['pharos'].includes(F.id)).map(F => F.id);   // the evenings that need nobody but Glaukos and Mikkos
+    console.log(`A whole game with side trips (${G} games): sights seen ${mean(sided.map(s => E.sightsSeen(s)))} of ${Object.keys(E.SIGHTS).length}, nights out ${mean(sided.map(s => E.nightsOut(s)))} of ${Object.keys(E.NIGHTS).length}, errands done ${mean(sided.map(done))}, evenings by the fire ${mean(sided.map(fires))} of ${E.FIRES.length}, profit over nine voyages ${p1} dr against ${p0} without`);
+    for (const s of sided) check(always.every(id => s.fire[id]) && E.crewFates(s).length >= 3, 'a whole game should have every evening with Glaukos and Mikkos, and say what became of them: missing ' + always.filter(id => !s.fire[id]).join(', '));
     for (const s of sided) check(E.sightsSeen(s) === Object.keys(E.SIGHTS).length && s.sights.alexandria.pick === 'tell' && E.nightsOut(s) === Object.keys(E.NIGHTS).length && done(s) > 0 && Object.keys(s.errands).every(id => s.errands[id].done) && Number.isFinite(s.silver) && s.silver >= 0, 'a whole game should see every sight, go out in every port, finish every errand, and end with sensible silver');
     check(p1 > p0 - 200 && p1 < p0 * 1.25, 'side trips should help a little, not decide the game');
     say('A whole game with side trips', from);

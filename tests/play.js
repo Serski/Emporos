@@ -133,6 +133,18 @@ fs.mkdirSync(out, { recursive: true });
           if (await page.$(sel)) { await page.click(sel, { timeout: 3000 }).catch(() => {}); await page.waitForTimeout(200); }
         }
         if (s.dock) { await tab('hold'); await page.click('button[data-act="autopack"]'); await tab('main'); }
+        // an evening with the crew: read it, and take the first choice that can be afforded
+        const fire = await page.$('#panel button[data-fire]');
+        if (fire && !await page.evaluate(() => { const S = window.__emp.state(); return !!(S.camp && S.camp.fire); })) {
+          const fid = await fire.getAttribute('data-fire');
+          await fire.click(); await page.waitForSelector('#sheet:not([hidden])');
+          await snap('fire-' + fid);
+          const c = await page.$('#sheetCard button[data-act="fire"]:not([disabled])');
+          if (!c) throw new Error('nothing to choose by the fire: ' + fid);
+          await c.click(); await page.waitForTimeout(150);
+          if (!await page.evaluate(id => !!window.__emp.state().fire[id], fid)) throw new Error('the evening by the fire did not happen: ' + fid);
+          await close();
+        }
         const route = await page.$('#panel button[data-act="sleep"][data-route="coast"]');
         if (route) { await snap(label + '-route'); await route.click(); } else await page.click('#panel button[data-act="sleep"]');
         await page.waitForTimeout(150);
@@ -642,6 +654,10 @@ fs.mkdirSync(out, { recursive: true });
   const nights = await page.evaluate(() => ({ out: Object.keys(window.__emp.state().nights), errands: Object.keys(window.__emp.state().errands).filter(id => window.__emp.state().errands[id].done) }));
   console.log('nights out:', nights.out.length, nights.out.join(', '), '| errands done:', nights.errands.join(', '));
   if (nights.out.length !== 17) throw new Error('every port has somewhere to go after dark: ' + nights.out.length);
+  const fires = await page.evaluate(() => Object.keys(window.__emp.state().fire));
+  console.log('evenings by the fire:', fires.length, fires.join(', '));
+  if (fires.length < 14) throw new Error('every voyage should have its evenings with the crew: ' + fires.join(', '));
+  if (!/What became of them/.test(await page.textContent('#theater .voyages'))) throw new Error('the last page should say what became of the crew');
   if (nights.errands.length < 3) throw new Error('some of the nights out should have led to errands, done in the next port: ' + nights.errands.join(', '));
   console.log('errors:', errors.length ? errors.join('\n') : 'none');
   console.log('screenshots:', shots.join(', '));
