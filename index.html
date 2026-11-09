@@ -157,6 +157,12 @@ canvas, .pix { image-rendering: crisp-edges; image-rendering: pixelated; }
 .person.want { border-color: var(--clay-deep); }
 .flag { font: 500 11px/1 var(--font-pixel); color: var(--on-clay); background: var(--gold); padding: 3px 5px; }
 .flag.aboard { background: var(--olive); }
+/* the two places in a port, side by side: the picture and what kind of place on top, then the name and a line about it */
+.people.places { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.person.place { grid-template-columns: 40px minmax(0, 1fr); align-items: start; align-content: start; column-gap: 8px; row-gap: 4px; }
+.person.place img { grid-row: auto; width: 40px; height: 40px; }
+.person.place > .flag { justify-self: start; align-self: center; }
+.person.place .nm, .person.place .rl, .person.place .tr { grid-column: 1 / -1; }
 
 /* ---------- sheets: merchants, events, decisions ---------- */
 #sheet { position: fixed; inset: 0; z-index: 20; display: grid; align-items: end; background: rgba(8, 5, 3, 0.62); }
@@ -2196,6 +2202,8 @@ function newGame(seed) {
     fresh: 0, hungry: false, thirsty: false, pending: null, pirates: null, flags: {},
     stats: { broken: 0, bought: 0, sold: 0, spent: 0, earned: 0, hungry: 0, thirsty: 0, nights: 0, haggles: 0 },
     log: [], said: {}, summary: null,
+    sights: {}, nights: {},   // the places seen, and the nights out, for the whole game
+    errands: {},   // errands taken on in one port for another, on this voyage
   };
   addItem(s, 'barley', 'hold', 1, 6, 0);
   addItem(s, 'water', 'hold', 2, 6, 0);
@@ -2215,6 +2223,9 @@ function migrate(s) {
   }
   if (s.v === VERSION) {
     s.contracts = s.contracts || []; s.shipOrdered = !!s.shipOrdered;
+    s.sights = s.sights || {};   // saves from before the side stories
+    s.nights = s.nights || {}; s.errands = s.errands || {};
+    delete s.store;   // and the storehouse, which was tried for a while, and is gone
     if (s.hull === 'medium' && !holdInShape(s)) {   // the wide Tyche, from before she was reshaped
       const trial = JSON.parse(JSON.stringify(s)), n = trial.items.length;
       changeHull(trial, 'medium');
@@ -2639,7 +2650,7 @@ function sailCheck(s) {
 }
 const leaveValue = it => (isSupply(it) && it.fill < GOODS[it.g][GOODS[it.g].food ? 'food' : 'water']) ? 0 : Math.floor(GOODS[it.g].value / 2);
 function setSail(s) {
-  if (s.phase !== 'port' || s.home) return fail('Not now.');
+  if (s.phase !== 'port' || s.home || s.pending) return fail('Not now.');
   if (tooSmall(s)) return fail(shipName(s) + ' is a coast boat, too small for two days out of sight of land. Nausikrates still has the new ship on his slipway.');
   const ck = sailCheck(s);
   for (const it of ck.goods) {
@@ -2832,6 +2843,7 @@ function arrivePort(s, port) {
     if (port === 'halic') s.flags.reachedHalic = true;
     s.seen[port] = true;
     portBusiness(s, port);
+    errandsArrive(s, port);
     return;
   }
   s.home = true;
@@ -2841,6 +2853,8 @@ function arrivePort(s, port) {
     say(s, 'Word of the fight had come in ahead of them. The harbour officials paid a bounty of ' + BOUNTY + ' drachmas, and several people bought Ariston a drink.', 'good');
   }
   portBusiness(s, port);
+  homeNews(s);
+  errandsArrive(s, port);
   say(s, ARRIVE.banker(s));
 }
 function portBusiness(s, port) {
@@ -3019,6 +3033,7 @@ function orderShip(s) {
 
 // ---------- weather and breakage ----------
 function roughSea(s, sev) {
+  if (s.flags.blessed) sev *= 0.5;   // the crew ran round the altar on Delos, or poured wine to Poseidon at Corcyra
   const broke = [];
   for (const it of atRisk(s)) if (rnd(s) < sev) { broke.push(it); removeItem(s, it); }
   s.stats.broken += broke.length;
@@ -3099,6 +3114,11 @@ function woundLines(s, hurt) {
     if (c.id === 'ariston' || rnd(s) >= 0.4) continue;
     if (c.id === 'glaukos') { lines.push('Glaukos was hurt worse than anyone, and said he had been hurt worse before. Nobody believed him, and in the morning he was at the steering oar again, complaining.'); continue; }
     if (c.id === 'mikkos') { lines.push('Mikkos was badly hurt, and frightened, and very brave about it. By the morning he was asking about breakfast, which everybody agreed was a good sign.'); continue; }
+    if (s.flags.net === true) {   // the little lead net from Diktynna's temple, tied to the stem post
+      s.flags.net = 'used';
+      lines.push(c.name + ' was hurt so badly that nobody thought he would see the morning. He did. At first light Glaukos went forward and touched the little lead net on the stem post, and said nothing at all.');
+      continue;
+    }
     s.crew.splice(s.crew.indexOf(c), 1);
     s.lost.push({ id: c.id, name: c.name, where, ch: s.ch });
     if (c.hire) for (const it of s.items.filter(i => i.g === 'kit' && i.owner === c.id)) removeItem(s, it);
@@ -3666,7 +3686,7 @@ function takeLoan(s) {
   return { ok: true };
 }
 function repay(s) {   // settle accounts with the banker and end the chapter
-  if (s.phase !== 'port' || !s.home || s.phase === 'summary') return fail('Not now.');
+  if (s.phase !== 'port' || !s.home || s.pending) return fail('Not now.');
   const due = s.loan.paid ? 0 : s.loan.due, pay = Math.min(s.silver, due);
   s.silver -= pay; s.loan.paid = true; s.loan.paidAmt = pay; s.debt = due - pay;
   if (s.debt) say(s, 'Ariston paid Antimachos what he had. The banker wrote the rest on a wax tablet. Ariston would see that tablet again.');
@@ -3686,6 +3706,8 @@ function summarize(s) {
     toll: s.flags.toll || null, storm: s.flags.storm || null, delivered: s.flags.delivered || 0, ship: null, hull: s.hull,
     rescue: s.flags.rescue || null, homeBy: s.flags.homeBy || null, hauled: s.flags.hauled || 0, calm: s.flags.calm || null, died: s.flags.died || [], campanians: s.flags.campanians || null, blockade: s.flags.blockade || null, blockout: s.flags.blockout || null, seized: s.flags.seized || 0,
     landfall: s.flags.landfall || null, aground: s.flags.aground || null, homeStorm: s.flags.homeStorm || null, customs: s.flags.customs || 0, lateGrain: s.flags.lateGrain || 0,
+    sights: sightsSeen(s), sightsCh: Object.keys(s.sights).filter(p => s.sights[p].ch === s.ch).length,
+    nights: nightsOut(s), nightsCh: Object.keys(s.nights).filter(p => s.nights[p].ch === s.ch).length, errands: Object.keys(s.errands).filter(id => s.errands[id].done && s.errands[id].ch === s.ch).length,
     rating: chapter(s).ratings.find(r => profit >= r[0])[1],
   };
 }
@@ -3723,6 +3745,723 @@ function nextChapter(s) {
   openVisit(s, 'rhodes');
   say(s, 'Chapter ' + C.numeral + ' · ' + C.name, 'chapter');
   return { ok: true };
+}
+
+// ---------- side stories: something worth seeing in every port ----------
+// One visit to each, in the whole game: a short story, a choice, and a small consequence. The young man
+// in the Museum at Alexandria pays for every one of them that Ariston can tell him about.
+const SIGHT_PAY = 5;
+const andList = a => a.length > 1 ? a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : a[0] || '';
+const GOD_PART = { 1: ['his feet', 'his ankles'], 2: ['his shins', 'his knees'], 3: ['his thighs', 'his thighs'], 4: ['his waist', 'his waist'], 5: ['his chest', 'his chest'],
+  6: ['his shoulders', 'his shoulders'], 7: ['his elbows', 'his elbows'], 8: ['his neck', 'his jaw'], 9: ['his jaw', 'the rays of his crown'] };
+const godPart = s => (GOD_PART[s.ch] || GOD_PART[9])[s.home ? 1 : 0];
+const sightsSeen = s => Object.keys(s.sights || {}).length;
+function needItem(s, need) {   // the first thing on the quay or aboard that a choice would use up
+  const gs = [].concat(need);
+  for (const where of ['dock', 'hold', 'deck']) for (const g of gs) { const it = s.items.find(i => i.g === g && i.where === where); if (it) return it; }
+  return null;
+}
+const SIGHTS = {
+  rhodes: { name: 'The hill of earth', icon: 'statue', tell: 'the god of Rhodes inside his hill of earth', hook: 'Climb the hill round the god, and look at him from the inside.',
+    text: s => ['Aristokles let Ariston climb the hill of earth round the god, because Ariston asked, and because Aristokles never missed a chance to show him off.',
+      s.ch === 1 && !s.home ? 'Inside the hill there was not much god yet: two bronze feet on a marble base, each toe about the size of Mikkos, and men on ladders casting the ankles.'
+        : 'Inside the hill the god stood in the dark, finished as far as ' + godPart(s) + ', with men going up and down him on ladders like ants on a jar.',
+      'The bronze was cast where it stood, a ring at a time. When a ring was done, they heaped the earth higher round it, and stood on the earth to cast the next.',
+      'From the top Ariston could see the whole city: the harbours, the ship sheds, the walls the king had failed to take, and ' + shipName(s) + ' at the quay, very small.',
+      '“When he is finished,” said Aristokles, “we dig all this away, and he stands up in the sun, and nobody will believe that men made him.” He looked at his hands. “Least of all the men.”'],
+    choices: () => [
+      { id: 'name', label: 'Scratch your name inside the god', hint: 'Everyone who has worked on him has done it. Aristokles pretends not to know.' },
+      { id: 'give', label: 'Give five drachmas for the bronze', hint: 'The works take gifts from anyone. Five drachmas buys about a fingernail of god. Rhodes will hear of it.', price: 5 },
+      { id: 'look', label: 'Just look', hint: 'It costs nothing.' }],
+    resolve(s, id) {
+      if (id === 'name') { gainRep(s, 'rhodes', 2); return ['Ariston scratched ARISTON SON OF DAMON on the inside of a bronze plate, low down, where it would be dark for a thousand years. Glaukos made him add GLAUKOS underneath, smaller.']; }
+      if (id === 'give') { gainRep(s, 'rhodes', 5); return ['Aristokles wrote Ariston’s name on the list of givers, near the bottom, under a great many richer men. “It all melts the same,” he said.', 'By evening half the quay knew that Ariston had given to the god. Rhodians like to know who has.']; }
+      return ['Ariston stayed at the top until the wind made his eyes water, and went down feeling that he owned a share of the god. Every Rhodian feels that. It costs nothing, which is why they like it.'];
+    } },
+  halic: { name: 'The tomb of Mausolus', icon: 'tomb', tell: 'the tomb of Mausolus', hook: 'The biggest tomb in the world, with a dead king on top in a marble chariot.',
+    text: () => ['Ariston climbed up from the harbour to the tomb of King Mausolus. Close to, it was bigger than it looked from the sea: a wall of white marble, a ring of columns on top of the wall, a pyramid of steps on top of the columns, and at the very top four marble horses pulling a chariot, as if the dead king might drive off at any moment.',
+      'An old man who said he was the guardian showed him round, for an obol. He pointed out the carvings: Greeks fighting Amazons, Greeks fighting centaurs, and chariots racing round the top for ever.',
+      '“His wife built it,” said the guardian. “She was his sister, too. When he died she mixed his ashes into her wine and drank them, a little every day, and in two years she was dead herself. The sculptors had not been paid. They finished it anyway, for the glory.”',
+      'Ariston thought about working for nothing, for glory. He decided he would rather be paid first, and have the glory afterwards.'],
+    choices: () => [
+      { id: 'tip', label: 'Give the guardian another obol, and ask about the town', hint: 'A drachma. He knows everyone in Halicarnassus, and has opinions about all of them.', price: 1 },
+      { id: 'chip', label: 'Buy a chip of the marble from him', hint: '“From one of the horses,” he says. It is probably from the road.', price: 2 },
+      { id: 'go', label: 'Go back down to the harbour' }],
+    resolve(s, id) {
+      if (id === 'tip') { gainRep(s, 'halic', 4); return ['The guardian told Ariston which merchants in Halicarnassus paid fair, which paid late, and which had been seen at the tomb at night with a lamp and a chisel. Then he told the merchants that the Rhodian had asked after them, kindly.', 'The quay seemed a little friendlier afterwards.']; }
+      if (id === 'chip') return ['Ariston bought a chip of white marble the size of a thumb. Mikkos carried it back to the ship, kept it in his bedding, and told everyone it was a piece of a horse. Nobody could prove it was not.'];
+      return ['Ariston went back down to the harbour. From the quay the tomb looked smaller again, and the dead king a long way off, which is how kings ought to look.'];
+    } },
+  kos: { name: 'The sanctuary of Asklepios', icon: 'snake', tell: 'the sacred snakes of Kos', hook: 'The healing god’s sanctuary on the hill, where the sacred snakes live.',
+    text: s => ['Up the hill behind the town, among cypress trees, was the sanctuary of Asklepios, where sick people came from all over the world to be cured. The sacred snakes lived there too, and went where they liked. Nobody stepped on them, and nobody stepped over them either.',
+      'In a long hall the sick lay on pallets and slept, so that the god could come to them in a dream and tell them what to do. In the morning the priests explained the dreams, for a fee. Round the walls hung little clay arms and legs and eyes and ears, left by people the god had cured, to remind him which part he had done.',
+      'Mikkos had had a toothache since Rhodes, and had said so to everyone, many times.' + (s.crew.some(c => c.id === 'lykos') ? ' Lykos said he could pull it himself, for nothing. Mikkos said he would rather have a god.' : '')],
+    choices: () => [
+      { id: 'sleep', label: 'Let Mikkos sleep in the hall', hint: 'Three drachmas for the priests. The god may come, or he may not.', price: 3 },
+      { id: 'ear', label: 'Hang up a clay ear, for Glaukos', hint: 'A drachma. Glaukos has been deaf in one ear since a storm, and in the other when it suits him.', price: 1 },
+      { id: 'go', label: 'Go back down' }],
+    resolve(s, id) {
+      if (id === 'sleep') { gainRep(s, 'kos', 3); return ['Mikkos slept in the hall among the sick, with a snake asleep at the foot of his pallet. He dreamed of a man with a beard, who told him to stop eating figs out of the cargo.', 'In the morning the priests said that was exactly what the god would say, and pulled the tooth.']; }
+      if (id === 'ear') { gainRep(s, 'kos', 1); return ['They hung up a little clay ear for Glaukos, between a clay foot and a clay nose. That night, back aboard, Glaukos said he could hear better already, and complained about the snoring for the first time in years.']; }
+      return ['Ariston went back down to the harbour. Mikkos complained about his tooth all the way to the ship, and for some time after.'];
+    } },
+  miletus: { name: 'The straight streets', icon: 'grid', tell: 'a city where every street is straight', hook: 'A city laid out like a draughts board, where every corner looks like the last one.',
+    text: () => ['The Persians had burned Miletus two hundred years before. It had been built again by a Milesian called Hippodamus, who believed that streets should be straight. Every street in the new city ran north and south, or east and west, and crossed every other at a right angle, and every block of houses was the same size as every other.',
+      'Ariston went up from the harbour to see the theatre, and within an hour he was completely lost. Every corner looked like the last corner. Every fountain looked like the last fountain. He walked past the same baker three times, and the third time the baker waved.',
+      'A small boy sitting on a step offered to show him the way, for an obol.'],
+    choices: () => [
+      { id: 'boy', label: 'Pay the boy', hint: 'A drachma, since you have nothing smaller. He looks honest, for a boy.', price: 1 },
+      { id: 'self', label: 'Find your own way', hint: 'All the streets are straight. How hard can it be?' }],
+    resolve(s, id) {
+      if (id === 'self') return ['It took until dark. On the way Ariston learned the city better than most Milesians, which was no use to him at all, and in the end he found the harbour by the smell.'];
+      const wool = s.silver >= 6 ? stowAnywhere(s, 'wool') : null;
+      if (wool) { s.silver -= 6; s.stats.spent += 6; delete wool.stowed; }
+      return ['The boy led Ariston straight to the theatre, then to his uncle’s wine shop, then to his other uncle’s wool shed, and only then back to the harbour.',
+        wool ? 'The other uncle sold Ariston a bale of Milesian wool for six drachmas, for reasons of his own, and the boy carried it down to the quay for nothing, for reasons of his.'
+          : 'The other uncle wanted to sell him a bale of wool, very cheap, but Ariston had nowhere to put it, and the uncle was offended.'];
+    } },
+  delos: { name: 'The altar of horns', icon: 'altar', tell: 'an altar made of goats’ horns', hook: 'An altar made of goats’ horns, and a custom that every crew must keep.',
+    text: () => ['On Delos there was an altar made entirely of horns: the left horns of goats, fitted together so cleverly that no glue or nails were needed. Apollo had built it himself, the islanders said, when he was four years old. It was one of the wonders of the world, and the islanders mentioned this often.',
+      'There was a custom. No ship’s crew could leave Delos without running round the altar while the islanders beat them with sticks, and then kneeling, with their hands tied behind their backs, to bite the trunk of the sacred olive tree. Theseus had started it, on his way home from the labyrinth. Nobody knew why. Everybody did it.',
+      'Glaukos said that every ship that had skipped it in his lifetime had come to a bad end, and named several. Mikkos had already taken his belt off.'],
+    choices: () => [
+      { id: 'run', label: 'Run round the altar, all of you', hint: 'It is undignified, and it hurts. For the rest of the voyage, rough water breaks less of the fragile cargo.' },
+      { id: 'no', label: 'Refuse', hint: 'You are a Rhodian, not a goat.' }],
+    resolve(s, id) {
+      if (id === 'no') return ['Ariston said no. The islanders shrugged: it was his ship. Glaukos did not speak to him for the rest of the day, and spent the evening watching the sky, waiting for whatever was going to happen.'];
+      gainRep(s, 'delos', 3); s.flags.blessed = 'delos';
+      return ['They ran round the altar three times, with the islanders laughing and laying on with their sticks, and then knelt with their hands tied and bit the olive tree. Glaukos bit it twice, to be safe.',
+        'Afterwards everyone felt foolish and much better, and the crew swore that ' + shipName(s) + ' rode easier in the water. It was nonsense. Glaukos said the god would look after the cups now, all the same.'];
+    } },
+  piraeus: { name: 'The goddess on the rock', icon: 'acropolis', tell: 'Athena without her gold', hook: 'Up to Athens, to see the goddess in her temple on the Acropolis.',
+    text: () => ['Ariston walked up to Athens between the Long Walls, which had once joined the city to its harbour so that no enemy could cut the road. Now there were gaps in them, with goats in the gaps.',
+      'On the rock above the city stood the temple of Athena, white and painted, the most beautiful building in the world, the Athenians said, and for once they were not boasting. Inside, in the half dark, the goddess stood forty feet tall, with a face and arms of ivory.',
+      '“She was gold once,” said a priestess, “her robe, her helmet and her shield. Six years ago a man called Lachares made himself master of the city, and needed to pay his soldiers, and took the gold off her. He got away disguised as a slave, they say. She will remember him.”',
+      'Athena looked down at Ariston with her ivory face, and Ariston had the feeling that she was remembering him as well, in case it was ever needed.'],
+    choices: () => [
+      { id: 'give', label: 'Leave an offering, towards her gold', hint: 'Five drachmas. The Athenians will hear about it.', price: 5 },
+      { id: 'ask', label: 'Ask how Lachares got away', hint: 'Free. Priestesses like to be asked things.' }],
+    resolve(s, id) {
+      if (id === 'give') { gainRep(s, 'piraeus', 6); return ['The priestess wrote Ariston’s name on a tablet: a Rhodian who gave to Athena. By the time he was back in Piraeus the merchants on the quay had heard about it, and were a little more polite.']; }
+      return ['Lachares had escaped, the priestess said, by throwing gold coins behind him on the road, so that the horsemen chasing him kept stopping to pick them up.', 'Ariston thought about this all the way back to Piraeus. He decided that it was a very good story and a very bad plan, unless you happened to have a great deal of somebody else’s gold.'];
+    } },
+  corinth: { name: 'Acrocorinth', icon: 'spring', tell: 'the spring where Pegasus was caught', hook: 'The rock above the city, with both seas below it and a spring at the top.',
+    text: () => ['Above Corinth stood the rock they called Acrocorinth, steep on every side, with a wall round the top and the temple of Aphrodite on the summit. It took half the morning to climb. Mikkos ran most of the way up, and had to be helped the rest.',
+      'From the top you could see both seas at once: the Gulf to the west, bright as a knife, the Saronic sea to the east, and the paved road of the diolkos between them, with a ship crawling across it on rollers like a beetle carrying a leaf.',
+      'Near the top was a spring in a cave, called Peirene. Here, the Corinthians said, Bellerophon had caught the winged horse Pegasus while it was drinking, with a golden bridle that Athena gave him in a dream. The water was very cold, and tasted of iron and old stories.'],
+    choices: s => [
+      { id: 'incense', label: 'Burn incense for Aphrodite', need: 'incense', hint: needItem(s, 'incense') ? 'A bag of frankincense from the cargo. The goddess on the rock is fond of it, and so is Corinth.' : 'You have no frankincense with you.' },
+      { id: 'water', label: 'Fill a jar at Peirene, for Glaukos', hint: 'Free. Glaukos believes it cures everything, including old age.' }],
+    resolve(s, id) {
+      if (id === 'incense') { gainRep(s, 'corinth', 6); return ['Ariston burned a whole bag of frankincense on the goddess’s altar. The smoke went straight up, which the priestesses said was a very good sign, and the people who had climbed up to see the goddess turned round to see who was so rich.', 'The news went down the hill faster than Ariston did.']; }
+      return ['Glaukos drank the water of Peirene slowly, with his eyes shut, and said it was the best water he had ever tasted, and that he could feel it doing him good. The next day he was in a better temper than anyone could remember, which lasted until noon.'];
+    } },
+  corcyra: { name: 'The ship of stone', icon: 'stoneship', tell: 'a ship turned to stone', hook: 'A rock off the shore that was a ship once, until Poseidon lost his temper.',
+    text: () => ['Corcyra, the islanders said, was Scheria, the island of the Phaeacians, who brought Odysseus home at last in one of their ships, which steered themselves, and knew the way to every harbour, and never sank.',
+      'Poseidon was angry with them for helping Odysseus. As the ship came back into this harbour, he struck it with the flat of his hand and turned it to stone, oars and all, in front of the whole city. A fisherman rowed Ariston out to see it: a long, dark rock off the shore, shaped exactly like a ship, once you had been told it was a ship.',
+      'Glaukos stood in the bow of the fishing boat for a long time, looking at it. He said it was a warning to sailors not to do favours for people the sea did not like. Then he said that probably meant Ariston, and asked if there was any wine aboard.'],
+    choices: s => [
+      { id: 'pour', label: 'Pour a jar of wine to Poseidon', need: ['coanwine', 'wine'], hint: needItem(s, ['coanwine', 'wine']) ? 'An amphora from the cargo, into the sea. For the rest of the voyage, rough water breaks less of the fragile cargo.' : 'There is no wine aboard.' },
+      { id: 'back', label: 'Row back', hint: 'Poseidon has had plenty of wine from other people.' }],
+    resolve(s, id, used) {
+      if (id === 'back') return ['They rowed back. Glaukos did not look at the stone ship again, and did not look at Ariston either, until they were tied up at the quay.'];
+      s.flags.blessed = 'corcyra';
+      return ['They poured a whole amphora of ' + (used && used.g === 'coanwine' ? 'Coan wine' : 'Rhodian wine') + ' into the sea beside the stone ship, slowly, while Glaukos said the right words, and some others. The sea took it without comment.',
+        'Glaukos said that was a good sign. With Poseidon, he said, no answer was the best answer you could get.'];
+    } },
+  croton: { name: 'Hera on the cape', icon: 'cape', tell: 'an altar the wind will not touch', hook: 'The temple of Hera alone at the end of its cape, with a famous picture inside.',
+    text: () => ['The temple of Hera stood alone at the end of its cape, a few miles from the city, with nothing beyond it but sea all the way to Greece. In the grove round it the goddess’s cattle grazed without herdsmen. Nobody stole them. In Croton, nobody even thought about it.',
+      'Inside hung a picture of Helen of Troy, painted long ago by Zeuxis, the greatest painter of his day. The Crotoniates had asked him for the most beautiful woman who ever lived, so he asked to see the five most beautiful girls in the city, and took the eyes of one and the mouth of another, and so on, and made Helen out of all five.',
+      '“The altar outside is open to the sky,” said the temple keeper, “and the wind has never once blown the ashes off it.” A strong wind was blowing at the time. Ariston went out and looked. The ashes were where they should be.'],
+    choices: () => [
+      { id: 'give', label: 'Leave silver on the altar', hint: 'Five drachmas. Hera keeps her promises, and likes people who keep theirs.', price: 5 },
+      { id: 'ask', label: 'Ask what became of the five girls', hint: 'Free.' }],
+    resolve(s, id) {
+      if (id === 'give') { gainRep(s, 'croton', 5); return ['Ariston left five drachmas on the altar, beside the ashes, and the wind did not touch those either. On the way back the crew agreed that it was a very well-behaved wind, for Italy.']; }
+      return ['The keeper said the girl with the eyes had married a wrestler, the girl with the mouth had married a philosopher, and the other three had married sensibly.' + (s.crew.some(c => c.id === 'milon') ? ' Milon said the wrestler had been his great-grandfather, and that he had the eyes to prove it. Nobody looked closely.' : ' All five were long dead, he said, and their great-granddaughters still argued about who had had the nose.')];
+    } },
+  taras: { name: 'The Zeus of Lysippos', icon: 'zeus', tell: 'a god you can move with one hand', hook: 'The biggest statue in the world, for now.',
+    text: () => ['In the market place of Taras stood a bronze Zeus forty cubits tall, made by Lysippos, the only sculptor Alexander would allow to make his portrait. Until Rhodes finished its god, it was the biggest statue in the world. The Tarentines did not want to hear about Rhodes.',
+      '“It is balanced so cleverly,” a Tarentine told Ariston, “that a man can move it with one hand. But no storm has ever shaken it.” He pointed to a stone column standing a little way off, on the side the winds came from, to break them.',
+      'Ariston knew something the Tarentine did not: that the man who was making the god of Rhodes had learned his trade in the workshop of Lysippos, and had come here as a young man to look at this statue, and had thought: one day.'],
+    choices: () => [
+      { id: 'push', label: 'Push the god with one hand', hint: 'Everyone wants to. Hardly anyone does.' },
+      { id: 'measure', label: 'Measure his foot, for Aristokles', hint: 'The statue works in Rhodes would like to know how big Lysippos made him.' }],
+    resolve(s, id) {
+      if (id === 'push') {
+        const fine = Math.min(s.silver, 2); s.silver -= fine; s.stats.spent += fine;
+        return ['Ariston put his hand on the bronze and pushed. Very slowly, the god moved, a finger’s breadth, no more, and came back.', 'Several Tarentines saw it, and so did a magistrate, who fined Ariston two drachmas for pushing Zeus. Ariston paid gladly. Very few men have pushed a god and been charged so little.'];
+      }
+      s.flags.lysippos = true;
+      return ['Mikkos lay down beside the god’s foot to show how big it was, while Ariston measured it with a knotted cord and wrote the numbers on a wax tablet. The Tarentines watched him the way people watch a man counting their money.', 'Aristokles would want to see that tablet.'];
+    } },
+  kydonia: { name: 'The temple of Diktynna', icon: 'net', tell: 'the temple dogs of Diktynna', hook: 'The temple of the Cretan goddess of nets, guarded by dogs fiercer than bears.',
+    text: () => ['West of Kydonia, on a cape above the sea, was the temple of Diktynna, the Cretan goddess of nets. When she was a girl, King Minos chased her over the mountains of Crete for nine months, until she threw herself off a cliff into the sea. Some fishermen caught her in their nets, and she became a goddess, out of gratitude or embarrassment.',
+      'The temple was rich. Pirates gave to it, and so did the men the pirates robbed, to be on the safe side. At night it was guarded by dogs that the Cretans said were fiercer than bears.',
+      'At the door a priestess was selling little nets made of lead, to tie to the bow of a ship. If anyone aboard was going to be lost, she said, the goddess would catch him, the way the fishermen had caught her.'],
+    choices: () => [
+      { id: 'net', label: 'Buy a little net for the bow', hint: 'Three drachmas. The next man who would have died of his wounds on this voyage lives instead.', price: 3 },
+      { id: 'dog', label: 'Make friends with one of the dogs', hint: 'Free, in a manner of speaking.' }],
+    resolve(s, id) {
+      if (id === 'net') { s.flags.net = true; gainRep(s, 'kydonia', 2); return ['Ariston bought a little lead net, and Glaukos tied it to the stem post himself, with a knot he said his grandfather had used, which the goddess would recognise.']; }
+      return ['Ariston held out his hand to the nearest dog. It looked at him for a long time, the way a temple guard looks at a merchant, and then decided he was not worth eating.' + (s.items.some(i => i.g === 'hound') ? ' Perhaps it could smell the Molossian on him.' : '')];
+    } },
+  syracuse: { name: 'The stone quarries', icon: 'quarry', tell: 'a quarry where poetry saved men’s lives', hook: 'The quarries where the Athenians were kept, and where poetry got some of them out.',
+    text: () => ['Outside the walls of Syracuse were the stone quarries: great pits cut down into the rock, deeper than a temple is tall, with gardens growing in the bottom now, and caves in the sides.',
+      'A hundred and twenty years before, when the Athenians came to take Syracuse and lost their whole army instead, the Syracusans had kept seven thousand prisoners down there, in the sun by day and the cold by night, for months.',
+      '“Some of them got out,” said an old woman selling figs at the edge. “The ones who knew Euripides. The Syracusans could never get enough of Euripides, so any Athenian who could say his plays by heart was given bread and water, and sometimes his freedom. They went home and thanked the poet.”'],
+    choices: () => [
+      { id: 'recite', label: 'Ask Glaukos to recite something', hint: 'Glaukos knows one poem by heart. It is not by Euripides.' },
+      { id: 'coin', label: 'Throw a coin down, for the Athenians who knew no poetry', hint: 'A drachma.', price: 1 }],
+    resolve(s, id) {
+      if (id === 'coin') { gainRep(s, 'syracuse', 2); return ['Ariston threw a coin down into the quarry, for the Athenians who had not known any Euripides. It took a long time to land.', 'The old woman watched him do it, and told the people at the next stall, and they told the people at the stall after that.']; }
+      const figs = stowAnywhere(s, 'figs');
+      if (figs) delete figs.stowed;
+      return ['Glaukos stood at the edge and recited, in a loud voice, the only poem he knew, which was about a girl from Lindos and a goat. The quarry sent it back up word for word, twice.',
+        figs ? 'The old woman laughed until she had to sit down, and gave them a basket of figs for nothing. She said it was the first new poem she had heard down there in years.' : 'The old woman laughed until she had to sit down, and tried to give them a basket of figs, but there was nowhere aboard to put it.'];
+    } },
+  paphos: { name: 'The goddess’s rock', icon: 'rock', tell: 'the rock where Aphrodite came ashore', hook: 'The rock in the sea where Aphrodite came ashore, if you ask a Cypriot.',
+    text: () => ['Along the coast from Paphos, where the white cliffs come down to the sea, a great rock stands in the surf. Here, the Cypriots say, Aphrodite came up out of the foam and walked ashore, and flowers grew where she stepped.',
+      'Glaukos said that the people of Kythera said the same about a rock of theirs, and that he had seen both, and that this one was better. He said it quietly, in case anyone from Kythera was listening.',
+      'At sunset the young people of the town swam out round the rock, because anyone who swam round it three times would be beautiful for ever. The old people of the town watched from the beach, and did not look as if it had worked.'],
+    choices: () => [
+      { id: 'swim', label: 'Let Mikkos swim round the rock', hint: 'He has already taken his tunic off.' },
+      { id: 'flowers', label: 'Leave flowers for the goddess', hint: 'A drachma, to a girl selling them on the beach.', price: 1 }],
+    resolve(s, id) {
+      if (id === 'swim') return ['Mikkos swam round the rock three times, and came out blue with cold, and asked whether he looked any different. Everyone said he did. For the rest of the day he kept looking at himself in the water jars.'];
+      gainRep(s, 'paphos', 3);
+      return ['Ariston bought a handful of flowers from a girl on the beach and threw them into the foam beside the rock. The girl said the goddess would remember. Then she went off up the beach to pick some more for the next ship.'];
+    } },
+  kition: { name: 'The merchant’s house', icon: 'house', tell: 'the house where a philosopher grew up', hook: 'An ordinary house by the harbour, where a merchant’s son grew up reading.',
+    text: s => ['A Kitian merchant showed Ariston a house near the harbour, no different from the houses round it. “Mnaseas lived there,” he said. “A merchant, like you. He traded to Athens, and every time he came home he brought his son books, because the boy liked books.”',
+      '“The boy grew up and went to Athens himself, with a cargo of purple, and was shipwrecked on the way and lost all of it. He went into a bookshop in Athens to forget about it, and never came home. Now he stands about in a colonnade there, telling people that losing things does not matter.” The merchant shrugged. “His father would have had something to say about that.”',
+      s.seen.talked_zeno ? 'Ariston remembered a thin, sunburnt man in Piraeus, talking about a lost cargo of purple as if it had been the best voyage of his life. He told the merchant that he had met the son.'
+        : 'Ariston said that he had been to Piraeus once, and might have walked right past him.'],
+    choices: () => [
+      { id: 'drink', label: 'Buy the merchant a cup of wine', hint: 'A drachma. He looks as if he has a great deal more to say.', price: 1 },
+      { id: 'ask', label: 'Ask what the son teaches', hint: 'Free.' }],
+    resolve(s, id) {
+      if (id === 'drink') { gainRep(s, 'kition', 4); return ['The merchant drank to Zeno, the son, and to Zeno’s father, and then to Ariston’s father, whom he had never met, and then to fathers in general. He said that if Ariston ever needed anything in Kition, he should ask for him by name. Then he told Ariston his name, several times.']; }
+      return ['As far as the merchant understood it, the son taught that a wise man is free even in chains, and rich even with nothing, and happy even in Kition. “It is easy to say,” said the merchant, “from Athens.”'];
+    } },
+  sidon: { name: 'The gardener’s tomb', icon: 'coffin', tell: 'the tomb of a gardener king', hook: 'The tomb of a gardener whom Alexander made a king.',
+    text: () => ['Outside Sidon, in the royal tombs cut into the hill, lay a king who had been a gardener. When Alexander took the city he wanted a king for it who was honest, and the only honest man of the old royal family anyone could find was a poor gardener called Abdalonymos. When they came to tell him, he was watering his vegetables.',
+      '“He asked them to wait until he had finished,” said the old man who kept the tombs. “Then he washed, and they put the purple on him, and he was king for twenty years, and a good one. Alexander asked him how he had borne being poor. He held up his hands and said: these were enough for everything I wanted, and I wanted nothing.”',
+      'His coffin was of white marble, carved all round with Alexander hunting lions and fighting Persians, and painted so brightly that the horses seemed about to step out of the stone.',
+      'Half the families in Sidon said they were descended from him, the old man said, including the glassmaker on the quay, who had been named after him as well, in case it helped.'],
+    choices: () => [
+      { id: 'rue', label: 'Leave a sprig from his garden on the tomb', hint: 'A drachma. The old man still grows vegetables by the tombs, in the king’s memory, and sells a little rue.', price: 1 },
+      { id: 'ask', label: 'Ask the old man the secret of a good garden', hint: 'Free.' }],
+    resolve(s, id) {
+      if (id === 'rue') { gainRep(s, 'sidon', 4); return ['Ariston laid a sprig of rue on the gardener’s tomb. The old man nodded, as if that were the right price for a king, and told King Ptolemy’s officer on the quay, who wrote it down. In Sidon everything was written down.']; }
+      return ['The old man said the secret of a good garden was water every day, and to expect nothing from kings. Then he said the second part was the secret of a good life as well, and went back to his onions.'];
+    } },
+  tyre: { name: 'The dog and the purple', icon: 'shell', tell: 'the dog that found purple', hook: 'The dye works on the shore, and the story of how purple was found.',
+    text: () => ['South of the city, along the shore, were the dye works: vats and fires and heaps of broken shells as high as houses, and a smell that the Tyrians said you stopped noticing after twenty years. The sea snails were cracked open, a single drop of colour taken from each, and the rest thrown on the heap.',
+      '“Melqart found the purple,” said a dyer, “the god you Greeks call Herakles. He was walking along this beach with a girl he liked, and his dog, and the dog bit a snail and came up with its mouth all purple. The girl said she would not marry him until he gave her a dress that colour. So he did, and here we all are.” He waved at the vats, the smoke and the shells. “All because of a dog.”',
+      'Mikkos wanted to know what had happened to the dog.'],
+    choices: () => [
+      { id: 'drink', label: 'Buy the dyer a drink', hint: 'A drachma. He works for Abibaal at the dye works, and he looks thirsty.', price: 1 },
+      { id: 'dog', label: 'Ask what happened to the dog', hint: 'Mikkos will not let it go.' }],
+    resolve(s, id) {
+      if (id === 'dog') return ['The dyer said the dog had been made a god as well, in a small way, and that the shell it bit was on the coins of Tyre to this day. He showed Mikkos a coin. There was a shell on it, and something that might have been a dog, if you wanted it to be.'];
+      if (s.visit) s.visit.deal.murex = (s.visit.deal.murex || 1) * 1.12;
+      return ['The dyer drank, and said the city was full of soldiers who drank and did not pay, and that Ariston was a gentleman.', 'He said he would have a word with Abibaal, and that Abibaal would make Ariston a better price on purple today, so long as Ariston did not tell anyone why.'];
+    } },
+  alexandria: { name: 'The Museum', icon: 'scroll', tell: 'the Museum', hook: 'The house of the Muses, where the king keeps scholars like birds in a cage.',
+    text: () => ['Behind the palaces was the Museum, the house of the Muses: gardens and walks and a dining hall, where the king kept scholars from all over the world at his own expense, to read, and write, and argue. They were not allowed to leave. They did not seem to want to.',
+      'In the gardens a young man with ink on his fingers and a schoolmaster’s cloak fell into step beside Ariston. He was from Cyrene, he said, and taught letters to children in the suburbs, and in his spare time he was writing a book: a collection of all the wonders of the world, place by place.',
+      '“You are a sailor,” he said. “You have seen places. I have seen Cyrene, and this. Tell me what you have seen, and I will put it in the book.” He took out a tablet, and waited.'],
+    choices: s => {
+      const n = sightsSeen(s);
+      return [n ? { id: 'tell', label: 'Tell him about the places you have seen', hint: cap(num(n)) + (n > 1 ? ' places' : ' place') + ' worth telling. He pays ' + SIGHT_PAY + ' dr for each wonder, out of the king’s money for books.' }
+        : { id: 'tell', label: 'Tell him you have mostly seen the inside of a ship', hint: 'It is true. You never stopped to look.' },
+        { id: 'read', label: 'Ask him to read you what he has so far', hint: 'Free. He has been waiting all day for someone to ask.' }];
+    },
+    resolve(s, id) {
+      if (id === 'read') return ['He read Ariston a list: a spring in Libya that runs hot at midnight and cold at noon, a lake beyond Phoenicia where nothing will sink, a river that stops flowing on the seventh day. Ariston said he had never seen any of those. The young man said that nobody had, which was what made them wonders.'];
+      const seen = Object.keys(s.sights).filter(p => p !== 'alexandria'), n = seen.length;
+      if (!n) return ['The young man wrote down “the inside of a ship”, looked at it, and rubbed it out. He said Ariston should come back when he had seen something, and that he would still be here, because nobody ever let him go anywhere.'];
+      const pay = SIGHT_PAY * n, told = seen.slice(0, 3).map(p => SIGHTS[p].tell);
+      s.silver += pay; s.stats.earned += pay; gainRep(s, 'alexandria', 3);
+      return ['Ariston told him about ' + andList(n > 3 ? told.concat([(n - 3 > 12 ? 'thirteen' : num(n - 3)) + ' more besides']) : told) + '. The young man wrote it all down, very fast, in a very small hand, and asked questions until the lamps were lit.',
+        'Then he paid Ariston ' + pay + ' drachmas out of the money the king gave him for books, and said he would put every word of it in his book, and leave out Ariston’s name, because a book of wonders should not have a merchant in it.']
+        .concat(n >= 12 ? ['At the gate he stopped, and said that Ariston had seen more of the world than anyone he had met in Alexandria, including the scholars, who had read about all of it and seen none.'] : []);
+    } },
+};
+// See the sight in this port, and choose.
+// See the sight in this port, or go out after dark, and choose. Each place is visited once in the whole game.
+function visitPlace(s, kind, id) {
+  const port = s.port, night = kind === 'night', G = (night ? NIGHTS : SIGHTS)[port], book = night ? s.nights : s.sights;
+  if (s.phase !== 'port' || !G) return fail('Not here.');
+  if (s.pending) return fail('Not now.');
+  if (book[port]) return fail('You have been.');
+  const c = G.choices(s).find(x => x.id === id);
+  if (!c) return fail('Not now.');
+  if (c.price && s.silver < c.price) return fail('You need ' + c.price + ' dr.');
+  const used = c.need ? needItem(s, c.need) : null;
+  if (c.need && !used) return fail('You have none with you.');
+  if (c.price) { s.silver -= c.price; s.stats.spent += c.price; }
+  if (used) removeItem(s, used);
+  book[port] = { ch: s.ch, pick: id };
+  const lines = G.resolve(s, id, used) || [];
+  say(s, G.name + ': ' + c.label + '.', 'choice');
+  for (const l of lines) say(s, l, 'told');
+  return { ok: true, lines };
+}
+const seeSight = (s, id) => visitPlace(s, 'sight', id);
+const goOut = (s, id) => visitPlace(s, 'night', id);
+const nightsOut = s => Object.keys(s.nights || {}).length;
+
+// ---------- after dark: somewhere to go in every port, once in the whole game ----------
+// A wine shop, a dinner, a game, a show: a short story, a choice, and sometimes an errand for the next port.
+const earnDr = (s, n) => { s.silver += n; s.stats.earned += n; };
+const fineDr = (s, n) => { n = Math.min(s.silver, n); s.silver -= n; s.stats.spent += n; return n; };   // as much of it as he has
+const sweeten = (s, mid, k) => { if (s.visit) s.visit.deal[mid] = (s.visit.deal[mid] || 1) * k; };   // a better price from one merchant, this visit
+// The dice in the wine shops are their own: a night out does not change the weather, or the pirates, or anything else to come.
+const luck = (s, key) => { let h = 2166136261; for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619); return rnd({ seed: (s.seed ^ h ^ s.ch) | 0 }); };
+const nextPort = s => { const r = !s.home && routeFrom(s); return r && ROUTES[r] ? ROUTES[r].to : null; };   // where this ship goes from here
+// The sailing days still to come before home, either way at the fork. The stars can see them, and so can some dreams.
+function daysAhead(s) {
+  const C = chapter(s), days = new Set();
+  const walk = (port, f, n) => {
+    const L = C.legs[port], id = typeof L === 'function' ? L({ flags: f }) : L, R = ROUTES[id];
+    if (!R || n > 6) return;
+    R.days.forEach(d => days.add(d));
+    const ways = C.fork && C.fork.route === id ? Object.values(C.choices).map(k => ROUTES[k]) : [R];
+    for (const A of ways) {
+      if (A !== R) A.days.forEach(d => days.add(d));
+      if (A.to !== 'rhodes') walk(A.to, Object.assign({}, f, { ['reached_' + A.to]: true }), n + 1);
+    }
+  };
+  if (!s.home) walk(s.port, Object.assign({}, s.flags), 0);
+  return [...days];
+}
+const PERILS = { pirates: 'men in long ships who are not your friends', becalmed: 'a sea as flat as a plate, with no wind in it', warship: 'a king’s ship that wants something from you',
+  blockade: 'ships drawn up across the mouth of a harbour', campanians: 'trouble from the men you carry', flotsam: 'something floating that belongs to nobody', survivors: 'men in the water, calling out',
+  landfall: 'a coast so low that you cannot see it', squall: 'a great wind', storm3: 'a great wind', malea: 'a great wind', storm6: 'a great wind', storm7: 'a great wind', storm9: 'a great wind', storm9h: 'a great wind' };
+function perilsAhead(s) {
+  const out = [];
+  for (const d of daysAhead(s)) for (const E of DAYS[d].events || []) {
+    const ev = EVENTS[E[1]], what = PERILS[E[1]];
+    if (!what || (E[2] && !s.flags[E[2]]) || (ev.when && !ev.when(s)) || out.includes(what)) continue;
+    out.push(what);
+  }
+  return out;
+}
+// Old Kleoboulos's guest-friends, one in every harbour, forty years ago.
+const FRIEND = { halic: 'Pigres', kos: 'Nikomedes', miletus: 'Hekataios', delos: 'Mnesimachos', piraeus: 'Kephalos', corinth: 'Lykophron', corcyra: 'Nausikles', croton: 'Alkimos', taras: 'Dikon',
+  kydonia: 'Eumaridas', syracuse: 'Theodoros', paphos: 'Onasagoras', kition: 'Abdmelqart', sidon: 'Abdashtart', tyre: 'Gerashtart', alexandria: 'Hermias' };
+const champion = s => alive(s, 'neoptolemos') ? { name: 'Neoptolemos', odds: 0.9, hint: 'He has been throwing spears since he could walk. A discus, he says, is only a spear that has given up.' }
+  : alive(s, 'pamphilos') ? { name: 'Pamphilos', odds: 0.65, hint: 'The strongest man aboard. He says very little, and throws things a long way.' } : null;
+const NIGHTS = {
+  rhodes: { name: 'The wine shop by the ship sheds', icon: 'cup', hook: 'Where the old sailors of Rhodes sit all evening over one cup each.',
+    text: s => {
+      const to = nextPort(s);
+      return ['Down by the ship sheds, where the war galleys of Rhodes are pulled up out of the water when there is no war, there is a wine shop without a name. It does not need one. Every sailor in Rhodes can find it in the dark, and most of them have had to.',
+        'The old men sit there all evening over one cup each, telling each other how much harder the sea was when they were young. One of them, a little bald man called Kleoboulos, had sailed with Ariston’s father. He said so as soon as Ariston came in, and bought him a cup, and the other old men said they had never seen him buy anybody anything.',
+        to ? '“I had a friend in every harbour, when I was young,” he said, and emptied a leather bag onto the table: halves of broken knucklebones, half a clay token, half a ring. “When guest-friends part, they break something in two, and each keeps a half, so that their grandsons will know each other. You are going to ' + PORTS[to].name + '. I had a friend in ' + PORTS[to].name + '.”'
+          : '“So,” said Kleoboulos. “Where did you go, what did it cost, and was it worth it?” Then he answered all three questions himself, from his own experience, while the other old men nodded.'];
+    },
+    choices: s => [
+      nextPort(s) && { id: 'token', label: 'Carry his half-knucklebone to ' + PORTS[nextPort(s)].name, hint: 'His friend’s family should have the other half, if there is still a family. An errand, not a trade.' },
+      { id: 'round', label: 'Buy the old men a round', hint: 'Three drachmas. They will talk about it on the quay for a month.', price: 3 },
+      { id: 'listen', label: 'Sit and listen', hint: 'Free, and it goes on for some time.' }].filter(Boolean),
+    resolve(s, id) {
+      if (id === 'token') {
+        const to = startErrand(s, 'token');
+        return ['Kleoboulos put the half-knucklebone in Ariston’s hand and closed his fingers over it. “His name was ' + (FRIEND[to] || 'Aristeas') + ',” he said. “If the house is still standing, they will know what this is.”',
+          'Ariston tied it into the corner of his cloak, where his father used to keep things.'];
+      }
+      if (id === 'round') { gainRep(s, 'rhodes', 3); return ['Ariston bought the old men a round. They drank to his father, and to his ship, and to the god, and then to the wine shop, and after that they forgot what they were drinking to and drank anyway.', 'By the next morning half the harbour knew that Damon’s son stood his round.']; }
+      return ['The old men told Ariston about a sea serpent off Cape Malea, a winter when the harbour froze, and a storm that blew a ship from Crete to Egypt in a single night with its anchor still down. Kleoboulos said he had been on that ship.',
+        'Glaukos, at the next table, said he had been on it too. The two old men looked at each other for a long time, and then agreed that it had been a terrible night.'];
+    } },
+  halic: { name: 'The knucklebone players', icon: 'bones', hook: 'A wine shop under the theatre, where sailors throw knucklebones for silver.',
+    text: () => ['Under the seats of the theatre, where the hill had been cut away, there was a wine shop full of sailors and lamp smoke. At a table at the back, men were throwing knucklebones for silver.',
+      'The best throw was the Aphrodite, when the four bones all land on different sides. The worst was the Dog, when all four show a one. A Carian with a ring on every finger was throwing Aphrodites, one after another, and taking everybody’s silver. The goddess loved him, he said. He said it every time.',
+      'Glaukos had been watching the bones for some time, with his head on one side, the way he watched the sky.'],
+    choices: () => [
+      { id: 'play', label: 'Play the Carian', hint: 'Five drachmas a throw. Win, and he pays you back double. He is very lucky.', price: 5 },
+      { id: 'look', label: 'Let Glaukos look at the bones', hint: 'He says they land too tidily for bones.' },
+      { id: 'drink', label: 'Drink your wine and keep out of it', hint: 'Free. Halicarnassus is not your city.' }],
+    resolve(s, id) {
+      if (id === 'play') {
+        if (luck(s, 'halic') < 0.2) { earnDr(s, 10); return ['Ariston threw an Aphrodite at the first try. The Carian threw a Dog, and stared at his bones as if they had betrayed him, and paid Ariston ten drachmas without a word.', 'Glaukos said afterwards that the goddess must have been looking the other way, and that nobody should try it twice.']; }
+        return ['Ariston threw a Dog. The Carian threw an Aphrodite. The goddess loved him, he said, and swept the five drachmas into his lap with the rest.'];
+      }
+      if (id === 'look') {
+        earnDr(s, 6); gainRep(s, 'halic', 4);
+        return ['Glaukos picked up one of the Carian’s bones, weighed it on his palm, and scraped at it with his knife. Somebody had drilled a hole in it, poured in lead, and smoothed it over, so that it always fell the same way.',
+          'The Carian left in a hurry, without his rings, and the men he had robbed shared out his silver. They gave Ariston six drachmas for the loan of his helmsman, and the wine shop gave Glaukos a cup for nothing, which he said was the first honest throw of the night.'];
+      }
+      return ['Ariston drank his wine and kept out of it. Later there was shouting, and a bench went over, and the Carian went out of the door a great deal faster than he had come in. Glaukos said he had seen it coming. He probably had.'];
+    } },
+  kos: { name: 'A wedding in a borrowed dress', icon: 'wreath', hook: 'A Coan wedding, where the bridegroom wears a dress, for reasons that go back to Herakles.',
+    text: s => {
+      const to = nextPort(s);
+      return ['There was a wedding in the street behind the harbour, with torches and flutes and half the neighbourhood, and the bride’s father, who sold rope, wanted a ship’s captain at the feast for luck. Ariston was the only one he could find who was sober.',
+        'When the bridegroom came to fetch his bride, he was wearing a woman’s dress, with a band in his hair. Nobody laughed. On Kos, the rope seller explained, every bridegroom does it, because Herakles was once shipwrecked here, and had to run from the islanders, and hid from them in a woman’s clothes. Later he came back and married a Coan girl, and the Coans have dressed their bridegrooms like that ever since, to be on the safe side.',
+        to ? 'The bride had a brother who rowed in a ship at ' + PORTS[to].name + ', and had missed the whole thing. She was cutting him a piece of the wedding cake, sesame and honey, and looking round for somebody going that way.'
+          : 'The bride’s brother had come home from the ships for the wedding, and was telling everyone that the dress was nothing, compared with what they did in other places.'];
+    },
+    choices: s => [
+      nextPort(s) && { id: 'cake', label: 'Carry the cake to her brother in ' + PORTS[nextPort(s)].name, hint: 'Mikkos says he will guard it with his life. That is what worries you.' },
+      { id: 'gift', label: 'Give the couple a wedding gift', hint: 'Three drachmas. A ship’s captain at a wedding is expected to.', price: 3 },
+      { id: 'dance', label: 'Dance with the bridegroom’s uncles', hint: 'Free. Everybody does. It goes on until the torches burn down.' }].filter(Boolean),
+    resolve(s, id) {
+      if (id === 'cake') { startErrand(s, 'cake'); return ['The bride wrapped the cake in a cloth, and then in another cloth, and gave it to Ariston with a look that said she knew about ships’ boys.', 'Mikkos carried it back to the ship in both hands, like a priest carrying something holy, and slept with it.']; }
+      if (id === 'gift') { gainRep(s, 'kos', 4); return ['Ariston gave the couple three drachmas, which the rope seller announced to the whole street as five.', 'For the rest of their stay the rope seller’s cousins, who were most of the harbour, called Ariston “the captain”, and found him the best of everything.']; }
+      return ['Ariston danced with the bridegroom’s uncles, who were enormous, and with the bridegroom, who kept tripping over his dress. Glaukos danced with nobody, and told everyone that Herakles had never been to Kos in his life.', 'Nobody listened. They were Coans, and it was their story.'];
+    } },
+  miletus: { name: 'The house with the painted door', icon: 'pipes', hook: 'A lady’s house, where the guests are expected to be clever, and some of them are.',
+    text: () => ['Miletus has given the world many things: wool, couches, cities all round the Black Sea, and the cleverest women in Greece. Pericles of Athens took one of them into his house, and never won an argument at home again.',
+      'In a house with a painted door near the theatre, a lady who called herself Thargelia, after a famous Milesian of long ago, kept up the old custom. Men came to dinner, and lay on her couches, and listened to her flute girls, and talked. If they talked well, they were asked back. If they talked badly, they were not, however much silver they brought.',
+      'After dinner she turned to the young Rhodian at the end of the couch and asked him a riddle, as she asked every new guest. “What is the strongest thing in the world?” The other guests smiled into their cups. They had all been asked it once.'],
+    choices: () => [
+      { id: 'wine', label: '“Wine”', hint: 'A sailor’s answer. It has the advantage of being true.' },
+      { id: 'need', label: '“Necessity, which rules everything”', hint: 'The answer of Thales, who was a Milesian. They are very proud of him here.' },
+      { id: 'debt', label: '“Debt”', hint: 'Your own answer, from experience.' }],
+    resolve(s, id) {
+      if (id === 'wine') return ['The guests cheered, and drank to wine, and Thargelia smiled the smile of a woman who has heard that answer from every sailor in the Aegean. Ariston was not asked back. He had a very good dinner, all the same.'];
+      if (id === 'need') { gainRep(s, 'miletus', 2); return ['Thargelia said that Thales had said that, and that it had been a very good answer, nearly three hundred years ago. The guests clapped politely. Ariston felt like a boy who has said his lesson.']; }
+      gainRep(s, 'miletus', 5); sweeten(s, 'glykera', 1.1);
+      return ['There was a silence, and then Thargelia laughed out loud, which the guests said she never did. “Debt,” she said. “It moves ships, and armies, and kings. Thales never owed anybody anything, and it shows.”',
+        'She asked Ariston back for the next night, and introduced him to Glykera, who buys for the rich houses of Miletus, and told her to give the Rhodian a fair price, for once.'];
+    } },
+  delos: { name: 'The cookshop by the sacred lake', icon: 'figs', hook: 'A cookshop on an island where nobody is allowed to die.',
+    text: () => ['Nobody is allowed to be born on Delos, or to die there. The island belongs to Apollo, and the god will have neither kind of mess on it. People who are about to do either are rowed across the strait to Rheneia, the next island, which is not so particular.',
+      'In a cookshop by the sacred lake, Mikkos ate a whole basket of dried figs, very fast, while nobody was watching. An hour later he was lying on the floor, holding his stomach, and telling everyone that he was dying.',
+      'Glaukos went white. If the boy died on Delos, he said, the whole island would be polluted, and the god would know whose ship he came off, and that would be the end of all of them. The cook said that if anyone was going to die, they could do it outside.'],
+    choices: () => [
+      { id: 'row', label: 'Row Mikkos across to Rheneia', hint: 'Two drachmas to a boatman, in the dark. It is the law.', price: 2 },
+      { id: 'priest', label: 'Fetch a priest of Apollo', hint: 'Free, but priests are busy men, and Delos is full of them.' },
+      { id: 'salt', label: 'Give him a cup of seawater', hint: 'Glaukos says it will either cure him or finish him.' }],
+    resolve(s, id) {
+      if (id === 'row') { gainRep(s, 'delos', 3); return ['The boatman was a bald man from Mykonos. All Mykonians are bald, people say, and this one did nothing to spoil the saying. Halfway across the strait, Mikkos sat up in the boat and said he felt much better, and was there anything to eat. The boatman rowed them back again, and charged for both ways.', 'The islanders heard about it and approved. It is not every foreign captain who keeps the god’s rules for a ship’s boy with a stomach ache.']; }
+      if (id === 'priest') { gainRep(s, 'delos', 1); return ['The priest came, and looked at Mikkos, and asked what he had eaten, and laughed so hard that he had to hold on to the doorpost. He said that the god had seen a great many deaths prevented on Delos, but never one by figs.', 'By morning Mikkos was better, and the story was all over the island.']; }
+      return ['Mikkos drank the seawater, and went outside very quickly, and came back a little later looking much better and asking for figs. Glaukos sulked for the rest of the evening. The island had been in great danger, he said, and nobody had taken it seriously except him.'];
+    } },
+  piraeus: { name: 'The quail ring', icon: 'quail', hook: 'A wine shop where Athenians bet on quails, and on the people who tap them.',
+    text: () => ['In a wine shop near the ship sheds, the sailors of Piraeus were playing the Athenian game of quails. It is very simple. A fighting quail stands in a ring chalked on a board. You tap it on the head with your finger. If it backs out of the ring, you win. If it stands its ground, its owner wins.',
+      'The champion of Piraeus was a fat brown quail called Themistokles, after the admiral who beat the Persians. It had stood its ground forty times, and its owner, a fishmonger, had made a great deal of money out of it. He had forgotten, or never knew, that the real Themistokles ended his days in Persia, eating the Great King’s bread.',
+      'Mikkos had been staring at the quail since they came in. The quail had been staring back.'],
+    choices: () => [
+      { id: 'tap', label: 'Tap Themistokles yourself', hint: 'A drachma a tap. If he backs out of the ring, the fishmonger pays five.', price: 1 },
+      { id: 'mikkos', label: 'Let Mikkos tap him', hint: 'Free. Mikkos says he has a way with birds.' },
+      { id: 'watch', label: 'Just watch', hint: 'Free. Athenians will bet on anything, including what you do next.' }],
+    resolve(s, id) {
+      if (id === 'tap') {
+        if (luck(s, 'piraeus') < 0.3) { earnDr(s, 5); gainRep(s, 'piraeus', 2); return ['Ariston tapped the quail on the head. Themistokles looked at him, thought about Persia, and stepped backwards out of the ring.', 'The wine shop went silent. The fishmonger paid five drachmas, very slowly. Several Athenians bought Ariston a drink, because they had bet against that quail for years and never once won.']; }
+        return ['Ariston tapped the quail on the head. Themistokles did not move. Ariston tapped harder. Themistokles pecked him, and stood exactly where he was, and the fishmonger put the drachma in his cheek for safekeeping, the way Athenians do.'];
+      }
+      if (id === 'mikkos') { gainRep(s, 'piraeus', 2); return ['Mikkos crouched down, looked the quail in the eye, and tapped it on the head. The quail pecked him on the nose. Mikkos tapped it again. The quail pecked him again. Neither of them would give way, and in the end the whole wine shop was cheering for both of them.', 'The fishmonger said that the boy had the heart of a fighting quail, and offered to buy him. Ariston said no. Mikkos seemed almost sorry.']; }
+      return ['Ariston watched. A sailor from Aegina tapped the quail and lost. A potter tapped it and lost. A very old man tapped it, and lost, and said he had tapped Themistokles’s grandfather when the fishmonger was a boy, and lost then as well.'];
+    } },
+  corinth: { name: 'The house on the Lechaion road', icon: 'lamp', hook: 'Not every man can afford the voyage to Corinth, the saying goes. This is why.',
+    text: () => ['All over Greece there is a saying: not every man can afford the voyage to Corinth. It is not about the haulers on the diolkos, though they are dear enough. It is about the houses on the road up from the harbour at Lechaion, where the most expensive women in Greece play the harp, and talk about poetry, and send sea captains home with empty purses and no very clear idea of where the money went.',
+      'The grandest of these houses was the house of Lais. There had been a famous Lais in Corinth a hundred years before, and another after her. The present Lais said she was the granddaughter of both. So did most of the women on the road.',
+      'Mikkos was sent back to the ship, protesting. At the door a very large porter told Ariston the price of an evening, and waited to see what his face would do.'],
+    choices: s => [
+      { id: 'pay', label: 'Pay for an evening', hint: 'Twenty drachmas, for dinner, music and conversation. Mostly conversation, says the porter, without smiling.', price: 20 },
+      { id: 'laugh', label: 'Let Glaukos try to make her laugh', hint: 'People say Lais lets in anyone who can make her laugh at the door. Glaukos has a story about a goat.' },
+      { id: 'scent', label: 'Send in a gift of perfume', need: ['scent', 'kyprinon'], hint: needItem(s, ['scent', 'kyprinon']) ? 'A box of perfume from the cargo. The ladies of Corinth are said to be fond of it.' : 'You have no perfume with you.' },
+      { id: 'price', label: 'Hear the price, and go away again', hint: 'Free. It is what most men do.' }],
+    resolve(s, id, used) {
+      if (id === 'price') return ['Ariston heard the price, and said what Demosthenes of Athens said when he heard Lais’s price, long ago: that he would not pay so much for something he was sure to regret. Then he walked back down to the harbour.', 'Halfway down he started laughing, and could not stop. Glaukos said it was the cheapest night anyone had ever spent in Corinth.'];
+      if (id === 'laugh' && luck(s, 'corinth') < 0.5) return ['Glaukos told the porter his story about the girl from Lindos and the goat. The porter went inside to tell Lais. A long time passed. Then the porter came back, without a smile, and shut the door.', 'Glaukos said that Corinthians had no sense of humour, and that the goat was the best part.'];
+      gainRep(s, 'corinth', 4); sweeten(s, 'hedyle', 1.12);
+      const to = startErrand(s, 'debt');
+      return [id === 'pay' ? 'Ariston paid the twenty drachmas, and went in.' : id === 'laugh' ? 'Glaukos told the porter his story about the girl from Lindos and the goat. From somewhere inside the house came a shriek of laughter, and the porter opened the door, looking pained.' : 'Ariston sent in a box of ' + GOODS[used.g].of + '. The porter came back almost at once, and opened the door wide.',
+        'Lais played the harp, and talked about Sappho, and asked Ariston what grain was fetching in Rhodes, and listened to the answer, which no woman had ever done before. By the end of the evening he had told her every price he knew, and she had told him more than he knew, including that Hedyle, who buys for the temple on the rock, was paying over the odds this week.',
+        'As he left, she gave him a letter. A captain had sailed for ' + PORTS[to].name + ' owing her thirty drachmas, she said, and Rhodians were known to be honest, or at least known to be persistent.'];
+    } },
+  corcyra: { name: 'The feast on the beach', icon: 'discus', hook: 'Torches, dancing and games on the sand, the way the Phaeacians did it.',
+    text: () => ['The people of Corcyra say they are descended from the Phaeacians, who in Homer love feasting, and music, and dancing, and warm baths, and changes of clothes, and their beds, and are not much interested in anything else. Anyone who has spent an evening in Corcyra believes it.',
+      'After dark there was a feast on the beach below the town, with torches, and dancing, and young men throwing a ball high in the air and leaping to catch it, the way the Phaeacians did when Odysseus was their guest.',
+      'Then a young man remembered the rest of the story, and told it, looking at Ariston: how a Phaeacian had said to Odysseus that he looked like the captain of a trading ship, thinking only of his cargo and his profits, and no athlete at all. They brought out a discus, and waited.'],
+    choices: s => { const c = champion(s); return [
+      { id: 'throw', label: 'Throw it yourself', hint: 'You are the captain of a trading ship. That is what they are counting on.' },
+      c && { id: 'champ', label: 'Let ' + c.name + ' throw for the ship', hint: c.hint },
+      { id: 'dance', label: 'Laugh, and join the dancing instead', hint: 'Free. The Phaeacians would approve.' }].filter(Boolean); },
+    resolve(s, id) {
+      if (id === 'dance') { gainRep(s, 'corcyra', 2); return ['Ariston laughed, and said that the young man was quite right, and joined the dancing. The Corcyraeans liked that better than any discus. They danced until the torches burned down, and then lit more, and danced until those burned down too.']; }
+      const c = id === 'champ' && champion(s), who = c ? c.name : 'Ariston';
+      if (luck(s, 'corcyra') >= (c ? c.odds : 0.3)) { gainRep(s, 'corcyra', 1); return [c ? c.name + ' threw the discus a very long way, and a young Corcyraean threw it a little further, and everybody cheered, both times.' : 'Ariston threw the discus quite a respectable distance, for the captain of a trading ship. The young Corcyraeans threw it a great deal further, very kindly, one after another.', 'Nobody seemed to mind. On Corcyra, losing at games after dinner is only another kind of entertainment.']; }
+      gainRep(s, 'corcyra', 6);
+      const w = stowAnywhere(s, 'wine'); if (w) delete w.stowed;
+      return [(c ? c.name + ' picked up the discus, weighed it in his hand, and threw it' : 'Ariston picked up the discus, thought about Odysseus, and threw it') + ' out beyond the torches, over all the marks, into the dark, where they heard it land in the sea.',
+        'There was a silence, and then the beach went mad. They gave ' + who + ' a garland and ' + (w ? 'a jar of wine' : 'a great deal to drink') + ', and the young man who had started it came over and said, with great dignity, that he had been wrong about trading ships.'];
+    } },
+  croton: { name: 'The wrestlers’ wine shop', icon: 'roast', hook: 'Where the wrestlers of Croton eat, which is a sight in itself.',
+    text: s => ['Croton is proud of its athletes, and prouder still of what its athletes eat. Every child in the city knows that the great Milon once ate a whole bull in a day, and every young wrestler in the city has tried to do the same, with smaller animals.',
+      'In a wine shop by the harbour a young wrestler was eating his way through a whole roast kid, for a bet, with half the waterfront watching. He had eaten most of it, and was resting.',
+      'Mikkos watched him with an expression Ariston had seen before, on Mikkos, in front of food. “I could beat him,” said Mikkos, much too loudly. The Crotoniates roared with laughter, and somebody began offering odds.' + (alive(s, 'milon') ? ' Milon, who had come along to watch, said he would put his money on the boy.' : '')],
+    choices: () => [
+      { id: 'bet', label: 'Back Mikkos, at three to one', hint: 'Five drachmas. Mikkos is half the wrestler’s size. He has also never in his life been full.', price: 5 },
+      { id: 'try', label: 'Let him try, but bet nothing', hint: 'Free. He is going to try anyway.' },
+      { id: 'stop', label: 'Take Mikkos back to the ship', hint: 'He will never forgive you.' }],
+    resolve(s, id) {
+      if (id === 'stop') return ['Ariston took Mikkos back to the ship by the ear. Mikkos did not speak to him until the next morning, and then only to ask what was for breakfast.'];
+      if (id === 'bet' && luck(s, 'croton') < 0.4) { earnDr(s, 20); gainRep(s, 'croton', 3); return ['Mikkos ate steadily, without hurry, the way the tide comes in. The wrestler watched him with growing alarm, took one more mouthful, and had to go outside. Mikkos finished the kid, and the bread, and asked if there were any figs.', 'The Crotoniates paid up, laughing, twenty drachmas, and carried Mikkos round the wine shop on their shoulders, which was a mistake, considering what was inside him.']; }
+      gainRep(s, 'croton', 2);
+      return ['Mikkos ate more than anyone would have thought possible for his size, and then a little more, and then went quiet, and then pale, and had to be carried back to the ship. The wrestler finished his kid, and the Crotoniates cheered them both.', id === 'bet' ? 'Ariston paid his five drachmas, and said it had been worth every obol. It had.' : 'Nobody had lost any money, which in Croton made it a very friendly evening.'];
+    } },
+  taras: { name: 'The farce in the market place', icon: 'mask', hook: 'Actors with enormous noses, by torchlight, making fun of the gods.',
+    text: () => ['It was a festival of Dionysus, and the whole of Taras was drunk, as Plato once complained. In the market place a company of actors had put up a wooden stage on posts, with a curtain behind and torches in front.',
+      'The actors wore masks with enormous noses, and their costumes were padded so that every one of them had a huge belly and a huge behind. They were doing the story of Zeus and Alkmene. Zeus, who was very fat, was trying to climb a ladder to Alkmene’s window, while Hermes held up a lamp and gave him advice. The ladder kept breaking. The Tarentines were crying with laughter.',
+      'Then the ladder broke for the last time, and Zeus turned round to the audience and asked whether there was a sailor in the house who knew how to tie a knot.'],
+    choices: () => [
+      { id: 'knot', label: 'Climb up and mend the ladder', hint: 'In front of the whole of Taras. That is rather the point.' },
+      { id: 'glaukos', label: 'Push Glaukos forward', hint: 'He knows more knots than any man alive, and will tell the actors so.' },
+      { id: 'watch', label: 'Stay where you are and laugh', hint: 'Free. Somebody else will go.' }],
+    resolve(s, id) {
+      if (id === 'knot') { gainRep(s, 'taras', 5); return ['Ariston climbed up and lashed the ladder together with a sailor’s knot, while Zeus leaned on him and Hermes held the lamp much too close to his hair. When it was done, Zeus went up the ladder in triumph and fell off the top, and the crowd screamed.', 'For the rest of their stay, Tarentines in the street called Ariston “Hermes”, and wanted to buy him drinks, and some of them wanted to buy his cargo.']; }
+      if (id === 'glaukos') {
+        const vase = stowAnywhere(s, 'krater'); if (vase) delete vase.stowed;
+        gainRep(s, 'taras', 2);
+        return ['Glaukos climbed onto the stage, took the ladder away from Zeus, and mended it with a knot his grandfather had used, explaining every turn of it to the audience. Then he would not get off. He told Zeus how to climb a ladder, and Hermes how to hold a lamp, and in the end the actors made him part of the play, as Alkmene’s old nurse, which the crowd thought was the best thing they had seen in years.',
+          vase ? 'Afterwards the company’s painter, who painted their scenery at night and vases in the daytime, gave Ariston a tall Apulian vase with the whole scene on it: Zeus, the ladder, and an old man in the corner who was clearly Glaukos.' : 'Afterwards the company’s painter wanted to give Ariston a vase with the whole scene painted on it, but there was nowhere aboard to put it.'];
+      }
+      return ['Ariston stayed where he was. A Tarentine butcher went up and mended the ladder, badly, so that Zeus fell off it twice more before the end, which everyone agreed was an improvement on the story.'];
+    } },
+  kydonia: { name: 'The liars’ table', icon: 'krater', hook: 'A tavern where the Cretans hold a contest in the thing Cretans are famous for.',
+    text: () => ['Everyone knows that all Cretans are liars. A Cretan said so. In a tavern near the harbour of Kydonia they have made it into a contest. Every man who wants to play puts a drachma in the bowl and tells a story, and the table votes on whether it is true. If they get it wrong, he takes the bowl.',
+      'Nobody had taken the bowl for some time. A sponge diver had just told the table that he had been swallowed by a fish and spat out again at Kythera, and been voted a liar without discussion. The bowl was full.',
+      'They looked at the Rhodians. Glaukos was sitting up very straight.'],
+    choices: () => [
+      { id: 'lie', label: 'Tell them a splendid lie', hint: 'A drachma in the bowl. You have heard Glaukos tell a few.', price: 1 },
+      { id: 'true', label: 'Tell them something true', hint: 'A drachma in the bowl. Tell them about the god of Rhodes, standing in his hill of earth.', price: 1 },
+      { id: 'liar', label: 'Say, “I am lying now”', hint: 'A drachma in the bowl. A philosopher in Miletus would be proud of you.', price: 1 }],
+    resolve(s, id) {
+      if (id === 'lie') return ['Ariston told them that he had once sold a Cretan a horse. The table voted him a liar before he had finished. An old man explained, kindly, that Cretans had been listening to lies for a thousand years, and could hear one coming from the other side of the island.'];
+      if (id === 'true') { gainRep(s, 'kydonia', 2); return ['Ariston told them about the bronze god of Rhodes, seventy cubits tall, cast ring by ring inside a hill of earth. The table voted, and decided that it was true, because nobody, they said, would bother to make up anything as silly as that.', 'He did not win the bowl. But they bought him a drink for honesty, which they said they did not see very often.']; }
+      earnDr(s, 9); gainRep(s, 'kydonia', 3);
+      return ['There was a silence. Then the table began to argue. If he was lying, he was telling the truth. If he was telling the truth, he was lying. They argued until the lamps went out, and then in the dark, and then, a little before dawn, to make it stop, they gave Ariston the bowl.', 'There were nine drachmas in it. The old man said that Ariston was the first man to beat the liars of Kydonia in his lifetime, and that he must have some Cretan in him somewhere.'];
+    } },
+  syracuse: { name: 'The house that went to sea', icon: 'oar', hook: 'A rich young man’s dinner, where the guests are drinking their wine unmixed.',
+    text: () => ['Along the coast at Akragas they tell a story about a house called the Trireme. Some young men drank there so much and so long that they came to believe the house was a ship in a storm, and to lighten her they threw all the furniture out of the windows. When the magistrates came in the morning, the young men greeted them as gods of the sea, and thanked them for the rescue.',
+      'In Syracuse Ariston found out that it was not only a story. A rich young man whose father was away had asked the Rhodian captain to dinner, and the guests were drinking their wine neat, like Scythians. Somewhere about midnight one of them noticed that the floor was moving.',
+      '“She’s taking water!” he cried, and threw a cushion out of the window. Somebody else threw a stool. Then they all looked at the only real sailor in the room, and waited for orders.'],
+    choices: () => [
+      { id: 'helm', label: 'Take the steering oar, and bring her into harbour', hint: 'A broom will do. Order them all to lie down on the deck and keep still.' },
+      { id: 'sell', label: 'Slip out, and sell what lands in the street', hint: 'A great deal of good furniture is coming out of that window.' },
+      { id: 'join', label: 'Order them to throw out the couches as well', hint: 'She will ride lighter. You are a sailor, and you would know.' }],
+    resolve(s, id) {
+      if (id === 'helm') { gainRep(s, 'syracuse', 4); sweeten(s, 'damarete', 1.12); return ['Ariston took a broom for a steering oar, and shouted the orders Glaukos shouts in a storm, and one by one the young men lay down flat on the floor as he told them, to keep the ship steady. In a few minutes they were all asleep. The house was saved.', 'In the morning the young man’s mother came home and found her furniture still inside. She was Damarete, who buys for one of the richest houses in Syracuse, and she said she would remember the Rhodian.']; }
+      if (id === 'sell') { earnDr(s, 8); gainRep(s, 'syracuse', -3); return ['Ariston slipped out and stood in the street, and sold a stool, two cushions and a very fine lamp stand to people passing by, for eight drachmas, before the watch came.', 'Word got round, as it does. For the rest of their stay certain people in Syracuse looked at Ariston as if they were counting their spoons.']; }
+      const bill = fineDr(s, 5);
+      return ['Ariston gave the order. Out of the window went the couches, then the tables, then a bronze lamp, and the ship rode wonderfully light. They sang sea songs until dawn, and Glaukos, who had come to fetch Ariston, joined in.', 'In the morning there was a magistrate, and a list, and Ariston paid ' + (bill ? bill + ' drachmas towards the couches' : 'nothing, because he had nothing') + '. He said it was the best storm he had ever been in. It was certainly the driest.'];
+    } },
+  paphos: { name: 'The musicians’ house', icon: 'harp', hook: 'Flute girls and a harp player, rehearsing for a wedding, and looking for a ship.',
+    text: s => ['In a house above the harbour lived a company of musicians: three flute girls, a harp player called Glyke, and an old drummer who was her father and kept the money. They played at dinners and weddings and funerals all over Cyprus, and that evening they were practising for a wedding and a funeral at once, and kept getting the songs mixed up.',
+      'The wedding was in ' + PORTS[nextPort(s)].name + '. The ship they had meant to sail on had gone without them, and the drummer was looking at Ariston the way a man looks at a ship.',
+      '“We bring our own food,” he said. “We sit where we are put. And the girls can play the stroke for your rowers better than any piper in the king’s fleet.”'],
+    choices: s => [
+      { id: 'free', label: 'Carry them to ' + PORTS[nextPort(s)].name + ' for nothing', hint: 'Glaukos says music at sea angers the gods. Glaukos says that about most things.' },
+      { id: 'fare', label: 'Carry them for a fare', hint: 'Eight drachmas. The drummer will pay it as if each one were a tooth.' },
+      { id: 'no', label: 'Refuse', hint: 'You have no room for musicians. You can hear one practising already.' }],
+    resolve(s, id) {
+      if (id === 'no') return ['Ariston said no, as kindly as he could. The musicians found a fishing boat in the end, and as Ariston went back down to the quay he heard them making up a song about a Rhodian with no ear for music. It was very catchy.'];
+      if (id === 'fare') earnDr(s, 8);
+      startErrand(s, 'music', null, { paid: id === 'fare' });
+      return ['The musicians came aboard with a harp, a drum, three sets of pipes, a basket of bread, and a great deal of advice about where they should sit.', id === 'fare' ? 'The drummer counted eight drachmas into Ariston’s hand very slowly, as if each one were a tooth.' : 'The drummer said that Ariston was a gentleman, and that his daughter would play for him on the way, whether he liked it or not.'];
+    } },
+  kition: { name: 'The Chaldean', icon: 'stars', hook: 'A Babylonian above a dyer’s shop, who reads the stars for sailors.',
+    text: () => ['In a room above a dyer’s shop near the harbour, a Chaldean from Babylon read the stars for sailors. He had a table covered in signs, a bronze sky that turned on a pin, and a beard that reached his belt.',
+      'In Babylon, he said, the priests had watched the sky every night for longer than there had been Greeks, and written down on clay what the stars did, and what happened afterwards. So now they knew which stars meant storms, and which meant kings dying, and which meant the price of copper going up.',
+      'For two drachmas he would tell Ariston what the stars said about the voyage home. Glaukos said the stars said whatever you paid them to say. The Chaldean said that was true of helmsmen.'],
+    choices: () => [
+      { id: 'stars', label: 'Have the stars read for the voyage home', hint: 'Two drachmas. He looks very sure of himself.', price: 2 },
+      { id: 'trade', label: 'Ask what the stars say about trade', hint: 'Free, he says. The stars are generous about trade.' },
+      { id: 'glaukos', label: 'Ask him to read Glaukos’s stars', hint: 'Free. He has been looking at Glaukos since you came in.' }],
+    resolve(s, id) {
+      if (id === 'glaukos') return ['The Chaldean asked Glaukos the day and the hour of his birth. Glaukos knew neither. The Chaldean looked at him for a long time, and said that it did not matter, because a man like that could only have been born under the sign of the Goat. Glaukos was pleased. Nobody told him why.'];
+      if (id === 'trade') { sweeten(s, 'hanno', 1.1); return ['The Chaldean turned his bronze sky round twice, and said that Hanno the merchant, on the quay, was born under a generous star, and that the star was rising tonight.', 'Ariston asked how he knew. The Chaldean said that Hanno was his landlord.']; }
+      const ahead = perilsAhead(s);
+      return ['The Chaldean turned his bronze sky round, and counted on his fingers, and looked at the real sky through the window for a long time.',
+        ahead.length ? 'Then he said that between here and home the stars showed ' + andList(ahead) + '. He said it calmly, the way a man reads out a list of cargo. Glaukos made the sign against bad luck, twice.'
+          : 'Then he said that between here and home the stars showed nothing at all but sea, and a ship on it, going home. Glaukos said that was the most expensive way of saying nothing he had ever heard. He looked relieved, all the same.'];
+    } },
+  sidon: { name: 'The banquet of the marzeah', icon: 'bowl', hook: 'A Phoenician drinking club, where the god is the guest of honour.',
+    text: s => ['In Phoenicia, men who can afford it belong to a marzeah: a club that meets to feast in honour of a god, with a president, and rules, and fines for anyone who breaks a cup. Batnoam the merchant belonged to the best marzeah in Sidon, and brought Ariston as his guest.',
+      'They drank from silver bowls, lying on couches inlaid with ivory, under a lamp shaped like a ship. Ariston did not understand the songs, or the jokes, or what the president said before every bowl, but he understood that a guest was expected to bring something for the god’s table.',
+      nextPort(s) === 'tyre' ? 'Late in the evening a man in a good cloak, who had not been introduced, sat down beside him and asked, in very good Greek, whether it was true that he was sailing for Tyre.'
+        : 'Late in the evening the president himself came over, and asked Ariston, in very good Greek, what the Greeks thought of Sidonian wine. He did not seem to want an answer.'],
+    choices: s => [
+      { id: 'wine', label: 'Bring an amphora of wine for the god’s table', need: ['wine', 'coanwine'], hint: needItem(s, ['wine', 'coanwine']) ? 'From the cargo. Batnoam will see that everyone knows whose it was.' : 'You have no wine with you.' },
+      nextPort(s) === 'tyre' && { id: 'letter', label: 'Carry a letter to Tyre for the man in the good cloak', hint: 'Sealed. He pays ten drachmas now, and does not say what is in it.' },
+      { id: 'drink', label: 'Drink with them, and bring nothing', hint: 'Free. Batnoam will be embarrassed, and say it does not matter.' }].filter(Boolean),
+    resolve(s, id, used) {
+      if (id === 'wine') { gainRep(s, 'sidon', 6); sweeten(s, 'sidonian', 1.1); return ['Ariston’s amphora of ' + GOODS[used.g].of + ' went on the god’s table, with Batnoam telling everyone in Phoenician whose it was. The president drank from it first, and pronounced it, through an interpreter, almost as good as the wine of Byblos, which from a Sidonian was a great deal.', 'Batnoam was so pleased with his guest that he said he would talk to Ariston about prices in the morning, as a friend.']; }
+      if (id === 'letter') { earnDr(s, 10); startErrand(s, 'letter'); return ['The man counted out ten drachmas, and gave Ariston a small folded letter, sealed with a seal Ariston did not know. It was for a priest in the temple of Melqart at Tyre, he said, about an old debt.', 'Then he got up and left before Ariston could ask anything else, and nobody at the banquet would say who he was. Batnoam looked worried, and said it was better not to know.']; }
+      return ['Ariston drank with them and brought nothing. Batnoam said it did not matter, several times, in the voice of a man to whom it mattered. The president made a little speech about guests, in Phoenician, which everyone but Ariston seemed to enjoy.'];
+    } },
+  tyre: { name: 'The soldiers’ wine shop', icon: 'helmet', hook: 'Where the garrison drinks, downwind of the dye works, because it is cheaper there.',
+    text: () => ['The soldiers of the garrison drank in a wine shop near the gate, downwind of the dye works, where the rent was low and the smell was very high. They had not been paid for some time. Demetrius, whose soldiers they were, was busy losing a kingdom somewhere far away.',
+      'A Macedonian with a broken nose sat down beside Ariston, uninvited, and put a bundle on the table. Inside was a bolt of cloth dyed twice in Tyrian purple, the colour kings wear, worth three times what he was about to ask for it.',
+      '“Twenty drachmas,” he said, very quietly. “It is mine. I won it.” He did not say from whom, or at what. Across the room, two other soldiers were watching to see what the Rhodian would do.'],
+    choices: () => [
+      { id: 'buy', label: 'Buy it, and ask no questions', hint: 'Twenty drachmas for a bolt of Tyrian purple. It is probably stolen. It is certainly cheap.', price: 20 },
+      { id: 'dice', label: 'Offer to dice him for it instead', hint: 'Three drachmas against the cloth, one throw. Soldiers like that kind of thing.', price: 3 },
+      { id: 'no', label: 'Tell him no, and buy him a drink', hint: 'A drachma. He looks as if he needs the drink more than the silver.', price: 1 }],
+    resolve(s, id) {
+      if (id === 'no') { gainRep(s, 'tyre', 2); return ['The Macedonian drank the wine, and wrapped up his purple again, and said that Ariston was an honest man, and that it would do him no good in Tyre. Then he went to try the next table.']; }
+      if (id === 'dice' && luck(s, 'tyre') >= 0.25) return ['They threw once. The Macedonian threw an Aphrodite, and laughed, and took Ariston’s three drachmas, and went off to try the same thing on somebody else. Glaukos said he had seen the bones, and that they were Carian bones, if Ariston knew what he meant.'];
+      const it = stowAnywhere(s, 'tyrian');
+      if (!it) { earnDr(s, id === 'buy' ? 20 : 3); return ['The deal was done. Then Ariston remembered that there was not a square of room left aboard for a bolt of cloth, and had to give it back. The soldier gave him his silver back too, in the end.']; }
+      delete it.stowed; it.hot = true; startErrand(s, 'hot');
+      return [id === 'buy' ? 'Ariston paid the twenty drachmas. The purple went under his cloak, and the Macedonian went out into the night, whistling.' : 'They threw once. Ariston threw an Aphrodite. The Macedonian stared at the bones for a long time, and then pushed the cloth across the table, and went out into the night without a word.',
+        'Back at the ship, Glaukos looked at the purple and said that it was the colour kings wear, and that kings would want it back.'];
+    } },
+  alexandria: { name: 'The dream reader', icon: 'goat', hook: 'A booth by the shrine of Serapis, with a sign more honest than it means to be.',
+    text: () => ['By the shrine of Serapis, the god King Ptolemy had found for Egyptians and Greeks to share, there was a row of booths where men read dreams. Over one of them hung a painted sign: I READ DREAMS, BY ORDER OF THE GOD. GOOD LUCK. THE READER IS A CRETAN.',
+      'Glaukos stopped in front of it as if he had been looking for it all his life. The night before, in the harbour, he had dreamed of a goat. It was standing in the stern of the ship, holding the steering oar in its teeth, and it would not give it back.',
+      'The Cretan, a cheerful man with ink on his fingers, said he could read that dream two ways: the ordinary way, for a drachma, or the thorough way, for five, which came with an amulet.'],
+    choices: () => [
+      { id: 'cheap', label: 'The ordinary reading', hint: 'A drachma. Glaukos wants to know.', price: 1 },
+      { id: 'dear', label: 'The thorough reading, with an amulet', hint: 'Five drachmas. For the voyage home, rough water breaks less of the fragile cargo, if Glaukos believes in it. He will.', price: 5 },
+      { id: 'self', label: 'Read the dream yourself', hint: 'Free. You have known Glaukos all your life, and goats for most of it.' }],
+    resolve(s, id) {
+      if (id === 'self') return ['Ariston said that a goat in the stern meant that Glaukos had been eating too much cheese. The Cretan said that was also what he would have said, for a drachma.', 'Glaukos did not speak to either of them all the way back to the ship.'];
+      if (id === 'cheap') return ['The Cretan said that a goat at the steering oar meant that someone aboard was not steering as well as he thought he was. Glaukos asked for his drachma back. The Cretan said that the god did not give refunds.'];
+      const ahead = perilsAhead(s);
+      s.flags.blessed = 'alexandria';
+      return ['The Cretan burned some incense, and looked into a bowl of water, and talked to the god for some time in what might have been Egyptian. Then he said that the goat was the sea, and the oar was Glaukos’s skill, and that the sea would try to take it from him and fail.' + (ahead.length ? ' Between here and Rhodes, he said, there would be ' + andList(ahead) + ', and Glaukos would bring them through.' : ' Between here and Rhodes, he said, there would be nothing worse than weather.'),
+        'He tied a little blue amulet in the shape of an eye round Glaukos’s wrist. Glaukos said the fragile cargo would be safe now, and walked back to the ship as if he had grown a hand taller.'];
+    } },
+};
+
+// ---------- errands: something to carry, or somebody to find, in the next port ----------
+// Taken on after dark, done on arrival: a short scene with a choice, in the event sheet. They last one voyage.
+function startErrand(s, id, to, extra) {
+  to = to || nextPort(s) || 'rhodes';
+  s.errands[id] = Object.assign({ ch: s.ch, from: s.port, to }, extra || {});
+  return to;
+}
+const errandsFor = (s, port) => Object.keys(s.errands).filter(id => !s.errands[id].done && s.errands[id].ch === s.ch && s.errands[id].to === port);
+const errandsOpen = s => Object.keys(s.errands).filter(id => !s.errands[id].done && s.errands[id].ch === s.ch);
+const errandNote = (s, id) => ERRANDS[id].note(s.errands[id]);
+function errandsArrive(s, port) { const due = errandsFor(s, port); if (due.length && !s.pending) s.pending = 'errand_' + due[0]; }
+function errandEvent(id) {
+  const R = ERRANDS[id], E = s => s.errands[id];
+  return { title: R.title, text: s => R.text(s, E(s)), choices: s => R.choices(s, E(s)),
+    resolve(s, c) {
+      const e = E(s); e.done = c;
+      const lines = R.resolve(s, c, e) || [];
+      const next = errandsFor(s, s.port)[0];
+      if (next && !s.pending) s.pending = 'errand_' + next;   // another errand here, straight after
+      return lines;
+    } };
+}
+const ERRANDS = {
+  token: { title: 'The other half', note: e => 'Kleoboulos’s half-knucklebone, for his old friend’s family in ' + PORTS[e.to].name,
+    text: s => ['In ' + PORTS[s.port].name + ' Ariston went up from the quay to ask for the house of ' + (FRIEND[s.port] || 'Aristeas') + ', who had been guest-friend to a Rhodian sailor called Kleoboulos forty years before.',
+      'It took most of the afternoon. In the end an old woman came to a door, listened, went away, and came back with a little wooden box. In the box was half a knucklebone, worn smooth by somebody’s thumb. Ariston put his half beside it. They fitted.',
+      '“My father always said a Rhodian would come,” she said. “He said it so often that we stopped listening.” She went to fetch something to give him, because that is what you do.'],
+    choices: () => [
+      { id: 'gift', label: 'Accept her gift', hint: 'Ten drachmas, tied up in a cloth. It would be rude to refuse.' },
+      { id: 'word', label: 'Ask her to send word to Kleoboulos instead', hint: 'You can carry it home to him. It will do him more good than the silver will do you.' }],
+    resolve(s, c) {
+      gainRep(s, s.port, 3);
+      if (c === 'gift') { earnDr(s, 10); return ['Ariston took the ten drachmas, because it would have been rude not to. She kept both halves of the knucklebone, in case her grandsons ever needed them, and walked him back to the quay herself.']; }
+      startErrand(s, 'tablet', 'rhodes');
+      return ['She could not write, but her grandson could, and did, in large careful letters, everything she wanted Kleoboulos to know: who had married whom, who had died, and that the fig tree he had planted in their yard was still alive, and still gave too many figs.', 'It took two wax tablets. Ariston promised to put them into the old man’s hands himself.'];
+    } },
+  tablet: { title: 'A letter for Kleoboulos', note: e => 'two wax tablets from ' + PORTS[e.from].name + ', for old Kleoboulos in the wine shop by the ship sheds',
+    text: (s, e) => ['Kleoboulos was in the wine shop by the ship sheds, in the same seat, with what might have been the same cup. Ariston gave him the tablets from ' + PORTS[e.from].name + '.',
+      'The old man could not read either. He made Ariston read them out, twice, in front of everybody. When Ariston came to the fig tree, Kleoboulos had to stop him, and wipe his eyes, and say it was the smoke from the lamps. The lamps were not lit yet.'],
+    choices: () => [
+      { id: 'cup', label: 'Let him buy you a cup', hint: 'He insists. It will be the second time in living memory.' },
+      { id: 'keep', label: 'Tell him to keep his silver', hint: 'He has less of it than he pretends.' }],
+    resolve(s, c) {
+      gainRep(s, 'rhodes', 5);
+      return c === 'cup' ? ['Kleoboulos bought Ariston a cup, and then, after some thought, another. The other old men said it was the end of the world, and drank to it.']
+        : ['Kleoboulos put his silver away, slowly, and said that Damon’s son had his father’s manners, which was more than Damon had ever had. By the next day the whole harbour had heard about the fig tree.'];
+    } },
+  cake: { title: 'A piece of wedding cake', note: e => 'a piece of wedding cake for the bride’s brother, a rower in ' + PORTS[e.to].name,
+    text: s => ['Ariston found the bride’s brother on the quay at ' + PORTS[s.port].name + ', mending an oar. He was a big young man with his sister’s nose.',
+      'Mikkos brought out the cake. It was still in both its cloths. There was also, it turned out, a good deal less of it than there had been: a neat strip was missing all round the edge, as if something small had nibbled at it in the night, very carefully, so that from the top it would look untouched.'],
+    choices: () => [
+      { id: 'give', label: 'Hand it over and say nothing', hint: 'It is still mostly cake.' },
+      { id: 'tell', label: 'Tell him the truth about Mikkos', hint: 'Mikkos has gone very quiet.' }],
+    resolve(s, c) {
+      if (c === 'give') { earnDr(s, 3); gainRep(s, s.port, 2); return ['The rower ate the cake there and then, all of it, and said it was smaller than he remembered his sister’s cakes being. He gave Ariston three drachmas for the trouble, and gave Mikkos a long look.']; }
+      gainRep(s, s.port, 5);
+      return ['The rower laughed until he had to sit down on his oar. Then he gave Mikkos the last piece, since he had started it, and told the story up and down the quay, so that for the rest of their stay sailors kept stopping Mikkos to ask him whether he was hungry.', 'Everyone was friendlier afterwards. Sailors like a captain who owns up for his crew.'];
+    } },
+  debt: { title: 'Thirty drachmas for Lais', note: e => 'a letter from Lais of Corinth, for a captain in ' + PORTS[e.to].name + ' who owes her thirty drachmas',
+    text: s => ['The captain who owed Lais money was easy to find in ' + PORTS[s.port].name + '. He was the large man in the new cloak, shouting at his crew. Ariston gave him the letter from Corinth.',
+      'He read it, and went red, and then white, and then red again. Then he looked round to see who was listening. Several people were.'],
+    choices: () => [
+      { id: 'loud', label: 'Ask for the thirty drachmas, loudly', hint: 'Lais said you could keep ten for your trouble. The rest go back to Corinth with the bankers.' },
+      { id: 'quiet', label: 'Take him aside, and let him pay what he can', hint: 'He has a wife in this town, he says. He says it several times.' }],
+    resolve(s, c) {
+      if (c === 'loud') { earnDr(s, 10); return ['The captain paid all thirty, very fast, to make Ariston stop talking. Ariston kept ten, and sent twenty back to Corinth through the bankers, with a note. The quay enjoyed it enormously.', 'The captain did not. He said things about Rhodians for the rest of the day, but quietly.']; }
+      earnDr(s, 5); gainRep(s, s.port, 5);
+      return ['The captain paid twenty, which was all he had on him, and swore by every god he knew that the rest would follow. Ariston kept five, sent fifteen to Corinth, and kept his mouth shut, which in a harbour is worth more than silver.', 'By evening, somehow, half the merchants on the quay knew that the Rhodian could keep a secret. Nobody would say how they knew.'];
+    } },
+  music: { title: 'The wedding', note: e => 'three flute girls, a harp player and a drummer, for a wedding in ' + PORTS[e.to].name,
+    text: (s, e) => [PORTS[s.port].name + ' at last. All the way from ' + PORTS[e.from].name + ' the flute girls had played the stroke for the rowers, and Glaukos had complained the whole way. Music at sea, he said, was asking for trouble. The sea had not seemed to mind.',
+      'The bride’s family were waiting on the quay in a state, because the wedding was that night and they had given up hope of any musicians. They wanted Ariston at the feast as well, as the man who had saved it.'],
+    choices: () => [
+      { id: 'feast', label: 'Go to the wedding', hint: 'You can hardly refuse.' },
+      { id: 'ship', label: 'Send them off with your blessing, and stay with the ship', hint: 'A wedding means a great deal of wine, and you have cargo to sell.' }],
+    resolve(s, c, e) {
+      const tip = e.paid ? 0 : 6;
+      if (tip) earnDr(s, tip);
+      gainRep(s, s.port, c === 'feast' ? 5 : 2);
+      return c === 'feast' ? ['The wedding was very loud and very long, and the music was the best anyone in ' + PORTS[s.port].name + ' could remember. Every so often the harp player stopped the song to point out the Rhodian who had brought them, and everybody drank to him.' + (tip ? ' At the end the bride’s father pressed ' + num(tip) + ' drachmas on him, and would not hear a word.' : '')]
+        : ['The musicians went off up the quay playing, with the bride’s family dancing round them, and Ariston heard the wedding from the ship half the night.' + (tip ? ' In the morning the drummer came down with ' + num(tip) + ' drachmas from the bride’s father, and a cake.' : ' In the morning the drummer came down with a piece of the cake.')];
+    } },
+  letter: { title: 'The sealed letter', note: () => 'a sealed letter from Sidon, for a priest of Melqart in Tyre',
+    text: () => ['At the gate of Tyre the soldiers of the garrison were searching everyone who came off a ship from Sidon. Sidon was King Ptolemy’s now. Tyre was not, yet.',
+      'Ariston could feel the letter inside his tunic, against his ribs. He thought about the man in the good cloak, who had paid in advance and left before anyone could ask him anything, and about why anyone would pay ten drachmas to send a letter about an old debt.'],
+    choices: () => [
+      { id: 'deliver', label: 'Keep it hidden, and take it to the temple', hint: 'The soldiers are searching cargo, not captains. Probably.' },
+      { id: 'hand', label: 'Give it to Lysimachos, the quartermaster of the garrison', hint: 'He buys for the soldiers. He would want to know.' },
+      { id: 'sea', label: 'Drop it in the harbour', hint: 'Whatever it is, it is not your business. Then it will be nobody’s.' }],
+    resolve(s, c) {
+      if (c === 'deliver') {
+        if (luck(s, 'letter') < 0.7) { earnDr(s, 10); return ['Nobody searched the captain. Ariston walked up to the temple of Melqart and gave the letter to a priest, who read it, went pale, and paid him ten more drachmas to forget his face.', 'Ariston did his best. Later, when King Ptolemy’s ships came for Tyre, he thought he understood what had been in it.']; }
+        gainRep(s, 'tyre', -6); const fine = fineDr(s, 20);
+        return ['At the gate a soldier patted Ariston down and found the letter. An officer broke the seal, read it, and looked at Ariston for a long time.', 'In the end they decided he was a fool, not a spy, and fined him ' + (fine ? fine + ' drachmas' : 'everything he had') + ' for it. The whole quay heard about it within the hour.'];
+      }
+      if (c === 'hand') { gainRep(s, 'tyre', 6); sweeten(s, 'quartermaster', 1.12); return ['Ariston gave the letter to Lysimachos, who broke the seal, read it, and whistled. He did not say what was in it. He said that the garrison would remember a Rhodian who brought it things like that, and that his prices were the best in Tyre, for honest men.']; }
+      return ['Ariston dropped the letter into the harbour, where it sank among the fishing boats. He never found out what was in it. Sometimes, afterwards, he wished he had, and sometimes he was very glad he had not.'];
+    } },
+  hot: { title: 'King Ptolemy’s officer', note: () => 'a bolt of Tyrian purple, probably stolen, that a soldier sold you in Tyre',
+    text: s => s.items.some(i => i.hot)
+      ? ['On the quay at ' + PORTS[s.port].name + ', King Ptolemy’s officer was waiting with his wax tablet, as usual, and with two soldiers, which was not usual.',
+        'A bolt of Tyrian purple had gone missing from the dye works at Tyre, he said: a royal order, paid for in advance by the king himself. A soldier of the garrison had been seen selling it to a Rhodian. He looked at Ariston’s ship. His soldiers looked at it too.']
+      : ['On the quay at ' + PORTS[s.port].name + ', King Ptolemy’s officer was waiting with two soldiers, and asked about a bolt of Tyrian purple, stolen at Tyre and sold to a Rhodian.',
+        'Ariston did not have it any more, and said so, which was true.'],
+    choices: s => s.items.some(i => i.hot) ? [
+      { id: 'give', label: 'Hand it over, and tell him how you came by it', hint: 'You lose the cloth, and what you paid for it. You keep your good name.' },
+      { id: 'pay', label: 'Offer him something for his trouble', hint: 'Ten drachmas, quietly. Officers have to live.' },
+      { id: 'hide', label: 'Say you know nothing about it', hint: 'It is well down in the hold. The soldiers look thorough.' }]
+      : [{ id: 'none', label: 'Let him search', hint: 'There is nothing to find.' }],
+    resolve(s, c) {
+      const it = s.items.find(i => i.hot);
+      if (!it || c === 'none') { gainRep(s, s.port, 1); return ['The soldiers searched the ship anyway, and found nothing, and the officer seemed disappointed. He wrote something on his tablet, and rubbed it out, and wrote something else. Then he let them go.']; }
+      if (c === 'give') { removeItem(s, it); gainRep(s, s.port, 6); return ['Ariston fetched the purple and handed it over, and told the officer exactly how he had come by it. The officer wrote it all down, slowly, and said that an honest Rhodian was worth writing down.', 'King Ptolemy got his purple. Ariston got a good name in ' + PORTS[s.port].name + ', which, in a city where everything is written down, lasts a long time.']; }
+      if (c === 'pay') {
+        if (s.silver >= 10) { fineDr(s, 10); delete it.hot; return ['Ariston gave the officer ten drachmas, quietly. The officer looked at them, and at Ariston, and wrote on his tablet that the ship had been searched and nothing found. It was, in a way, the truth.']; }
+        fineDr(s, 10); removeItem(s, it); gainRep(s, s.port, -4);
+        return ['Ariston offered the officer everything he had on him, which was not enough. The officer took it anyway, and the purple as well, and wrote it all down.'];
+      }
+      if (luck(s, 'hot') < 0.5) { delete it.hot; return ['The soldiers searched the ship from bow to stern, and moved every jar and bale they could reach, and somehow missed the purple. The officer wrote down that the Rhodian knew nothing. Glaukos did not breathe until they had gone.']; }
+      removeItem(s, it); gainRep(s, s.port, -8); const fine = fineDr(s, 20);
+      return ['The soldiers found the purple in the hold in about the time it takes to say so. The officer took it, fined Ariston ' + (fine ? fine + ' drachmas' : 'everything he had') + ' for lying to a king, and wrote it all down twice.'];
+    } },
+};
+for (const id in ERRANDS) EVENTS['errand_' + id] = errandEvent(id);
+
+// Coming home: Aristokles pays for the measurements of the Zeus of Taras, if Ariston took them.
+function homeNews(s) {
+  if (s.flags.lysippos !== true) return;
+  s.flags.lysippos = 'paid'; s.silver += 15; s.stats.earned += 15; gainRep(s, 'rhodes', 2);
+  say(s, 'Ariston gave Aristokles the tablet with the measurements of the Zeus of Taras. The overseer read it twice, did a sum on his fingers, and laughed out loud. “Forty cubits,” he said. “Ours will be seventy.” He paid fifteen drachmas for the tablet, for the pleasure of it.', 'good');
 }
 // ===== ENGINE END =====
 
@@ -4310,6 +5049,190 @@ const COIN = sprite(11, 11, P => {
 const MEANDER = sprite(6, 7, P => {
   for (const [y, row] of ['######', '......', '###...', '#.#...', '#.####', '......', '######'].entries()) for (let x = 0; x < 6; x++) if (row[x] === '#') P(x, y, '#9e4f28');
 });
+// Little pictures of the sights worth seeing, the size of a face.
+const SIGHT_ICONS = {};
+function sightIconURL(kind) { return SIGHT_ICONS[kind] || (SIGHT_ICONS[kind] = makeSightIcon(kind).toDataURL()); }
+function makeSightIcon(kind) {
+  const M = '#efe3cc', MW = '#ffffff', MM = '#d9c9a8', MS = '#b8a582', B = '#b0773a', BL = '#e0a860', BD = '#7a4a22', GOLD = '#e3b453';
+  return sprite(16, 16, P => {
+    if (kind === 'statue') {   // a bronze god on a marble base, one arm up
+      P(6, 2, GOLD); P(7, 1, GOLD, 2, 1); P(9, 2, GOLD);
+      P(7, 3, B, 2, 3); P(7, 3, BL, 1, 2);
+      P(6, 6, B, 4, 5); P(6, 6, BL, 1, 5); P(9, 6, BD, 1, 5);
+      P(5, 7, B, 1, 3); P(10, 6, B, 1, 1); P(11, 3, B, 1, 4); P(11, 3, BL, 1, 1);
+      P(6, 11, BD, 1, 2); P(9, 11, BD, 1, 2); P(7, 11, B, 2, 1);
+      P(4, 13, M, 8, 2); P(4, 13, MW, 8, 1); P(4, 14, MS, 8, 1);
+    } else if (kind === 'tomb') {   // a podium, a ring of columns, a pyramid of steps, and a chariot on top
+      P(2, 11, M, 12, 4); P(2, 11, MW, 12, 1); P(2, 14, MS, 12, 1);
+      for (let x = 3; x < 14; x += 2) P(x, 7, MM, 1, 4);
+      P(2, 6, M, 12, 1); P(3, 5, MM, 10, 1); P(4, 4, M, 8, 1); P(5, 3, MM, 6, 1); P(6, 2, M, 4, 1);
+      P(7, 1, B, 2, 1);
+    } else if (kind === 'snake') {   // the god's staff, with his snake round it
+      P(7, 1, '#8a5a34', 2, 14); P(7, 1, '#b07a48', 1, 14);
+      const G = '#5a8a3a', GL = '#8aba5a';
+      for (const [x, y, w] of [[9, 3, 2], [8, 4, 2], [6, 5, 3], [5, 6, 2], [6, 7, 3], [8, 8, 3], [9, 9, 2], [8, 10, 2], [6, 11, 3], [5, 12, 2], [6, 13, 2]]) { P(x, y, G, w, 1); P(x, y, GL); }
+      P(10, 3, '#1a120d'); P(11, 3, '#c8423a');
+    } else if (kind === 'acropolis') {   // the temple on its rock above the city
+      for (const [y, a, b] of [[9, 3, 12], [10, 2, 13], [11, 1, 14], [12, 1, 14], [13, 1, 14], [14, 1, 14]]) P(a, y, y === 9 ? '#c9b48a' : '#a8906a', b - a + 1, 1);
+      P(1, 13, '#8a7458', 14, 2);
+      P(7, 2, M, 2, 1); P(6, 3, M, 4, 1); P(4, 4, MM, 8, 1); for (const x of [4, 6, 9, 11]) P(x, 5, M, 1, 3); P(4, 8, M, 8, 1);
+    } else if (kind === 'spring') {   // a spring in a cave near the top of the rock
+      P(1, 3, '#8a7a5a', 14, 12); P(1, 3, '#a8946a', 14, 1); P(13, 4, '#6a5a40', 2, 11);
+      P(6, 5, '#2a2018', 4, 1); P(5, 6, '#2a2018', 6, 6);
+      P(8, 7, '#66b8db', 1, 5); P(4, 12, '#3f8fb8', 8, 2); P(5, 12, '#66b8db', 3, 1);
+      P(3, 2, '#5a7a3a', 2, 1); P(11, 2, '#5a7a3a', 2, 1);
+    } else if (kind === 'stoneship') {   // a long dark rock in the sea, shaped like a ship, if you are told it is one
+      P(7, 3, '#5a5a62', 1, 5); P(7, 3, '#8a8a92');
+      P(2, 7, '#6a6a72', 1, 2); P(12, 5, '#6a6a72', 2, 4); P(13, 4, '#6a6a72');
+      P(3, 8, '#6a6a72', 10, 1); P(2, 9, '#6a6a72', 12, 2); P(3, 8, '#9a9aa2', 9, 1); P(2, 10, '#4a4a52', 12, 1);
+      P(1, 11, '#3f8fb8', 14, 4); P(2, 12, '#66b8db', 3, 1); P(9, 13, '#66b8db', 3, 1); P(1, 11, '#dfe6ea', 2, 1); P(13, 11, '#dfe6ea', 2, 1);
+    } else if (kind === 'cape') {   // a temple alone at the end of its cape, and the sea beyond
+      P(1, 10, '#3f8fb8', 14, 5); P(10, 11, '#66b8db', 3, 1); P(3, 13, '#66b8db', 3, 1);
+      P(1, 8, '#8a7a5a', 10, 2); P(1, 8, '#a8946a', 10, 1); P(1, 10, '#6a5a40', 7, 1);
+      P(4, 2, M, 3, 1); P(3, 3, M, 5, 1); P(2, 4, MM, 7, 1); for (const x of [2, 4, 6, 8]) P(x, 5, M, 1, 2); P(2, 7, M, 7, 1);
+    } else if (kind === 'zeus') {   // the bronze Zeus of Taras, a thunderbolt in his hand, and the column that keeps the wind off him
+      P(1, 4, M, 2, 9); P(1, 3, MW, 2, 1); P(1, 12, MS, 2, 1);
+      P(7, 2, B, 2, 3); P(7, 2, BL, 1, 2); P(7, 5, BD, 2, 1);
+      P(6, 6, B, 4, 5); P(6, 6, BL, 1, 5); P(9, 6, BD, 1, 5); P(5, 6, B, 1, 4); P(10, 6, B, 2, 1); P(11, 4, B, 1, 2);
+      P(12, 1, GOLD); P(11, 2, GOLD); P(12, 3, GOLD); P(13, 2, GOLD);
+      P(6, 11, BD, 1, 2); P(9, 11, BD, 1, 2); P(7, 11, B, 2, 1);
+      P(4, 13, M, 8, 2); P(4, 13, MW, 8, 1); P(4, 14, MS, 8, 1);
+    } else if (kind === 'net') {   // a fishing net, with its lead weights
+      P(2, 2, '#8a5a34', 12, 1);
+      for (const y of [5, 8, 11]) P(2, y, '#c9b48a', 12, 1);
+      for (const x of [2, 5, 8, 11, 13]) P(x, 3, '#c9b48a', 1, 10);
+      for (const x of [2, 5, 8, 11]) { P(x, 13, '#7a7e84', 2, 2); P(x, 13, '#a8aeb4'); }
+    } else if (kind === 'coffin') {   // the gardener king's coffin: white marble, a gabled lid, and painted hunters all round
+      P(5, 3, MM, 6, 1); P(4, 4, M, 8, 1); P(3, 5, M, 10, 1); P(3, 3, M); P(12, 3, M); P(7, 2, '#5a7a3a', 2, 1);
+      P(2, 6, M, 12, 8); P(2, 6, MW, 12, 1); P(2, 13, MS, 12, 1); P(2, 7, '#e3b453', 12, 1);
+      P(3, 9, '#c8623a', 1, 3); P(5, 10, '#3f6f8e', 2, 2); P(8, 9, '#b0773a', 1, 3); P(10, 10, '#c8623a', 2, 2); P(12, 9, '#7a4a22', 1, 3);
+    } else if (kind === 'grid') {   // a city in equal blocks, with straight streets between
+      P(1, 1, '#c9b48a', 14, 14);
+      for (const y of [2, 6, 10]) for (const x of [2, 6, 10]) { P(x, y, M, 3, 3); P(x, y, '#b85a32', 3, 1); }
+      P(6, 6, '#8a9a6a', 3, 3);   // the market square, with trees
+    } else if (kind === 'altar') {   // an altar of goats' horns, stacked without glue
+      P(3, 12, M, 10, 3); P(3, 12, MW, 10, 1); P(3, 14, MS, 10, 1);
+      for (const [y, x0] of [[10, 3], [8, 4], [6, 5]]) for (let x = x0; x < 16 - x0; x += 2) { P(x, y, '#e8dcc0', 2, 2); P(x + 1, y, '#8a7a5a'); }
+      P(5, 3, '#e8dcc0', 1, 3); P(6, 2, '#e8dcc0'); P(10, 3, '#e8dcc0', 1, 3); P(9, 2, '#e8dcc0');
+    } else if (kind === 'rock') {   // a dark rock standing in the surf
+      for (const [y, a, b] of [[4, 6, 8], [5, 5, 9], [6, 4, 10], [7, 4, 11], [8, 3, 11], [9, 3, 12], [10, 3, 12]]) { P(a, y, '#6a6a72', b - a + 1, 1); P(a, y, '#9a9aa2'); P(b, y, '#4a4a52'); }
+      P(1, 11, '#3f8fb8', 14, 4); P(2, 12, '#66b8db', 3, 1); P(9, 13, '#66b8db', 3, 1); P(2, 11, '#dfe6ea', 3, 1); P(11, 11, '#dfe6ea', 3, 1);
+    } else if (kind === 'quarry') {   // a deep pit in the rock, a cave in its side, and a garden at the bottom
+      P(1, 2, '#c9b48a', 14, 3); P(1, 2, '#e0cc9e', 14, 1);
+      P(1, 5, '#d9bd90', 2, 9); P(13, 5, '#a8906a', 2, 9); P(3, 5, '#8a7a5a', 10, 7);
+      P(3, 5, '#b09a70', 3, 1); P(3, 6, '#b09a70', 2, 1); P(9, 7, '#2a2018', 3, 3); P(9, 7, '#4a3a2a', 3, 1);
+      P(3, 12, '#5a7a3a', 10, 2); P(4, 11, '#7a9a4a'); P(7, 11, '#7a9a4a'); P(1, 14, '#a8906a', 14, 1);
+    } else if (kind === 'house') {   // a plain flat-roofed house by the harbour, with a book on the step
+      P(2, 5, '#8a6440', 12, 1); P(3, 6, '#e6d4aa', 10, 9); P(3, 6, M, 10, 1);
+      P(7, 10, '#5a3820', 2, 5); P(4, 8, '#2a2018', 2, 2); P(10, 8, '#2a2018', 2, 2);
+      P(10, 14, '#efe4c4', 3, 1); P(10, 13, '#8a5636', 3, 1);
+    } else if (kind === 'shell') {   // a murex shell, all spines and a long spout, with a drop of purple beside it
+      const SH = '#d8c0a8', SL = '#f0e0c8', SD = '#a88a70';
+      P(8, 1, SH); P(8, 2, SH, 2, 1);
+      for (const [y, a, b] of [[3, 7, 9], [4, 6, 10], [5, 5, 11], [6, 5, 11], [7, 5, 11], [8, 6, 10], [9, 7, 9]]) { P(a, y, SH, b - a + 1, 1); P(a, y, SL); P(b, y, SD); }
+      P(6, 5, '#8a6a50', 5, 1); P(6, 7, '#8a6a50', 5, 1); P(9, 6, '#7a2a6a', 1, 2);
+      for (const [x, y] of [[4, 4], [12, 4], [3, 6], [13, 6], [4, 8], [12, 8]]) P(x, y, '#e8dcc0');
+      P(8, 10, SH); P(8, 11, SD); P(7, 12, SH); P(7, 13, SD);
+      P(3, 12, '#7a2a6a', 2, 2); P(3, 11, '#9a3a8a');
+    } else {   // an open scroll, with writing on it
+      P(2, 4, '#8a5a34', 2, 9); P(12, 4, '#8a5a34', 2, 9);
+      P(2, 3, GOLD, 2, 1); P(12, 3, GOLD, 2, 1); P(2, 13, GOLD, 2, 1); P(12, 13, GOLD, 2, 1);
+      P(4, 5, '#efe4c4', 8, 7); P(4, 5, '#fbf4de', 8, 1);
+      for (const y of [7, 9, 11]) { P(5, y, '#5a4632', 3, 1); P(9, y, '#5a4632', 2, 1); }
+    }
+  }, '#0e0906');
+}
+
+// Little pictures of the places to go after dark, the size of a face.
+const NIGHT_ICONS = {};
+function nightIconURL(kind) { return NIGHT_ICONS[kind] || (NIGHT_ICONS[kind] = makeNightIcon(kind).toDataURL()); }
+function makeNightIcon(kind) {
+  const K = '#2a2018', KL = '#4a3a2a', C = '#c8623a', CL = '#e08a5a', CD = '#8a3a22', B = '#b0773a', BL = '#e0a860', BD = '#7a4a22', GOLD = '#e3b453',
+    W = '#8a5a34', WL = '#b07a48', BONE = '#e8dcc0', BONED = '#b8a582', G = '#5a8a3a', GL = '#8aba5a', SIL = '#cfd4d8', SILL = '#f4f6f8', SILD = '#8f969c';
+  return sprite(16, 16, P => {
+    if (kind === 'cup') {   // a black-glazed drinking cup with two handles, on a short stem, with wine in it
+      P(3, 5, '#7a1a2a', 10, 1); P(4, 5, '#a02a3a', 3, 1);
+      P(2, 6, K, 12, 2); P(3, 8, K, 10, 1); P(5, 9, K, 6, 1); P(3, 6, KL, 3, 1); P(4, 7, C, 8, 1);
+      P(0, 5, K, 2, 1); P(14, 5, K, 2, 1); P(0, 6, K, 1, 1); P(15, 6, K, 1, 1);
+      P(7, 10, K, 2, 2); P(5, 12, K, 6, 1); P(5, 12, KL, 2, 1);
+    } else if (kind === 'bones') {   // four knucklebones, as they fell
+      for (const [x, y] of [[2, 2], [9, 3], [3, 9], [10, 10]]) {
+        P(x, y + 1, BONE, 4, 2); P(x + 1, y, BONE, 2, 4); P(x + 1, y, '#fbf4de'); P(x + 2, y + 1, BONED); P(x + 3, y + 2, BONED); P(x + 1, y + 3, BONED, 2, 1);
+      }
+    } else if (kind === 'wreath') {   // a wedding wreath of myrtle, with red flowers in it and a ribbon
+      for (const [x, y] of [[6, 1], [8, 1], [4, 2], [10, 2], [3, 4], [11, 4], [2, 6], [12, 6], [3, 8], [11, 8], [4, 10], [10, 10], [6, 11], [8, 11]]) { P(x, y, G, 2, 2); P(x, y, GL); }
+      for (const [x, y] of [[7, 1], [3, 5], [12, 7], [5, 11], [10, 11]]) P(x, y, '#d8483a');
+      P(7, 13, GOLD, 2, 1); P(6, 14, GOLD); P(9, 14, GOLD);
+    } else if (kind === 'pipes') {   // the double pipes the flute girls play, spread from the mouthpiece
+      for (let i = 0; i < 12; i++) { const d = Math.floor(i / 2); P(7 - d, 2 + i, '#c9a46a'); P(8 + d, 2 + i, '#a8844a'); }
+      P(7, 1, BD, 2, 1);
+      for (const i of [4, 7, 10]) { const d = Math.floor(i / 2); P(7 - d, 2 + i, BD); P(8 + d, 2 + i, BD); }
+      P(1, 13, '#c9a46a', 2, 2); P(13, 13, '#a8844a', 2, 2);
+    } else if (kind === 'figs') {   // a basket of dried figs
+      for (const [x, y] of [[3, 4], [6, 3], [9, 4], [5, 6], [8, 6], [11, 6]]) { P(x, y, '#6a3a5a', 3, 3); P(x, y, '#8a5a7a'); P(x + 1, y - 1, G); }
+      P(2, 8, B, 12, 1); P(3, 9, BD, 10, 4); for (let x = 3; x < 13; x += 2) P(x, 10, B, 1, 2); P(4, 13, BD, 8, 1);
+    } else if (kind === 'quail') {   // a fat fighting quail in its chalk ring
+      const Q = '#8a6a40', QL = '#c9a46a', QD = '#5a4028';
+      P(5, 6, Q, 6, 5); P(4, 7, Q, 8, 3); P(6, 9, QL, 4, 2); P(5, 7, QD, 2, 1); P(8, 6, QD, 2, 1);
+      P(10, 3, Q, 3, 3); P(11, 4, '#1a120d'); P(13, 4, '#3a2a1a'); P(10, 3, QD);
+      P(3, 7, QD, 1, 2);
+      P(6, 11, '#c8823a', 1, 2); P(9, 11, '#c8823a', 1, 2);
+      P(1, 13, W, 14, 2); P(2, 13, '#efe3cc', 12, 1);
+    } else if (kind === 'lamp') {   // a clay lamp, lit, the kind that hangs by a door at night
+      P(2, 8, C, 9, 4); P(3, 7, C, 7, 1); P(3, 12, CD, 7, 1); P(3, 7, CL, 4, 1); P(10, 8, C, 3, 2); P(12, 8, CD, 1, 2);
+      P(6, 9, K, 2, 1); P(1, 8, CD, 1, 3);
+      P(12, 6, '#f0c040', 2, 2); P(12, 5, '#f0c040'); P(13, 4, '#fff0a0'); P(12, 7, '#e08a3a', 2, 1);
+    } else if (kind === 'discus') {   // a bronze discus
+      disc(P, 8, 8, 6.4, B, BL, BD);
+      P(5, 5, BL, 2, 1); P(7, 7, BD, 2, 2); P(8, 7, B);
+    } else if (kind === 'roast') {   // a roast on a dish, mostly eaten
+      P(1, 11, C, 14, 2); P(1, 11, CL, 14, 1); P(2, 13, CD, 12, 1);
+      P(3, 6, '#a85a32', 9, 5); P(4, 5, '#a85a32', 7, 1); P(4, 6, '#d0884a', 4, 2); P(8, 9, '#7a3a1a', 4, 2);
+      P(11, 3, BONE, 1, 3); P(12, 2, BONE, 2, 2);
+    } else if (kind === 'mask') {   // a comic actor's mask, all nose and mouth
+      const M = '#e6c8a0', MD = '#b8946a';
+      P(3, 2, M, 10, 11); P(2, 4, M, 12, 7); P(4, 13, M, 8, 1); P(3, 2, '#5a3820', 10, 1); P(2, 3, '#5a3820', 2, 2); P(12, 3, '#5a3820', 2, 2);
+      P(4, 5, K, 3, 2); P(9, 5, K, 3, 2);
+      P(7, 6, MD, 2, 3); P(6, 8, '#d0705a', 4, 2);
+      P(5, 11, K, 6, 1); P(4, 10, K); P(11, 10, K); P(6, 12, K, 4, 1);
+    } else if (kind === 'krater') {   // the bowl on the liars' table, full of drachmas
+      P(3, 3, SIL, 10, 2); P(4, 3, SILL, 2, 1); P(9, 2, SIL, 2, 1); P(6, 2, SILD);
+      P(2, 5, K, 12, 1); P(3, 6, K, 10, 3); P(4, 9, K, 8, 2); P(5, 11, K, 6, 1); P(3, 6, KL, 2, 1);
+      P(4, 7, C, 8, 1); P(1, 6, K, 1, 2); P(14, 6, K, 1, 2);
+      P(7, 12, K, 2, 1); P(5, 13, K, 6, 1);
+    } else if (kind === 'oar') {   // a ship's steering oar
+      P(1, 1, WL, 3, 2);
+      for (let i = 0; i < 9; i++) P(3 + i, 3 + i, W, 2, 1);
+      P(10, 10, WL, 4, 3); P(11, 13, WL, 3, 2); P(13, 11, BD, 1, 4); P(10, 10, '#d09a68', 2, 1);
+    } else if (kind === 'harp') {   // a harp, the kind the women play at dinners
+      P(3, 2, W, 2, 12); P(3, 13, W, 11, 2); P(3, 13, WL, 11, 1);
+      for (let i = 0; i < 11; i++) P(3 + i, 1 + i, WL, 2, 1);
+      for (const x of [6, 8, 10, 12]) P(x, x, '#efe3cc', 1, 13 - x);
+      P(3, 1, GOLD, 2, 1);
+    } else if (kind === 'stars') {   // the night sky, and the stars that tell you things
+      P(1, 1, '#1a2a4a', 14, 14); P(1, 1, '#24365e', 14, 5);
+      for (const [x, y] of [[3, 3], [11, 3], [7, 7], [13, 10], [4, 12], [9, 12], [2, 7]]) P(x, y, SILL);
+      for (const [x, y] of [[7, 7], [11, 3]]) { P(x - 1, y, '#a9b8d8'); P(x + 1, y, '#a9b8d8'); P(x, y - 1, '#a9b8d8'); P(x, y + 1, '#a9b8d8'); }
+      P(11, 8, GOLD, 2, 1); P(10, 9, GOLD, 1, 2); P(11, 11, GOLD, 2, 1); P(11, 9, '#f0d890');   // a new moon
+    } else if (kind === 'bowl') {   // a silver bowl, passed round at the banquet
+      P(2, 6, SILL, 12, 1); P(3, 6, '#7a1a2a', 10, 1);
+      P(2, 7, SIL, 12, 2); P(3, 9, '#a8aeb4', 10, 2); P(5, 11, SILD, 6, 1); P(4, 7, SILL, 3, 1);
+      for (const x of [4, 7, 10]) P(x, 9, GOLD);
+      P(6, 12, SILD, 4, 1);
+    } else if (kind === 'helmet') {   // a soldier's bronze helmet, with a red crest
+      P(3, 4, B, 10, 10); P(4, 3, B, 8, 1); P(4, 3, BL, 4, 2); P(12, 5, BD, 1, 8);
+      P(4, 8, K, 3, 2); P(9, 8, K, 3, 2); P(7, 10, K, 2, 4);
+      P(4, 0, '#c04848', 8, 3); P(4, 0, '#e07a7a', 3, 1);
+    } else {   // the goat in Glaukos's dream
+      const GT = '#e6dcc8', GD = '#b8a88a';
+      P(4, 5, GT, 8, 6); P(5, 11, GT, 6, 2); P(6, 13, GT, 4, 1); P(6, 14, GD, 2, 2);
+      P(3, 1, '#8a7a5a', 2, 4); P(11, 1, '#8a7a5a', 2, 4); P(2, 1, '#8a7a5a'); P(13, 1, '#8a7a5a');
+      P(1, 5, GT, 3, 2); P(12, 5, GT, 3, 2); P(1, 6, GD, 2, 1); P(13, 6, GD, 2, 1);
+      P(5, 7, '#c9a04a', 2, 1); P(9, 7, '#c9a04a', 2, 1); P(6, 7, '#1a120d'); P(9, 7, '#1a120d');
+      P(7, 11, GD, 2, 1);
+    }
+  }, '#0e0906');
+}
 
 // ---------- sound: sea, wind, a lyre, coins, and trouble ----------
 const NOTES = [164.81, 174.61, 196.0, 220.0, 246.94, 261.63, 293.66, 329.63, 392.0];
@@ -6221,9 +7144,31 @@ function quayPanel() {
   }
   const ids = merchantsAt(S.port, S.ch), off = ids.filter(id => MERCHANTS[id].noStall).sort((a, b) => offStageBusy(b) - offStageBusy(a)), hires = hiresAt(S, S.port);   // whoever has business with you first
   if (off.length || hires.length) h += '<h2 class="sec">Around the harbour</h2><div class="people">' + off.map(personCard).join('') + hires.map(hireCard).join('') + '</div>';   // not in the picture, so first
+  const places = Object.keys(PLACE).filter(k => PLACE[k].table()[S.port]);   // something worth seeing, and somewhere to go after dark, side by side
+  if (places.length) h += '<h2 class="sec">In the town</h2><div class="people places">' + places.map(k => placeCard(k, S.port)).join('') + '</div>';
   h += '<h2 class="sec">At the stalls</h2><div class="people">';
   for (const id of ids.filter(id => !MERCHANTS[id].noStall)) h += personCard(id);
   return h + '</div>';
+}
+// Something worth seeing, and somewhere to go after dark: a card each on the quay, side by side, and a sheet with the story and the choice.
+const PLACE = {
+  sight: { table: () => SIGHTS, book: () => S.sights, icon: k => sightIconURL(k), flag: 'Worth seeing', done: 'Seen', count: () => sightsSeen(S) + ' of ' + Object.keys(SIGHTS).length + ' seen', sub: 'worth seeing' },
+  night: { table: () => NIGHTS, book: () => S.nights, icon: k => nightIconURL(k), flag: 'After dark', done: 'Been', count: () => nightsOut(S) + ' of ' + Object.keys(NIGHTS).length + ' nights out', sub: 'after dark' },
+};
+function placeCard(kind, port) {
+  const K = PLACE[kind], G = K.table()[port], seen = K.book()[port], [n, ...of] = K.count().split(' ');
+  return `<button class="person place${seen ? '' : ' want'}" type="button" data-place="${kind}" data-port="${port}"><img class="pix" src="${K.icon(G.icon)}" alt=""><span class="flag${seen ? ' aboard' : ''}">${seen ? K.done : K.flag}</span>` +
+    `<span class="nm">${esc(G.name)}</span><span class="rl">${esc(G.hook)}</span><span class="tr">${seen ? 'Chapter ' + NUMERALS[seen.ch] + ' · ' : ''}<b>${esc(n)}</b> ${esc(of.join(' '))}</span></button>`;
+}
+function placeSheet(kind, port) {
+  const K = PLACE[kind], G = K.table()[port], seen = K.book()[port], here = S.phase === 'port' && S.port === port && !S.pending;
+  const h = `<header class="sheet-head"><img class="pix" src="${K.icon(G.icon)}" alt=""><div><h2>${esc(G.name)}</h2><p>${esc(PORTS[port].name)} · ${K.sub}</p></div></header>`;
+  const after = kind === 'sight' ? (S.sights.alexandria ? '' : ' A young man in Alexandria is collecting wonders, people say.') : errandsOpen(S).length ? ' Errands are in the Ledger.' : '';
+  if (UI.outcome) return h + `<div class="ev-text">${UI.outcome.lines.map(l => `<p class="out">${esc(l)}</p>`).join('')}</div><p class="note">${esc(cap(K.count()))}.${after}</p>` + closeBtn();
+  const story = `<div class="ev-text">${G.text(S).map(l => `<p>${esc(l)}</p>`).join('')}</div>`;
+  if (seen) return h + story + `<p class="note">You came here in Chapter ${NUMERALS[seen.ch]}.</p>` + closeBtn();
+  const choice = c => { const off = !here || (c.price && S.silver < c.price) || (c.need && !needItem(S, c.need)); return `<button class="btn choice" type="button" data-act="place" data-c="${c.id}"${off ? ' disabled' : ''}>${esc(c.label)}${c.hint ? `<small>${esc(c.hint)}</small>` : ''}</button>`; };
+  return h + story + `<div class="choices">${G.choices(S).map(choice).join('')}<button class="btn wide" type="button" data-act="close">Not now</button></div>`;
 }
 function buysRows(id, o) {
   const m = MERCHANTS[id], here = inPort(S, m.port), sells = Object.keys(o.sells);
@@ -6378,7 +7323,8 @@ function openSheet(kind, arg) { UI.sheet = { kind, arg }; UI.reply = null; UI.ou
 function renderSheet(first) {
   if (!UI.sheet) return;
   const { kind, arg } = UI.sheet;
-  setHTML(els.sheetCard, kind === 'merchant' ? merchantSheet(arg) : kind === 'hire' ? hireSheet(arg) : kind === 'event' ? eventSheet() : kind === 'sail' ? sailSheet() : menuSheet());
+  setHTML(els.sheetCard, kind === 'merchant' ? merchantSheet(arg) : kind === 'hire' ? hireSheet(arg) : kind === 'event' ? eventSheet() : kind === 'sail' ? sailSheet()
+    : kind === 'sight' || kind === 'night' ? placeSheet(kind, arg) : menuSheet());
   if (first) els.sheetCard.scrollTop = 0;
 }
 function closeSheet() { UI.sheet = null; UI.reply = null; UI.outcome = null; els.sheet.hidden = true; els.sheetCard._html = ''; }
@@ -6503,6 +7449,9 @@ function ledgerPanel() {
     `<dt>Good name</dt><dd>${Object.keys(S.rep).filter(p => PORTS[p] && (S.rep[p] || S.seen[p] || p === 'rhodes')).map(p => PORTS[p].name + ' ' + Math.round(S.rep[p])).join(', ')}. Fair trading builds it, and it makes haggling easier.</dd>` +
     (friends.length ? `<dt>Friends</dt><dd>${friends.join(', ')}. Prices are a little better where you have a friend.</dd>` : '') +
     (crates.length ? `<dt>Crates</dt><dd>${cap(crates.join('; '))}. If one is lost to pirates, you pay for it.</dd>` : '') +
+    (errandsOpen(S).length ? `<dt>Errands</dt><dd>${esc(cap(andList(errandsOpen(S).map(id => errandNote(S, id)))))}.</dd>` : '') +
+    (nightsOut(S) ? `<dt>After dark</dt><dd>${esc(cap(andList(Object.keys(S.nights).map(p => NIGHTS[p].name.replace(/^The /, 'the ')))))}: ${nightsOut(S)} of ${Object.keys(NIGHTS).length} nights out.</dd>` : '') +
+    (sightsSeen(S) ? `<dt>Seen</dt><dd>${esc(cap(andList(Object.keys(S.sights).map(p => SIGHTS[p].name.replace(/^The /, 'the ')))))}: ${sightsSeen(S)} of ${Object.keys(SIGHTS).length} sights worth seeing.</dd>` : '') +
     (S.ch === 2 ? '<dt>A bigger ship</dt><dd>The shipwrights of Rhodes build proper merchant ships, for six hundred drachmas or so. You will need one to sail west.</dd>'
       : S.ch === 3 ? `<dt>A bigger ship</dt><dd>${S.shipOrdered ? 'Ordered. Nausikrates is building her over the winter.' : 'Nausikrates the shipwright will build one for ' + SHIP_PRICE + ' dr, over the winter. You need ' + SHIP_DOWN + ' dr down; Antimachos lends the rest.'}</dd>`
         : `<dt>The ship</dt><dd>${S.hull === 'large' ? 'Euploia, a grain ship: ' + holdCells(S) + ' squares of hold and ' + deckCells(S) + ' on deck, and a crew of ' + num(S.crew.filter(c => !c.hire).length) + '. She sails faster than anything in the harbour, hardly rows, and pirates need ladders to board her. The sea can reach what is on deck.' : bigShip(S) ? 'Tyche, a merchant ship: ' + holdCells(S) + ' squares of hold, and a crew of ' + num(S.crew.filter(c => !c.hire).length) + '. She sails faster than Elpis, rows slower, and is harder to board.' : 'Elpis, still. Nausikrates has a bigger ship waiting on his slipway.'}</dd>`) + '</dl>';
@@ -6595,7 +7544,10 @@ function onPhase() {
   if (!prev) return;
   els.banner.classList.remove('on'); UI.bannerT = 0;
   UI.queue = []; UI.shownAt = -1e9;
-  if (S.phase === 'port') { banner(PORTS[S.port].name, S.home ? 'Home' : 'In port'); setTab('main'); Snd.arrive(); nudgeOffStage(); }
+  if (S.phase === 'port') {
+    banner(PORTS[S.port].name, S.home ? 'Home' : 'In port'); setTab('main'); Snd.arrive(); nudgeOffStage();
+    if (S.port !== 'rhodes' && SIGHTS[S.port] && !S.sights[S.port]) setTimeout(() => { if (S.phase === 'port') tipOnce('sight', 'Every port has something worth seeing, and somewhere to go after dark. Look under In the town, further down the quay.'); }, 900);
+  }
   else if (S.phase === 'camp') { banner(STOPS[S.camp.stop].name, CAMPS[S.camp.stop].afloat ? 'Night, under sail' : 'Night'); setTab('main'); }
   else if (S.phase === 'sea' && prev.split(':')[0] !== 'sea') setTab('main');
   else if (S.phase === 'summary') { closeSheet(); showSummary(); }
@@ -6680,6 +7632,9 @@ function showSummary() {
       row('The way home', m.homeBy === 'open' ? 'Straight across from Megiste' : 'By way of Patara') + row('Crates delivered', m.delivered ? num(m.delivered) : 'None') : '') +
     (S.ch === 6 ? row('The gale at sea', STORM_ROW[m.storm] || 'Missed it') + row('The Campanians', CAMP_ROW[m.campanians] || 'Left them on the quay') +
       row('The way home', m.homeBy === 'open' ? 'Straight across from Crete' : 'By way of Karpathos') + row('Crates delivered', m.delivered ? num(m.delivered) : 'None') : '') +
+    (m.sightsCh ? row('Worth seeing', num(m.sightsCh) + ' this voyage, ' + num(m.sights) + ' in all') : '') +
+    (m.nightsCh ? row('After dark', num(m.nightsCh) + (m.nightsCh > 1 ? ' nights' : ' night') + ' out, ' + num(m.nights) + ' in all') : '') +
+    (m.errands ? row('Errands', num(m.errands) + ' done') : '') +
     row('Broken on the way', m.broken ? num(m.broken) : 'Nothing') + row('Crew lost', m.lost.length ? m.lost.map(l => esc(l.name)).join(', ') : 'Nobody') +
     ((m.friends || []).length ? row('Friends', m.friends.map(f => esc(f.name) + ', ' + esc(f.port)).join('; ')) : '') +
     `<dt class="total">Profit</dt><dd class="total">${m.profit >= 0 ? '+' : ''}${m.profit} dr</dd></dl><p>${closing}</p>${S.ch === 3 ? shipSummary(m) : ''}${N ? '' : voyagesSummary(m)}</div>`;
@@ -6692,10 +7647,11 @@ function showSummary() {
 const listWords = a => a.length > 1 ? a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1] : a[0] || '';
 function voyagesSummary(m) {   // the last page: every voyage, and what came of them all
   const all = S.history.filter(h => h && h.ch && CHAPTERS[h.ch]).concat([m]), total = all.reduce((a, h) => a + (h.profit || 0), 0);
-  const ports = Object.keys(S.proxenos).length, aboardStill = id => S.crew.some(c => c.id === id);
+  const ports = Object.keys(S.proxenos).length, aboardStill = id => S.crew.some(c => c.id === id), seen = sightsSeen(S);
   const rows = all.map(h => `<dt>${NUMERALS[h.ch]} · ${esc(CHAPTERS[h.ch].name)}</dt><dd>${h.profit >= 0 ? '+' : ''}${h.profit} dr<small>${esc(h.rating || '')}</small></dd>`).join('');
   return `<div class="voyages"><h3>The voyages of Ariston</h3><dl class="tally">${rows}<dt class="total">${cap(num(all.length))} voyages</dt><dd class="total">${total >= 0 ? '+' : ''}${total} dr</dd></dl>` +
     `<p>Ariston, son of Damon, had sailed out of Rhodes with a small ship, a sea loan of a hundred and fifty drachmas, and a great deal of advice. He came home from Alexandria with ${listWords([esc(shipName(S)), S.silver + ' drachmas', S.debt ? 'a debt of ' + S.debt : '', ports ? 'friends in ' + num(ports) + (ports > 1 ? ' ports' : ' port') : ''].filter(Boolean))}.</p>` +
+    (seen ? `<p>${seen >= Object.keys(SIGHTS).length ? 'He had seen something worth seeing in every port he sailed to, all ' + seen + ' of them' : 'He had seen ' + num(seen) + ' of the ' + Object.keys(SIGHTS).length + ' sights worth seeing in the ports he sailed to'}${S.sights.alexandria && S.sights.alexandria.pick === 'tell' && seen > 1 ? ', and somewhere in Alexandria a young man from Cyrene was writing them into a book of wonders, without his name.' : '.'}</p>` : '') +
     `<p>In the spring they began to dig away the hill of earth from around the god, so that he could see the harbour he stood in. Ariston went to watch, with half of Rhodes.${aboardStill('glaukos') ? ' Glaukos came too, and said that next year he would retire. He said it every winter.' : ''}${aboardStill('mikkos') ? ' Mikkos, who was taller than Glaukos now, climbed one of the god’s ladders to see better, and was told to come down, and did not.' : ''}</p></div>`;
 }
 function shipSummary(m) {
@@ -6801,7 +7757,7 @@ function doAct(act, b) {
     case 'continue': UI.outcome = null; if (S.pending) renderSheet(true); else { closeSheet(); if (UI.pirate) UI.pirate.leaving = true; } break;
     case 'repay': { const r = repay(S); if (!r.ok) toast(r.msg); else { Snd.coins(); closeSheet(); } break; }
     case 'loan': { const r = takeLoan(S); if (!r.ok) toast(r.msg); else { Snd.coins(); UI.reply = { text: 'Antimachos counted out the silver, twice.', good: true }; renderSheet(); } break; }
-    case 'talk': UI.talkN = (UI.talkN || 0) + 1; renderSheet(); break;
+    case 'talk': UI.talkN = (UI.talkN || 0) + 1; if (UI.sheet && UI.sheet.kind === 'merchant') S.seen['talked_' + UI.sheet.arg] = S.seen['talked_' + UI.sheet.arg] || S.ch; renderSheet(); break;
     case 'buyship': {
       const r = buyShip(S);
       if (!r.ok) { Snd.nope(); toast(r.msg); break; }
@@ -6815,6 +7771,13 @@ function doAct(act, b) {
       if (!r.ok) { Snd.nope(); toast(r.msg); break; }
       Snd.place(); UI.reply = { text: 'The crate is on the quay. Pack it into the hold, or it stays behind.', good: true }; renderSheet();
       if (r.item.stowed) { delete r.item.stowed; toast('The quay was full, so the crew stowed it in the hold.'); }
+      break;
+    }
+    case 'place': {
+      const kind = UI.sheet && UI.sheet.kind === 'night' ? 'night' : 'sight', port = S.port, r = visitPlace(S, kind, b.dataset.c);
+      if (!r.ok) { Snd.nope(); toast(r.msg); break; }
+      Snd.yes(); UI.outcome = { title: PLACE[kind].table()[port].name, lines: r.lines }; renderSheet(true);
+      if (S.errands && errandsOpen(S).length) tipOnce('errand', 'An errand for another port. It is in the Ledger, and it happens when you get there.');
       break;
     }
     case 'sound': toggleSound(); renderSheet(); break;
@@ -6841,6 +7804,7 @@ document.addEventListener('click', e => {
   if (b.id === 'soundBtn') return toggleSound();
   if (b.dataset.m) return openSheet('merchant', b.dataset.m);
   if (b.dataset.hire) return openSheet('hire', b.dataset.hire);
+  if (b.dataset.place) return openSheet(b.dataset.place, b.dataset.port);
 });
 els.strip.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTab('ledger'); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && UI.sheet && UI.sheet.kind !== 'event') closeSheet(); });
@@ -6935,7 +7899,8 @@ function start(data) {
 }
 const hotApi = window.claude && window.claude.hot;
 if (hotApi && typeof hotApi.snapshot === 'function') { try { hotApi.snapshot(() => ({ state: S, tab: UI.tab })); } catch (e) { /* ignore */ } }
-window.__emp = { state: () => S, speed: v => { DEV.speed = v; }, ui: UI, hold: HOLD, fns: { buy, sell, haggle, hire, autoPack, setSail, campAct, sleep, needsRoute, resolveEvent, repay, sailCheck, provisions, moveItem, fits, dockItems, atRisk, eta, countGood, sellPrice, merchantsAt, isCargo, takeLoan, nextChapter, offer, fitted, changeHull, buyShip, orderShip, fillCrew } };
+window.__emp = { state: () => S, speed: v => { DEV.speed = v; }, ui: UI, hold: HOLD, icons: { sight: sightIconURL, night: nightIconURL, nights: () => Object.values(NIGHTS).map(n => n.icon) }, fns: { buy, sell, haggle, hire, autoPack, setSail, campAct, sleep, needsRoute, resolveEvent, repay, sailCheck, provisions, moveItem, fits, dockItems, atRisk, eta, countGood, sellPrice, merchantsAt, isCargo, takeLoan, nextChapter, offer, fitted, changeHull, buyShip, orderShip, fillCrew,
+  seeSight, sightsSeen, goOut, nightsOut, visitPlace, errandsOpen, perilsAhead } };
 if (hotApi && typeof hotApi.ready === 'function') hotApi.ready(start);
 else start((hotApi && hotApi.data) || {});
 })();

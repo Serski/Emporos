@@ -4,6 +4,8 @@ A pixel-art trading game for phones. Ariston, a young trader from Rhodes, sails 
 
 There are nine chapters, each a voyage further out from Rhodes, and **all nine are playable**: Halicarnassus in the spring, Miletus in the summer, Athens in the autumn; in a bigger ship the next year, Corcyra in the spring, Taras in Italy in the summer, and Syracuse in Sicily in the autumn; and, the year after, in a grain ship with a second deck, Cyprus in the spring, Tyre in the summer and, last of all, Alexandria in the autumn.
 
+Along the way every port has something worth seeing, and somewhere to go after dark, each with a short story and a choice. Some nights out lead to an errand in the next port.
+
 ## Play
 
 Open `index.html` in a browser. It is a single file with nothing to install, and progress saves in the browser.
@@ -118,9 +120,55 @@ Autumn, 288 BC: the last voyage of the year, and of the game. Three days south a
 - **The way home.** After the first night out, stand on for Rhodes, straight into the wind in the season of gales, or bear away for Cyprus and come home along Lycia, which is longer, makes the grain late, and passes Paphos, where the last copper of the year waits for the god's head.
 - **The end.** The god gets his head. The last page lists every voyage, what each one earned, and where Ariston ended up.
 
-Between chapters, your silver, any debt, the ship and everything in her, the crew, your good name in each port, and the friends you made all carry over. Hired hands go home at the end of each voyage.
+## Worth seeing: a side story in every port
 
-The history of the period is real and stays in the background: the siege of Rhodes and the bronze Sun-god being built with the money, the tomb of Mausolus above Halicarnassus, Coan wine made with seawater, Cretan archers and Cretan pirates, the summer north wind, the unfinished temple at Didyma, Miletus laid out in straight streets, the Rhodian sea law on cargo thrown overboard, the lions of Delos, the stone lion of Kea, the ship sheds of Piraeus, a king's garrison on the hill of Munichia, Athens buying grain from anyone who brought it, the diolkos across the Isthmus, Diogenes in his jar at Corinth, the queen who brought Corcyra to her second husband as a dowry, Illyrian lemboi, the sailors' saying about Cape Malea, the pitch springs of Zakynthos, the wrestlers of Croton and the temple of Hera on its cape, the Pythagoreans and their beans, Archytas of Taras and his wooden dove, the Tarentine cavalry, the boy on a dolphin on the coins of Taras, the mercenaries of the king of Syracuse, the Halieia, the festival of the Sun in Rhodes, Amnisos and the ruined palace at Knossos, the archers of Kydonia and its quinces, Cretan dittany, the saying that all Cretans are liars, Talos the bronze man, the death of Agathocles and the pulling down of his statues, his Campanian soldiers, the spring of Arethusa, the gilded shield on the temple of Athena, and Damocles' sword, Demetrius losing Macedonia, Ptolemy the Saviour, the oracle of Apollo at Patara, the rock tombs of Lycia, the cape of swallows, the copper of Cyprus cast like ox hides, the cone of Aphrodite at Paphos, Pygmalion, kyprinon, the salt lake of Kition, Sidonian glass, Lebanon cedar, Phoenician horse-headed ships, Gadir and the Phoenician letters, Megiste, Ptolemy's fleet in Phoenicia, Sidon going over to him, Alexander's mole at Tyre, the temple of Melqart and its pillars of gold and emerald, Tyrian purple and the murex, balsam from the Jordan, Carthage, the daughter of Tyre, the low coast of Egypt and the Nile staining the sea, the tower going up on Pharos and its builder's name under the plaster, the Seven-Stade causeway, the king's monopolies in grain, linen and papyrus, his customs house, the Museum and its birdcage of scholars buying every book in the world, Rhodian wine in Alexandria, ivory from beyond the cataracts, and a new god named after a bull. Ariston and his crew are invented.
+Every port has something worth seeing, a short walk from the quay: seventeen in all, one in each. Each is a short story with a choice, and the choice has a small consequence. You can see each one once in the whole game. Its card is on the quay under **In the town**, side by side with the place to go after dark.
+
+- **Rhodes.** The hill of earth round the god, and the god inside it, finished as far as he has got.
+- **Halicarnassus.** The tomb of King Mausolus, with an old guardian who knows everyone in town.
+- **Kos.** The sanctuary of Asklepios, its sacred snakes, and Mikkos's toothache.
+- **Miletus.** The straight streets of Hippodamus, where everybody gets lost, and a boy whose uncle sells wool.
+- **Delos.** The altar of goats' horns, and the custom of running round it while the islanders beat you with sticks. Keep it, and rough water breaks less of the fragile cargo for the rest of the voyage.
+- **Piraeus.** Up to Athens, to see Athena on the Acropolis without the gold a tyrant took off her six years before.
+- **Corinth.** Acrocorinth, both seas from the top, and the spring where Bellerophon caught Pegasus. A bag of incense for Aphrodite goes down well in Corinth.
+- **Corcyra.** The Phaeacian ship that Poseidon turned to stone. A jar of wine for Poseidon does what the altar on Delos does.
+- **Croton.** Hera's temple alone on its cape, the Helen that Zeuxis painted from five girls of Croton, and an altar the wind will not touch.
+- **Taras.** The bronze Zeus of Lysippos, which a man can move with one hand. Measure his foot, and Aristokles at the statue works pays for the tablet.
+- **Kydonia.** The temple of Diktynna, the Cretan goddess of nets, and its dogs. A little lead net for the bow saves the next man who would have died of his wounds.
+- **Syracuse.** The stone quarries where the Athenians were kept, and where the ones who knew Euripides got out.
+- **Paphos.** The rock where Aphrodite came ashore, if you ask a Cypriot.
+- **Kition.** The house where a merchant's son grew up reading. If you talked to Zeno in Piraeus, Ariston has met him.
+- **Sidon.** The tomb of the gardener whom Alexander made a king.
+- **Tyre.** The dye works, and the dog that found purple. Buy the dyer a drink, and purple is cheaper that day.
+- **Alexandria.** The Museum, where a young schoolmaster from Cyrene is writing a book of wonders, and pays five drachmas for every sight you can tell him about.
+
+The ledger lists what you have seen, and the end of each chapter counts it.
+
+## After dark: somewhere to go in every port
+
+Every port also has somewhere to go after dark, up a side street from the harbour: a wine shop, a dinner, a game, a show. Its card is on the quay under **In the town**, next to the sight, and like the sights you can go to each one once in the whole game. Some of them hand you an errand for the next port: something to carry, or somebody to find. The errand happens when you get there, as a short scene with a choice of its own, and the ledger lists the ones still open. The dice in these places are their own, so a night out never changes the weather or the pirates still to come.
+
+- **Rhodes.** The wine shop by the ship sheds, where old Kleoboulos, who sailed with Ariston's father, has half a broken knucklebone for a guest-friend's family in your next port. Their answer can come home to him.
+- **Halicarnassus.** Knucklebones in a wine shop under the theatre, against a Carian who throws the Aphrodite every time. Glaukos has been watching the bones.
+- **Kos.** A wedding where the bridegroom wears a dress, because Herakles once did. The bride's brother rows in the next port, and would like his cake, if Mikkos leaves him any.
+- **Miletus.** A lady's house where every new guest is asked what the strongest thing in the world is. One answer gets you asked back.
+- **Delos.** Mikkos eats a basket of figs and announces that he is dying, on an island where nobody is allowed to.
+- **Piraeus.** The Athenian game of quails, against a champion called Themistokles.
+- **Corinth.** The house of Lais, on the road up from Lechaion. Not every man can afford the voyage to Corinth. Pay, send in perfume, or let Glaukos try to make her laugh, and she has a debt for you to collect in the next port.
+- **Corcyra.** A Phaeacian feast on the beach, and a discus for the captain of a trading ship.
+- **Croton.** An eating contest between a wrestler and Mikkos.
+- **Taras.** A farce by torchlight: Zeus, a ladder, and a call for a sailor who can tie a knot.
+- **Kydonia.** The liars' table, where the Cretans vote on whether your story is true.
+- **Syracuse.** A dinner where the guests decide that the house is a ship in a storm, and start throwing out the furniture.
+- **Paphos.** A company of musicians who have missed their ship to a wedding in the next port.
+- **Kition.** A Chaldean who reads the stars for sailors. Pay him, and he tells you what really lies between there and home.
+- **Sidon.** A Phoenician banquet club, where a guest brings something for the god's table, and a stranger wants a letter carried to Tyre.
+- **Tyre.** A garrison wine shop, and a bolt of Tyrian purple going very cheap. It is probably stolen. King Ptolemy's officer in Sidon thinks so too.
+- **Alexandria.** A dream reader by the shrine of Serapis, whose sign says he is a Cretan. Glaukos has dreamed of a goat.
+
+Between chapters, your silver, any debt, the ship and everything in her, the crew, your good name in each port, the friends you made, and the places you have seen all carry over. Errands do not: one not done by the end of a voyage is forgotten. Hired hands go home at the end of each voyage.
+
+The history of the period is real and stays in the background: the siege of Rhodes and the bronze Sun-god being built with the money, the tomb of Mausolus above Halicarnassus, Coan wine made with seawater, Cretan archers and Cretan pirates, the summer north wind, the unfinished temple at Didyma, Miletus laid out in straight streets, the Rhodian sea law on cargo thrown overboard, the lions of Delos, the stone lion of Kea, the ship sheds of Piraeus, a king's garrison on the hill of Munichia, Athens buying grain from anyone who brought it, the diolkos across the Isthmus, Diogenes in his jar at Corinth, the queen who brought Corcyra to her second husband as a dowry, Illyrian lemboi, the sailors' saying about Cape Malea, the pitch springs of Zakynthos, the wrestlers of Croton and the temple of Hera on its cape, the Pythagoreans and their beans, Archytas of Taras and his wooden dove, the Tarentine cavalry, the boy on a dolphin on the coins of Taras, the mercenaries of the king of Syracuse, the Halieia, the festival of the Sun in Rhodes, Amnisos and the ruined palace at Knossos, the archers of Kydonia and its quinces, Cretan dittany, the saying that all Cretans are liars, Talos the bronze man, the death of Agathocles and the pulling down of his statues, his Campanian soldiers, the spring of Arethusa, the gilded shield on the temple of Athena, and Damocles' sword, Demetrius losing Macedonia, Ptolemy the Saviour, the oracle of Apollo at Patara, the rock tombs of Lycia, the cape of swallows, the copper of Cyprus cast like ox hides, the cone of Aphrodite at Paphos, Pygmalion, kyprinon, the salt lake of Kition, Sidonian glass, Lebanon cedar, Phoenician horse-headed ships, Gadir and the Phoenician letters, Megiste, Ptolemy's fleet in Phoenicia, Sidon going over to him, Alexander's mole at Tyre, the temple of Melqart and its pillars of gold and emerald, Tyrian purple and the murex, balsam from the Jordan, Carthage, the daughter of Tyre, the low coast of Egypt and the Nile staining the sea, the tower going up on Pharos and its builder's name under the plaster, the Seven-Stade causeway, the king's monopolies in grain, linen and papyrus, his customs house, the Museum and its birdcage of scholars buying every book in the world, Rhodian wine in Alexandria, ivory from beyond the cataracts, and a new god named after a bull. The side stories add the altar of horns on Delos and the custom of running round it, Lachares and the gold of Athena, Peirene and Pegasus, the Phaeacian ship turned to stone, Zeuxis's Helen and the altar of Hera Lacinia, the Zeus of Lysippos at Taras and the sculptor of the Colossus who learned from him, Diktynna caught in a net and her temple dogs, the Athenian prisoners in the quarries of Syracuse and Euripides, Aphrodite's rock, Zeno's father Mnaseas and his books, Abdalonymos the gardener king and his painted coffin, Melqart's dog and the murex, and a young schoolmaster from Cyrene who collected the wonders of the world, place by place. The nights out add guest-friends and their broken tokens, knucklebones and the Aphrodite throw, the Coan bridegroom's dress and Herakles, the clever women of Miletus and the answer of Thales, the rule that nobody may be born or die on Delos, Rheneia and the bald men of Mykonos, the Athenian game of quails, the saying about the voyage to Corinth and Lais's price, the Phaeacians and Odysseus's discus, Milon's appetite, the farces of Taras and Plato on its festivals, the liar's riddle, the young men of Akragas and their house called the Trireme, wine drunk neat like Scythians, Babylonian star-gazers, the Phoenician marzeah, and the sign of a Cretan dream reader. Ariston and his crew are invented.
 
 ## The nine voyages
 
@@ -141,8 +189,8 @@ The history of the period is real and stays in the background: the siege of Rhod
 - `src/game.html` is the whole game: HTML, CSS and JavaScript in one file. It is a page fragment, with no `<html>` or `<body>` tags, so it can be published as a claude.ai artifact as it is.
 - `index.html` is the same game wrapped as a standalone page. It is generated, so don't edit it by hand.
 - `tools/build.mjs` creates `index.html` from `src/game.html`.
-- `tests/sim.js` plays Chapters I to IX in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It has no dependencies.
-- `tests/play.js` plays all nine chapters, to the last page, in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. It needs Playwright.
+- `tests/sim.js` plays Chapters I to IX in turn, with bots that follow different strategies, over many seeds, to check the money and the risks. It also checks every side story and every night out, every choice in them and every errand they lead to, and plays whole games with side trips to check that they help a little and no more. It has no dependencies.
+- `tests/play.js` plays all nine chapters, to the last page, in a phone-sized Chromium through the real buttons, and saves screenshots to `tests/shots/`. On the way it stops in every port to see the sight, go out after dark, and do any errand waiting on the quay. It needs Playwright.
 
 Inside `src/game.html`, the rules sit between `// ===== ENGINE START =====` and `// ===== ENGINE END =====` and never touch the page. That is what lets `tests/sim.js` run them on their own. All the art and sound is drawn and synthesized in code.
 

@@ -12,7 +12,9 @@ const E = new Function(code + `
 return { newGame, begin, buy, sell, haggle, hire, autoPack, setSail, tick, setRow, campAct, sleep, needsRoute, resolveEvent,
   repay, eta, provisions, mouths, holdUsed, holdCells, sellPrice, buyPrice, merchantsAt, MERCHANTS, GOODS, OUT, dockItems,
   atRisk, stockLeft, cargoValue, sailCheck, isCargo, takeLoan, nextChapter, migrate, offer, routeFrom, CHAPTERS, fitted, freeSquares, toll,
-  takeFreight, orderShip, jettisonPlan, SHIP_PRICE, hiresAt, shipTerms, buyShip, changeHull, holdCells, feeOf, dockOf, holdInShape, HULLS, DAYS, fitted, tooSmall, bestSpot, EVENTS, takeFare, campOdds, roomFor, hasDeck, flipItem, warGoods, warValue, bribeOf, runPatrol };`)();
+  takeFreight, orderShip, jettisonPlan, SHIP_PRICE, hiresAt, shipTerms, buyShip, changeHull, holdCells, feeOf, dockOf, holdInShape, HULLS, DAYS, fitted, tooSmall, bestSpot, EVENTS, takeFare, campOdds, roomFor, hasDeck, flipItem, warGoods, warValue, bribeOf, runPatrol,
+  SIGHTS, SIGHT_PAY, seeSight, sightsSeen, needItem, homeNews, roughSea, woundLines, woundCrew, wants, openVisit, stow, addItem, countGood,
+  NIGHTS, ERRANDS, goOut, nightsOut, startErrand, errandsOpen, errandsFor, nextPort, perilsAhead, daysAhead, arrivePort };`)();
 
 // Each strategy: what to carry out and home, who to hire, and what to do when things go wrong.
 const STRATEGIES = {
@@ -961,5 +963,139 @@ for (const fill of [20, 50]) {
   E.OUT.length = 0;
   console.log(ok ? 'An old wide-Tyche save with ' + s.items.filter(i => i.where === 'hold').length + ' things aboard loads as ' + (t.hull === 'medium' ? 'the new Tyche' : 'the old shape, for now') + ', with nothing lost: ok' : 'FAIL: an old wide-Tyche save should load without losing cargo');
   if (!ok) failed = true;
+}
+// ---- Side stories in every port ----
+console.log('-- Side stories --');
+{
+  let bad = 0;
+  const check = (ok, msg) => { if (!ok) { console.log('FAIL: ' + msg); failed = true; bad++; } return ok; };
+  const say = (label, from) => console.log(label + ': ' + (bad === from ? 'ok' : 'FAILED'));
+  const CH = { rhodes: 1, halic: 1, kos: 2, miletus: 2, delos: 3, piraeus: 3, corinth: 4, corcyra: 4, croton: 5, taras: 5, kydonia: 6, syracuse: 6, paphos: 7, kition: 7, sidon: 8, tyre: 8, alexandria: 9 };
+  const at = (port, ch, silver) => { const s = E.newGame(5150); E.begin(s); s.ch = ch; s.port = port; s.phase = 'port'; E.openVisit(s, port); s.silver = silver == null ? 500 : silver; return s; };
+  const copy = s => JSON.parse(JSON.stringify(s));
+  // Every port has something worth seeing, and every choice there tells a story once, costs what it says, and only once.
+  let from = bad, choices = 0;
+  check(Object.keys(E.SIGHTS).length === Object.keys(CH).length && Object.keys(CH).every(p => E.SIGHTS[p]), 'every port should have something worth seeing');
+  for (const p in CH) for (const c of E.SIGHTS[p].choices(at(p, CH[p]))) {
+    const s = at(p, CH[p]); E.stow(s, 'incense'); E.stow(s, 'wine');
+    const before = s.silver, r = E.seeSight(s, c.id);
+    check(r.ok && r.lines.length > 0 && r.lines.every(l => typeof l === 'string' && l.length > 20 && !/undefined|NaN|\[object/.test(l)), p + ': ' + c.id + ' should tell a story');
+    check(!!s.sights[p] && s.sights[p].ch === CH[p] && !E.seeSight(s, c.id).ok, p + ': a sight should be seen only once');
+    check(Number.isFinite(s.silver) && s.silver >= 0 && (!c.price || before - s.silver >= c.price), p + ': ' + c.id + ' should cost what it says');
+    check(E.SIGHTS[p].text(s).every(l => typeof l === 'string' && l.length > 20), p + ': the story should read');
+    choices++;
+  }
+  { const s = at('corcyra', 4); check(!E.seeSight(s, 'pour').ok && !s.sights.corcyra, 'pouring wine to Poseidon with no wine aboard should be refused'); }
+  { const s = at('rhodes', 1, 3); check(!E.seeSight(s, 'give').ok && s.silver === 3 && !s.sights.rhodes, 'a gift you cannot afford should be refused'); }
+  { const s = at('alexandria', 9, 0); for (const p of ['rhodes', 'halic', 'kos', 'delos', 'tyre', 'sidon']) s.sights[p] = { ch: 1 };
+    check(E.seeSight(s, 'tell').ok && s.silver === 6 * E.SIGHT_PAY, 'the young man at the Museum should pay for six sights'); }
+  { const s = at('taras', 5); E.seeSight(s, 'measure'); s.port = 'rhodes'; s.home = true; const before = s.silver; E.homeNews(s);
+    check(s.silver === before + 15 && s.flags.lysippos === 'paid', 'Aristokles should pay for the measurements of the Zeus of Taras'); }
+  say(`Sights: ${Object.keys(E.SIGHTS).length} ports, ${choices} choices, each told once`, from);
+  // Running round the altar on Delos, or wine for Poseidon: rough water breaks about half as much. Diktynna's net saves a life.
+  from = bad;
+  {
+    const broken = blessed => { let n = 0; for (let k = 0; k < 300; k++) { const s = E.newGame(100 + k); if (blessed) s.flags.blessed = 'delos'; for (let j = 0; j < 4; j++) E.addItem(s, 'cups', 'hold'); n += E.roughSea(s, 0.5).length; } return n; };
+    const plain = broken(false), lucky = broken(true);
+    check(lucky > plain * 0.4 && lucky < plain * 0.6, 'a blessing should halve what rough water breaks: ' + lucky + ' against ' + plain);
+    let deaths = 0, saved = 0;
+    for (let k = 0; k < 400; k++) {
+      const a = E.newGame(700 + k), b = E.newGame(700 + k);
+      for (const s of [a, b]) s.voyage = { day: 'r_symi' };
+      b.flags.net = true;
+      E.woundLines(a, E.woundCrew(a, 3)); E.woundLines(b, E.woundCrew(b, 3));
+      if (a.lost.length) { deaths++; if (b.lost.length === a.lost.length - 1 && b.flags.net === 'used') saved++; }
+      else check(b.flags.net === true, 'the net should wait for a man who needs it');
+    }
+    check(deaths > 0 && saved === deaths, 'Diktynna’s net should save the first man who would have died');
+  }
+  say('The blessing for the voyage, and Diktynna’s net', from);
+  // Somewhere to go after dark in every port: every choice tells its story once, and costs what it says.
+  from = bad; choices = 0;
+  const atN = (port, ch, silver) => { const s = at(port, ch, silver); if (ch >= 8) s.flags.reached_sidon = true; return s; };
+  const reads = l => typeof l === 'string' && l.length > 20 && !/undefined|NaN|\[object|null/.test(l);
+  let started = 0;
+  check(Object.keys(E.NIGHTS).length === Object.keys(CH).length && Object.keys(CH).every(p => E.NIGHTS[p]), 'every port should have somewhere to go after dark');
+  for (const p in CH) {
+    check(E.NIGHTS[p].text(atN(p, CH[p])).every(reads), p + ': the night out should read');
+    for (const c of E.NIGHTS[p].choices(atN(p, CH[p]))) for (let k = 0; k < 4; k++) {   // a few seeds, for both sides of every throw
+      const s = atN(p, CH[p]); s.seed = 900 + k * 4111; E.stow(s, 'wine'); E.stow(s, 'scent');
+      const before = s.silver, r = E.goOut(s, c.id);
+      check(r.ok && r.lines.length > 0 && r.lines.every(reads), p + ': ' + c.id + ' should tell a story');
+      check(!!s.nights[p] && s.nights[p].ch === CH[p] && !E.goOut(s, c.id).ok, p + ': a night out should happen only once');
+      check(Number.isFinite(s.silver) && s.silver >= 0 && (!c.price || before - s.silver >= c.price || s.silver > before), p + ': ' + c.id + ' should cost what it says');
+      // an errand it started: due in the next port, and every way of doing it reads, and pays sensibly
+      for (const id of E.errandsOpen(s)) {
+        const e = s.errands[id]; started++;
+        check(e.to === E.nextPort(s) && e.from === p && !E.errandsFor(s, p).includes(id), p + ': the errand ' + id + ' should be for the next port');
+        for (const pick of E.EVENTS['errand_' + id].choices(Object.assign(copy(s), { port: e.to })).map(x => x.id)) {
+          const t = copy(s); t.phase = 'voyage'; E.arrivePort(t, e.to);
+          check(t.pending === 'errand_' + id || E.errandsFor(t, e.to)[0] !== id, id + ': the errand should be waiting on the quay at ' + e.to);
+          if (t.pending !== 'errand_' + id) continue;
+          check(!E.setSail(t).ok && (!t.home || !E.repay(t).ok), id + ': nobody should sail, or settle, while an errand is waiting');
+          check(E.EVENTS[t.pending].text(t).every(reads), id + ': the errand should read');
+          const lines = E.resolveEvent(t, pick);
+          check(lines.length > 0 && lines.every(reads) && t.errands[id].done === pick && Number.isFinite(t.silver) && t.silver >= 0, id + ': ' + pick + ' should finish the errand');
+          for (const id2 of E.errandsOpen(t)) {   // one errand can lead to another, further on
+            const u = copy(t); E.arrivePort(u, u.errands[id2].to);
+            check(u.pending === 'errand_' + id2 && E.resolveEvent(u, E.EVENTS[u.pending].choices(u)[0].id).every(reads) && u.errands[id2].done, id2 + ': the second errand should finish too');
+          }
+        }
+      }
+      choices++;
+    }
+  }
+  check(started > 0, 'some nights out should start errands');
+  { const s = atN('corinth', 4, 10); check(!E.goOut(s, 'pay').ok && s.silver === 10 && !s.nights.corinth, 'an evening you cannot afford should be refused'); }
+  { const s = atN('sidon', 8); check(!E.goOut(s, 'wine').ok && !s.nights.sidon, 'wine for the god’s table with no wine aboard should be refused'); }
+  { const s = atN('sidon', 8); s.flags.reached_tyre = true; check(!E.NIGHTS.sidon.choices(s).some(c => c.id === 'letter'), 'nobody should ask you to carry a letter to Tyre after you have been'); }
+  { const s = atN('rhodes', 1); s.home = true; check(!E.NIGHTS.rhodes.choices(s).some(c => c.id === 'token'), 'Kleoboulos should not send a token anywhere at the end of a voyage'); }
+  say(`Nights out: ${Object.keys(E.NIGHTS).length} ports, ${choices / 4} choices, each told once; ${started} errands started and done every way`, from);
+  // The Chaldean in Kition, and the dream reader in Alexandria, see what is really ahead, and nothing that is behind.
+  from = bad;
+  {
+    const s = atN('kition', 7); Object.assign(s.flags, { reached_paphos: true, reached_kition: true, pirates7: true, gale7: true, toll7: true });
+    const ahead = E.perilsAhead(s);
+    check(ahead.length === 1 && /long ships/.test(ahead[0]), 'from Kition the stars should see the pirates ahead, and not the gale and the warship behind: ' + ahead.join('; '));
+    s.flags.pirates7 = false; check(E.perilsAhead(s).length === 0, 'with no pirates ahead, the stars should see only sea');
+    const t = atN('alexandria', 9); Object.assign(t.flags, { reached_alexandria: true, pirates9: true, homegale9: true, gale9: true });
+    check(E.perilsAhead(t).length === 2, 'from Alexandria the dream should see the gale and the pirates on the way home: ' + E.perilsAhead(t).join('; '));
+    check(E.daysAhead(atN('kos', 2)).includes('n_kos_tri') && E.daysAhead(atN('rhodes', 1)).includes('tri_rho'), 'the days ahead should run all the way home, either way at the fork');
+  }
+  say('The stars, and the dreams, see what is ahead', from);
+  // A whole game, played the smart way, but stopping in every port to see the sight.
+  if (ONLY.includes(9)) {
+    from = bad;
+    const realSail = E.setSail, realRepay = E.repay;
+    const side = (s, when) => {
+      while (s.pending && s.pending.startsWith('errand_')) E.resolveEvent(s, E.EVENTS[s.pending].choices(s)[0].id);   // an errand waiting on the quay
+      const afford = c => (!c.price || s.silver >= c.price) && (!c.need || E.needItem(s, c.need));
+      const G = E.SIGHTS[s.port];
+      if (G && !s.sights[s.port]) { const c = G.choices(s).find(afford); if (c && !E.seeSight(s, c.id).ok) throw new Error('could not see the sight in ' + s.port); }
+      const N = E.NIGHTS[s.port];
+      if (N && !s.nights[s.port]) { const c = N.choices(s).find(afford); if (c && !E.goOut(s, c.id).ok) throw new Error('could not go out in ' + s.port); }
+    };
+    const fullGame = seed => {
+      const s = E.newGame(seed);
+      playChapterOne(s); E.nextChapter(s); summerOn(s, SUMMER.smart, [], 'smart'); E.nextChapter(s); autumnOn(s, AUTUMN.smart, 'smart'); E.nextChapter(s);
+      springOn(s, SPRING.smart, 'smart'); E.nextChapter(s); summer5On(s, SUMMER5.smart, 'smart'); E.nextChapter(s); autumn6On(s, AUTUMN6.smart, 'smart'); E.nextChapter(s);
+      spring7On(s, SPRING7.smart, 'smart'); E.nextChapter(s); summer8On(s, SUMMER8.smart, 'smart'); E.nextChapter(s); autumn9On(s, AUTUMN9.smart, 'smart');
+      E.OUT.length = 0;
+      return s;
+    };
+    const total = s => s.history.concat([s.summary]).reduce((a, h) => a + h.profit, 0);
+    const G = Math.max(8, Math.round(GAMES / 10)), plain = [], sided = [];
+    for (let k = 0; k < G; k++) plain.push(fullGame(41000 + k * 7919));
+    E.setSail = s => { if (s.phase === 'port' && !s.home) side(s, 'leaving'); return realSail(s); };
+    E.repay = s => { if (s.phase === 'port' && s.home) side(s, 'home'); return realRepay(s); };
+    try { for (let k = 0; k < G; k++) sided.push(fullGame(41000 + k * 7919)); } finally { E.setSail = realSail; E.repay = realRepay; }
+    const mean = a => Math.round(a.reduce((x, y) => x + y, 0) / a.length);
+    const p0 = mean(plain.map(total)), p1 = mean(sided.map(total));
+    const done = s => Object.keys(s.errands).filter(id => s.errands[id].done).length;
+    console.log(`A whole game with side trips (${G} games): sights seen ${mean(sided.map(s => E.sightsSeen(s)))} of ${Object.keys(E.SIGHTS).length}, nights out ${mean(sided.map(s => E.nightsOut(s)))} of ${Object.keys(E.NIGHTS).length}, errands done ${mean(sided.map(done))}, profit over nine voyages ${p1} dr against ${p0} without`);
+    for (const s of sided) check(E.sightsSeen(s) === Object.keys(E.SIGHTS).length && s.sights.alexandria.pick === 'tell' && E.nightsOut(s) === Object.keys(E.NIGHTS).length && done(s) > 0 && Object.keys(s.errands).every(id => s.errands[id].done) && Number.isFinite(s.silver) && s.silver >= 0, 'a whole game should see every sight, go out in every port, finish every errand, and end with sensible silver');
+    check(p1 > p0 - 200 && p1 < p0 * 1.25, 'side trips should help a little, not decide the game');
+    say('A whole game with side trips', from);
+  }
 }
 if (failed) process.exit(1);

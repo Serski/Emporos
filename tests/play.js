@@ -78,10 +78,42 @@ fs.mkdirSync(out, { recursive: true });
   await page.evaluate(() => window.__emp.speed(12));
 
   const seen = new Set();
+  // On the quay: an errand from the last port may be waiting. Read it, take the first choice, and carry on.
+  async function settle(label) {
+    for (let k = 0; k < 8; k++) {
+      await page.waitForTimeout(300);
+      const ev = await page.evaluate(() => { const ui = window.__emp.ui; return ui.sheet && ui.sheet.kind === 'event' ? (ui.outcome ? 'outcome' : window.__emp.state().pending) : null; });
+      if (!ev) return;
+      if (ev === 'outcome') { await page.click('#sheetCard button[data-act="continue"]'); continue; }
+      if (!ev.startsWith('errand_')) throw new Error('an event in port that is not an errand: ' + ev);
+      await snap(label + '-' + ev);
+      await page.click('#sheetCard .choices button[data-c]');
+    }
+    throw new Error('the errands in port did not finish');
+  }
+  // In every port, see the sight worth seeing and go out after dark: take the first choice that can be afforded, and read what happens.
+  async function ashore() {
+    await page.waitForTimeout(400);
+    const port = await page.evaluate(() => window.__emp.state().port);
+    await settle('errand-' + port);
+    for (const kind of ['sight', 'night']) {
+      const done = () => page.evaluate(([k, p]) => !!window.__emp.state()[k === 'sight' ? 'sights' : 'nights'][p], [kind, port]);
+      const card = await page.$(`#panel button[data-place="${kind}"][data-port="${port}"]`);
+      if (!card || await done()) continue;
+      await card.click(); await page.waitForSelector('#sheet:not([hidden])');
+      await snap(kind + '-' + port);
+      const c = await page.$('#sheetCard button[data-act="place"]:not([disabled])');
+      if (!c) throw new Error('nothing to choose at the ' + kind + ' in ' + port);
+      await c.click(); await page.waitForTimeout(200);
+      if (!await done()) throw new Error('the ' + kind + ' in ' + port + ' was not visited');
+      await snap(kind + '-' + port + '-done');
+      await close();
+    }
+  }
   async function voyage(label) {
     for (let guard = 0; guard < 3000; guard++) {
       const s = await st();
-      if (s.phase === 'port') return s;
+      if (s.phase === 'port') { await ashore(); return await st(); }
       const sheet = await page.evaluate(() => { const ui = window.__emp.ui; return ui.sheet && ui.sheet.kind === 'event' ? (ui.outcome ? 'outcome' : window.__emp.state().pending) : null; });
       if (sheet === 'outcome') { if (!seen.has(label + 'out')) { seen.add(label + 'out'); await snap(label + '-outcome'); } await page.click('#sheetCard button[data-act="continue"]'); continue; }
       if (sheet) {
@@ -603,6 +635,14 @@ fs.mkdirSync(out, { recursive: true });
   if (voyages < 10) throw new Error('the last page should list all nine voyages and the total: ' + voyages);
   await page.evaluate(() => document.querySelector('#theater .voyages').scrollIntoView()); await snap('384-the-end');
   console.log('chapter IX:', JSON.stringify(await page.evaluate(() => window.__emp.state().summary)));
+  const sights = await page.evaluate(() => Object.keys(window.__emp.state().sights));
+  console.log('sights seen:', sights.length, sights.join(', '));
+  if (sights.length !== 17) throw new Error('every port has something worth seeing, and the voyages pass through all seventeen: ' + sights.length);
+  if (!/young man from Cyrene/.test(await page.textContent('#theater .voyages'))) throw new Error('the last page should remember the book of wonders');
+  const nights = await page.evaluate(() => ({ out: Object.keys(window.__emp.state().nights), errands: Object.keys(window.__emp.state().errands).filter(id => window.__emp.state().errands[id].done) }));
+  console.log('nights out:', nights.out.length, nights.out.join(', '), '| errands done:', nights.errands.join(', '));
+  if (nights.out.length !== 17) throw new Error('every port has somewhere to go after dark: ' + nights.out.length);
+  if (nights.errands.length < 3) throw new Error('some of the nights out should have led to errands, done in the next port: ' + nights.errands.join(', '));
   console.log('errors:', errors.length ? errors.join('\n') : 'none');
   console.log('screenshots:', shots.join(', '));
   await browser.close();
