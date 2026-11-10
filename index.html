@@ -5780,7 +5780,7 @@ function mausoleum(cx, gy) {
 }
 
 // ---------- the detailed world: twice the pixels, a sun to see by, and shade on everything ----------
-// Rhodes and the title are painted this way so far. Every other picture is still painted flat, at the old size.
+// Ports painted one of the two new ways, detailed or flat (see the flat world, below). Every other picture is still painted the old way.
 const HD_PORTS = new Set(['rhodes']);
 const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
 const dith = (x, y) => BAYER4[((y & 3) << 2) | (x & 3)];
@@ -6623,6 +6623,420 @@ function drawDawn(W, H, t, o) {
   const kind = hdHullOf(), D = HD_HULLS[kind], wy = hz + Math.round(sea * (H > W * 0.9 ? 0.42 : 0.68)), bob = still ? 0 : Math.round(Math.sin(t * 1.6) * 0.8);
   hdShipAt(kind, Math.round(W * 0.44 - D.L / 2), wy + bob, { sail: 'full', crew: kind === 'small' ? 5 : 7, t, Lt, still, sunLeft: true, wake: true, rows: Math.min(D.mh, H - wy - 2), tint: mix(pal.seaTop, pal.seaBot, 0.35) });
   for (let k = 0; k < 3; k++) hdGull(((t * (6 + k * 2) + k * 120) % (W + 30)) - 15, hz * 0.3 + k * 14 + Math.sin(t * 1.3 + k) * 3, t, k);
+}
+// ---------- the flat world: big flat pixels, soft light, and leaves dotted with sun ----------
+// The other way of painting Rhodes and the title, to set beside the detailed one: a colour or two to a thing and a lighter edge where the
+// light catches it, bushes and stone dotted with light, far things fading into the haze, and soft gradients of sky and sun behind.
+// The menu switches between the two ways and remembers the choice in this browser; a link ending #flat or #detailed picks one too.
+const ART_KEY = 'emporos-art';
+function artStyle() {
+  const h = (location.hash || '').slice(1);
+  if (h === 'flat' || h === 'detailed') return h;
+  try { return localStorage.getItem(ART_KEY) === 'detailed' ? 'detailed' : 'flat'; } catch (e) { return 'flat'; }
+}
+let ART = artStyle();
+function setArt(v) { ART = v; try { localStorage.setItem(ART_KEY, v); } catch (e) { /* storage may be off */ } }
+const FLAT_SCENES = { rhodes: drawRhodesFlat };
+// The light at each hour, the flat way: soft and pale, and never dark.
+const FLATPAL = [
+  [0.00, { top: '#a3b2d4', bot: '#f8d4b8', sun: '#fff0d8', sea0: '#e6cfc4', sea1: '#6f86ad', haze: '#f2d9cb', far: '#b2aac4', near: '#8e92b2', light: '#ffe6c6' }],
+  [0.18, { top: '#b0d3da', bot: '#f3efdd', sun: '#fffbea', sea0: '#c7e4da', sea1: '#5f9ea2', haze: '#e9f0e3', far: '#b4cbc7', near: '#94b2ab', light: '#fff6e0' }],
+  [0.50, { top: '#a2cddb', bot: '#eef3e6', sun: '#ffffff', sea0: '#b9e1dc', sea1: '#4e939a', haze: '#e5efe9', far: '#a9c5c5', near: '#88aaa7', light: '#ffffff' }],
+  [0.85, { top: '#b4c6d6', bot: '#f6e5ca', sun: '#fff0d2', sea0: '#d9dcc9', sea1: '#62899c', haze: '#f1e5d1', far: '#b9b9ba', near: '#9da1aa', light: '#fff0d6' }],
+  [1.00, { top: '#a7adcc', bot: '#f5c9a9', sun: '#ffe1ba', sea0: '#e5c1b1', sea1: '#6b7396', haze: '#f1d1c1', far: '#aa9db1', near: '#8b85a1', light: '#ffd9b2' }],
+];
+const FLAT_PALS = new Map();
+function flatPal(clock) {
+  const key = Math.round(clamp(clock, 0, 1) * 60);
+  let p = FLAT_PALS.get(key);
+  if (p) return p;
+  let i = 0;
+  while (i < FLATPAL.length - 2 && key / 60 > FLATPAL[i + 1][0]) i++;
+  const [a, A] = FLATPAL[i], [b, B] = FLATPAL[i + 1], k = clamp((key / 60 - a) / (b - a), 0, 1);
+  p = {};
+  for (const n in A) p[n] = mix(A[n], B[n], k);
+  FLAT_PALS.set(key, p);
+  return p;
+}
+const fz = (c, P, k) => mix(c, P.haze, k);   // a colour seen through some of the haze
+const rgba = (c, a) => { const [r, g, b] = rgbOf(c); return `rgba(${r},${g},${b},${a})`; };
+function fGrad(y0, h, W, stops) {   // a smooth vertical gradient, with no steps in it: stops is a list of colours, top to bottom
+  const g = G.createLinearGradient(0, y0, 0, y0 + h);
+  stops.forEach((c, i) => g.addColorStop(i / (stops.length - 1), c));
+  G.fillStyle = g; G.fillRect(0, y0, W, h);
+}
+function fGlow(x, y, r, c, a) {   // a soft round glow of light
+  const g = G.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, rgba(c, a)); g.addColorStop(0.3, rgba(c, a * 0.5)); g.addColorStop(1, rgba(c, 0));
+  G.fillStyle = g; G.fillRect(x - r, y - r, r * 2, r * 2);
+}
+function fCloud(x, y, w, h, c, a) {   // a long soft cloud, thickest in the middle
+  G.save(); G.translate(x, y); G.scale(w / h, 1);
+  const g = G.createRadialGradient(0, 0, 0, 0, 0, h);
+  g.addColorStop(0, rgba(c, a)); g.addColorStop(0.5, rgba(c, a * 0.75)); g.addColorStop(1, rgba(c, 0));
+  G.fillStyle = g; G.beginPath(); G.arc(0, 0, h, 0, Math.PI * 2); G.fill(); G.restore();
+}
+function fClouds(W, top, bot, t, P, seed, n) {   // soft clouds drifting slowly, the higher ones longer
+  for (let i = 0; i < n; i++) {
+    const k = hash(seed + i * 1.7), w = Math.round(W * (0.16 + 0.22 * k)), h = 2 + Math.round(k * 3), y = Math.round(top + (bot - top) * (0.15 + 0.85 * hash(seed + i * 4.1)));
+    const x = ((hash(seed + i * 3.3) * (W + w * 2) + t * (0.3 + k * 0.5)) % (W + w * 2)) - w;
+    fCloud(Math.round(x), y, w, h, mix('#ffffff', P.light, 0.4), 0.75);
+  }
+}
+function fRays(x, y, len, a0, a1, n, c, a) {   // soft shafts of light spreading from the sun
+  for (let i = 0; i < n; i++) {
+    const ang = a0 + (a1 - a0) * (i + 0.5) / n + (hash(i * 7.7) - 0.5) * 0.1, w = 0.035 + 0.035 * hash(i * 3.7);
+    const g = G.createLinearGradient(x, y, x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+    g.addColorStop(0, rgba(c, a)); g.addColorStop(1, rgba(c, 0));
+    G.fillStyle = g; G.beginPath(); G.moveTo(x, y);
+    G.lineTo(x + Math.cos(ang - w) * len, y + Math.sin(ang - w) * len); G.lineTo(x + Math.cos(ang + w) * len, y + Math.sin(ang + w) * len); G.closePath(); G.fill();
+  }
+}
+// A bush, or a crown of leaves: a dark dome dotted with light, the dots thickest round its top and its rim.
+function fBlob(cx, cy, r, base, dot, seed) {
+  for (let y = -r; y <= Math.ceil(r * 0.6); y++) {
+    const half = Math.round(Math.sqrt(Math.max(0, r * r - y * y)) * 1.15), Y = cy + y;
+    R(cx - half, Y, half * 2 + 1, 1, base);
+    for (let x = -half; x <= half; x++) {
+      const X = cx + x;
+      if ((X + Y * 2) % 3 !== 0) continue;
+      const top = clamp(-y / r, 0, 1), rim = half - Math.abs(x) < 1.5 || y === -r ? 0.35 : 0;
+      if (hash2(X + seed * 7.1, Y) < 0.1 + 0.6 * top + rim) px(X, Y, dot);
+    }
+  }
+}
+const STONE = { base: '#bcae86', top: '#e8dcb2', gap: '#968b6c', dot: '#f6eed4' };
+const stoneIn = (P, k) => ({ base: fz(STONE.base, P, k), top: fz(STONE.top, P, k), gap: fz(STONE.gap, P, k), dot: fz(STONE.dot, P, k) });
+function fStone(x, y, w, h, S, seed) {   // a block of stone: flat, lit along its top, a dark joint down its left, and a fleck or two of light
+  R(x, y, w, h, S.base); R(x, y, w, 1, S.top);
+  if (h > 1) R(x, y + 1, 1, h - 1, S.gap);
+  for (let i = x + 1; i < x + w; i += 2) if (hash(seed + i * 0.71) > 0.55) px(i, y, S.dot);
+  if (w > 3 && h > 2 && hash(seed * 1.9) > 0.5) px(x + 1 + Math.floor(hash(seed * 1.3) * (w - 2)), y + 1 + Math.floor(hash(seed * 1.7) * (h - 2)), S.dot);
+}
+function fCourse(x0, x1, y, h, S, seed) {   // a course of blocks along a wall
+  for (let x = x0, k = 0; x < x1; k++) { const w = 3 + Math.floor(hash(seed + k * 2.7) * 4); fStone(x, y, Math.min(w, x1 - x), h, S, seed + k * 3.1); x += w; }
+}
+const WALLS_FLAT = ['#efe7cf', '#e4d7b5', '#d9c8a1', '#f4efe1', '#e8dcc0'];
+function fHouse(x, gy, w, h, P, k, s) {   // a house: a pale wall with its shaded side, a tiled or a flat top, and a dark window
+  const wall = fz(WALLS_FLAT[Math.floor(hash(s) * WALLS_FLAT.length)], P, k);
+  R(x, gy - h, w, h, wall); R(x, gy - h, 1, h, mix(wall, '#7a6a50', 0.22));
+  if (hash(s * 1.7) > 0.4) { R(x - 1, gy - h - 1, w + 1, 1, fz('#c27d55', P, k)); R(x, gy - h - 2, w - 1, 1, fz('#e0a47c', P, k)); }
+  else R(x, gy - h, w, 1, mix(wall, '#ffffff', 0.55));
+  if (w > 3 && h > 2) px(x + 1 + Math.floor(hash(s * 3.1) * (w - 2)), gy - h + 2, fz('#5a4a3e', P, k));
+}
+function fCypress(x, gy, h, P, k) {   // a cypress: a dark spire, dotted with light down its sunny side
+  const b = fz('#3d5a47', P, k), d = fz('#b0c08a', P, k);
+  for (let j = 0; j < h; j++) {
+    const w = j < 2 ? 1 : j > h - 2 ? 2 : j > h * 0.3 && j < h * 0.85 ? 3 : 2, a = x - (w >> 1);
+    R(a, gy - h + j, w, 1, b); if (j % 2 && w > 1) px(a + w - 1, gy - h + j, d);
+  }
+}
+function fTemple(cx, gy, w, P, k) {   // a temple on its steps: columns with shadow between them, a frieze, and a low pediment
+  const m = fz('#f1ebdc', P, k), sh = fz('#a99f8a', P, k), lt = fz('#ffffff', P, k), x0 = cx - (w >> 1);
+  R(x0 - 2, gy - 1, w + 4, 1, sh); R(x0 - 1, gy - 2, w + 2, 1, m); px(x0 + w, gy - 2, lt);
+  for (let x = x0; x < x0 + w; x++) R(x, gy - 9, 1, 7, (x - x0) % 2 ? sh : m);
+  R(x0 - 1, gy - 11, w + 2, 2, m); R(x0 - 1, gy - 11, w + 2, 1, lt);
+  for (let x = x0; x < x0 + w; x += 2) px(x, gy - 10, sh);
+  for (let j = 0; j < 3; j++) R(x0 + j * 2, gy - 12 - j, w - j * 4, 1, j ? m : lt);
+}
+function flatCoast(W, hz, P) {   // the coast of Asia across the strait: two flat ranges, the further one paler
+  ridge(0, W, hz - 1, Math.max(4, hz * 0.2), 34, 3, P.far);
+  ridge(19, W, hz - 1, Math.max(2, hz * 0.09), 20, 8, P.near);
+}
+function fSlabs(x0, x1, top, bot, S, seed) {   // rock in tall slabs, their tops uneven, each lit along the top
+  for (let x = x0, n = 0; x < x1; n++) {
+    const w = 3 + Math.floor(hash(seed + n * 1.9) * 4), t0 = top + Math.floor(hash(seed + n * 3.1) * 4);
+    for (let y = t0; y < bot; y += 5 + Math.floor(hash(seed + n + y) * 3)) fStone(x, y, Math.min(w, x1 - x), Math.min(7, bot - y), S, seed + n * 7 + y);
+    x += w;
+  }
+}
+function paintFlatCity(W, P, hz, hh, hill, shore) {   // the hill, olive groves dark on its upper slopes, the rock of the acropolis and its temple, houses in terraces below, and the walls along the water
+  const xEnd = Math.round(W * 0.64), k = 0.12, S = stoneIn(P, k * 0.6), ground = fz('#b0a877', P, k), crest = fz('#d8d09c', P, k), leaf = fz('#38584a', P, k * 0.4), dot = fz('#d6d898', P, k * 0.4);
+  const tx = Math.round(W * 0.13), ty = hill(tx) + 1, town = hz + 6 - Math.round(hh * 0.58);   // houses only below this line
+  for (let x = 0; x < xEnd; x++) { const y0 = hill(x); R(x, y0, 1, shore + 1 - y0, ground); px(x, y0, crest); }
+  fSlabs(tx - 13, tx + 14, ty, ty + 13, S, 5);   // the rock of the acropolis
+  for (let gy = 0; gy < 6; gy++) for (let gx = 0; gx < 14; gx++) {   // olive groves over the upper hill, in overlapping domes
+    const x = Math.round(gx * 7 + (gy % 2) * 3.5 + (hash(gx * 3.1 + gy * 7.7) - 0.5) * 3), y = hill(x) + 4 + gy * 5 + Math.round(hash(gx + gy * 13.3) * 2);
+    if (x > xEnd - 3 || y > town + 3 || y > shore - 6 || (Math.abs(x - tx) < 15 && y < ty + 15) || hash(gx * 5.1 + gy * 2.3) < 0.18) continue;
+    fBlob(x, y, 4 + Math.floor(hash(gx * 1.3 + gy * 9.1) * 3), leaf, dot, gx * 17 + gy);
+  }
+  const rows = Math.max(1, Math.ceil((hz + 6 - town) / 5)), rowY = r => hz + 6 - r * 5;
+  for (let r = rows - 1; r >= 0; r--) {   // houses in terraces, gardens between them
+    for (let x = 1 + Math.floor(hash(17 + r) * 5), n = 0; x < xEnd - 5; n++) {
+      const s = 17 + r * 31 + n * 7, w = 5 + Math.floor(hash(s) * 4), h = 4 + Math.floor(hash(s + 1) * 2), y = rowY(r), roll = hash(s + 2);
+      if (y - h - 3 < hill(x) + 2 || y - h - 3 < hill(x + w) + 2 || (Math.abs(x + w / 2 - tx) < 15 && y < ty + 15)) { x += 3; continue; }
+      if (roll < 0.1) fCypress(x + 1, y, 9 + Math.floor(hash(s + 3) * 5), P, k);
+      else if (roll < 0.26) fBlob(x + 3, y - 2, 3, leaf, dot, s);
+      else fHouse(x, y, w, h, P, k, s);
+      x += (roll < 0.26 ? 5 : w) + Math.floor(hash(s + 4) * 2);
+    }
+  }
+  fCypress(tx - 15, ty + 3, 13, P, k); fCypress(tx + 15, ty + 3, 11, P, k);
+  fTemple(tx, ty, 18, P, k);
+  fCourse(0, xEnd - 1, hz + 5, 4, S, 7);
+  for (let x = 0; x < xEnd - 1; x += 3) { R(x, hz + 3, 2, 2, S.base); px(x, hz + 3, S.top); }
+  for (const f of [0.06, 0.29, 0.53]) { const x = Math.round(W * f) - 3; for (let y = hz - 4; y < shore; y += 4) fStone(x, y, 6, 4, S, x + y); for (let i = 0; i < 6; i += 2) R(x + i, hz - 6, 1, 2, S.base); px(x + 3, hz - 1, S.gap); }
+}
+// The god, the flat way: the same figure as the detailed one, at six tenths of the size, in two tones of bronze and a light edge.
+const FLAT_GOD = 0.6;
+function flatGod(cx, gy, stage, P, k) {
+  const b = fz('#b47c40', P, k), lt = fz('#ecbc6c', P, k), dk = fz('#7c5030', P, k), top = Math.round(GOD_BUILT[stage] * FLAT_GOD);
+  for (let h = 10; h <= Math.max(top, stage >= 7 ? Math.round(88 * FLAT_GOD) : 0); h++) {
+    for (const [a, c] of godSpans(0, Math.round(h / FLAT_GOD), stage)) {
+      const A = cx + Math.round(a * FLAT_GOD), B = cx + Math.round(c * FLAT_GOD);
+      if (B <= A) continue;
+      R(A, gy - h, B - A, 1, b); px(A, gy - h, dk); if (B - A > 2) px(B - 2, gy - h, lt);
+    }
+  }
+  R(cx - 5, gy - 12, 4, 2, b); R(cx + 1, gy - 12, 4, 2, b); px(cx + 3, gy - 12, lt); px(cx - 3, gy - 12, lt);   // his feet
+  if (stage >= 10) for (const a of [-1.3, -0.87, -0.43, 0, 0.43, 0.87, 1.3]) for (let r = 6; r <= 9; r++) px(Math.round(cx - 0.5 + Math.sin(a) * r), Math.round(gy - 62 - Math.cos(a) * r), r > 7 ? '#fff0b0' : lt);   // his crown of rays
+  else for (const [a, c] of godSpans(0, GOD_BUILT[stage], stage)) { const A = cx + Math.round(a * FLAT_GOD), B = cx + Math.round(c * FLAT_GOD); if (B - A > 2) { R(A + 1, gy - top, B - A - 2, 1, dk); px(A + 1, gy - top - 2, '#5a5a62'); px(A + 1, gy - top - 1, '#5a5a62'); } }   // open at the top, his iron frame showing
+}
+function paintFlatHarbour(W, P, hz, cx, stage) {   // the mole and its tower, and the god on his platform with his scaffolding and his hill of earth
+  const k = 0.1, S = stoneIn(P, k), mx0 = Math.round(W * 0.66), gy = hz + 9, wood = fz('#5e4632', P, k);
+  for (let x = mx0; x < W; x += 4) fStone(x, hz + 10, 4, 2, S, x * 1.3);
+  R(mx0, hz + 12, W - mx0, 1, S.gap);
+  for (let y = hz - 1; y < hz + 12; y += 3) fStone(mx0 - 1, y, 6, 3, S, y * 2.3);
+  for (let i = 0; i < 6; i += 2) px(mx0 - 1 + i, hz - 2, S.top);
+  fCourse(cx - 11, cx + 13, gy, 3, S, 23);   // the god's platform
+  const m = fz('#f1ebdc', P, k), msh = fz('#bfb5a0', P, k);
+  R(cx - 6, gy - 8, 12, 8, m); R(cx - 6, gy - 8, 2, 8, msh); R(cx - 7, gy - 10, 14, 2, m); R(cx - 7, gy - 10, 14, 1, '#ffffff');
+  const rampH = Math.round((10 + 10 * stage) * FLAT_GOD), E = fz('#b29a6c', P, k), Et = fz('#d8c494', P, k);
+  for (let j = 0; j < rampH; j++) {   // the hill of earth beside him, dotted with light
+    const y = gy - rampH + j, w = 3 + Math.round(rampH * 0.6 * Math.pow(j / rampH, 0.75));
+    R(cx + 5, y, w, 1, E); px(cx + 5 + w - 1, y, Et);
+    for (let x = cx + 6; x < cx + 4 + w; x++) if ((x + y * 2) % 3 === 0 && hash2(x, y) < 0.3) px(x, y, Et);
+  }
+  flatGod(cx, gy, stage, P, k);
+  if (stage < 10) {   // the scaffolding round him, and the crane
+    const st = gy - Math.round(GOD_BUILT[stage] * FLAT_GOD) - 9, hw = stage >= 7 ? 13 : 10;
+    for (const x of [cx - hw, cx, cx + hw - 1]) R(x, st, 1, gy - 10 - st, wood);
+    for (let y = st + 2; y < gy - 10; y += 5) R(cx - hw, y, hw * 2, 1, wood);
+    const ct = st - 7, cm = cx + hw + 3;
+    R(cm, ct, 1, gy - ct, wood); pline(cm, ct, cx + 1, ct + 4, wood); pline(cm, ct, cm + 7, gy, fz('#7a6a58', P, k));
+  } else for (const dx of [0, 2]) pline(cx + 14 + dx, gy - 10, cx + 5 + dx, gy - 58, wood);   // finished: only ladders, for polishing
+}
+function flatGodLive(cx, gy, stage, t, P, still) {   // the crane's load swinging, a man on the planks, and a basket going up the hill
+  const tu = ['#8a6a4a', '#5f6b4a', '#9a4a3a'], rampH = Math.round((10 + 10 * stage) * FLAT_GOD);
+  if (stage < 10) {
+    const st = gy - Math.round(GOD_BUILT[stage] * FLAT_GOD) - 9, ct = st - 7, sw = still ? 0 : Math.round(Math.sin(t * 0.9)), ly = ct + 9 - (still ? 0 : Math.round(Math.sin(t * 0.35) * 2 + 2));
+    pline(cx + 1, ct + 4, cx + 1 + sw, ly, '#3a2a1e'); R(cx - 1 + sw, ly + 1, 5, 2, '#c8904e');
+    const x = cx - 8 + Math.round((Math.sin(t * 0.4) + 1) * 8), y = st + 7;
+    if (y < gy - 10) { R(x, y - 3, 1, 3, tu[0]); px(x, y - 4, '#c48a58'); }
+  } else { const w = still ? 0 : Math.floor(t * 1.2) % 2; R(cx + 9 + w, gy - 47, 1, 3, tu[1]); px(cx + 9 + w, gy - 48, '#c48a58'); }
+  const p = still ? 0.5 : (t * 0.04 + 0.3) % 1, j = Math.round((rampH - 1) * (1 - p)), x = cx + 5 + 3 + Math.round(rampH * 0.6 * Math.pow(j / rampH, 0.75)) - 1, y = gy - rampH + j;
+  R(x, y - 3, 1, 3, tu[2]); px(x, y - 4, '#c48a58'); R(x - 1, y - 6, 3, 1, '#b88a50');
+}
+function fPennant(x, y, t, still) {   // a tall pole with two streamers, cracking in the wind
+  R(x, y, 1, 12, '#3a2a20'); R(x - 2, y + 5, 5, 1, '#3a2a20');
+  for (const [dy, n, c] of [[1, 7, '#c0503c'], [3, 5, '#e0a050']]) for (let i = 0; i < n; i++) px(x + 1 + i, y + dy + (still ? 0 : Math.round(Math.sin(t * 6 - i * 0.8) * 0.6)) + (i > n - 3 ? 1 : 0), c);
+}
+// Ships, the flat way: a dark hull with a light rail, a pale sail, a mast and a few lines.
+const FLAT_HULLS = {
+  small: { L: 30, fb: 4, stern: 4, bow: 3, mast: 0.45, mh: 21, yard: 18, wood: '#664a34', band: '#4a7894' },
+  medium: { L: 40, fb: 6, stern: 5, bow: 4, mast: 0.52, mh: 27, yard: 24, cabin: 7, wood: '#5e4430', band: '#8b3a42' },
+  large: { L: 48, fb: 8, stern: 6, bow: 5, mast: 0.52, mh: 31, yard: 28, cabin: 9, fore: 1, wood: '#684a33', band: '#3f5a78' },
+  trader: { L: 24, fb: 3, stern: 3, bow: 3, mast: 0.5, mh: 16, yard: 14, wood: '#5a4636', band: '#6f6f5a', plain: 1 },
+};
+function paintFlatShip(x, y, D, sail, P, k) {
+  const wood = fz(D.wood, P, k), lt = fz(mix(D.wood, '#ecd09a', 0.5), P, k), dk = fz(mix(D.wood, '#1a120c', 0.4), P, k), cloth = fz('#f5eedc', P, k), cs = fz('#d6ccb2', P, k), rope = fz(mix(D.wood, '#2a1e14', 0.25), P, k + 0.15);
+  const sh = i => sheerOf(D, i, y), mi = Math.round(D.L * D.mast), mx = x + mi, deck = sh(mi), mt = deck - D.mh, half = D.yard >> 1;
+  pline(mx, mt, x + D.L - 2, sh(D.L - 2) - 1, rope); pline(mx, mt, x + 2, sh(2) - 2, rope);
+  R(mx, mt, 1, D.mh, dk);
+  if (D.fore) { const fx = x + D.L - 6, fy = sh(D.L - 6), tx = x + D.L + 3, ty = fy - 13; pline(fx, fy, tx, ty, dk); R(tx - 3, ty + 1, 6, 1, dk); if (sail === 'full') { R(tx - 3, ty + 2, 6, 4, cloth); R(tx + 1, ty + 2, 2, 4, cs); } else R(tx - 3, ty + 2, 6, 1, cloth); }
+  R(mx - half, mt + 2, half * 2 + 1, 1, dk);
+  if (sail === 'full') {
+    const top = mt + 3, bot = deck - 4;
+    for (let yy = top; yy <= bot; yy++) { const b = Math.round(Math.sin((yy - top) / (bot - top) * Math.PI) * 1.6); R(mx - half + 1, yy, half * 2 - 1 + b, 1, cloth); R(mx - half + 1, yy, 2, 1, cs); }
+    if (!D.plain) { const ry = top + Math.round((bot - top) * 0.42); R(mx, ry, 2, 2, '#c4483f'); px(mx + 1, ry, '#e87a60'); px(mx, ry + 2, '#5a8a3a'); }
+  } else { R(mx - half + 1, mt + 3, half * 2 - 1, 2, cloth); R(mx - half + 1, mt + 4, half * 2 - 1, 1, cs); for (let i = mx - half + 4; i < mx + half - 1; i += 5) R(i, mt + 3, 1, 2, dk); }
+  if (D.cabin) { const c0 = x + 4, cb = sh(4 + D.cabin); R(c0, cb - 4, D.cabin, 4, fz('#a98658', P, k)); R(c0, cb - 5, D.cabin, 1, lt); px(c0 + 2, cb - 3, dk); }
+  for (let i = 0; i < D.L; i++) { const t0 = sh(i); R(x + i, t0, 1, y + 1 - t0, wood); px(x + i, t0, lt); if (!D.plain && y - t0 > 3) px(x + i, t0 + 1, fz(D.band, P, k)); px(x + i, y, dk); }
+  for (const [dx, dy] of [[0, -1], [-1, -2], [-1, -3], [0, -4], [1, -4]]) px(x + 1 + dx, sh(1) + dy, lt);   // the stern post, curling forward
+  px(x + D.L, sh(D.L - 1) - 1, lt); px(x + D.L, sh(D.L - 1) - 2, wood);   // the stem
+  if (!D.plain) { px(x + D.L - 5, sh(D.L - 5) + 2, '#f2ead8'); px(x + D.L - 4, sh(D.L - 5) + 2, '#1a1210'); }   // her eye
+  pline(x + 4, sh(4) - 1, x + 1, y + 2, dk);   // the steering oar
+}
+const FLAT_SHIPS = new Map();
+function flatShip(kind, sail, P, k) {   // a ship painted once for this light, and kept
+  const key = kind + sail + P.haze + P.sea1 + k;
+  let s = FLAT_SHIPS.get(key);
+  if (!s) {
+    const D = FLAT_HULLS[kind], ox = 6, oy = D.mh + D.fb + D.stern + 4, c = canvasOf(D.L + 14, oy + 5), prev = G;
+    G = c.getContext('2d'); paintFlatShip(ox, oy, D, sail, P, k); G = prev;
+    s = { c, ox, oy, D };
+    if (FLAT_SHIPS.size > 24) FLAT_SHIPS.delete(FLAT_SHIPS.keys().next().value);
+    FLAT_SHIPS.set(key, s);
+  }
+  return s;
+}
+// Reflections, the flat way: the thing upside down in the water, cut into strips, the strips further apart the further down they go.
+function fFlip(src, sy, h, key, tint) {
+  return layer(key, src.width, h, () => {
+    G.imageSmoothingEnabled = false;
+    G.save(); G.scale(1, -1); G.drawImage(src, 0, sy - h, src.width, h, 0, -h, src.width, h); G.restore();
+    G.globalCompositeOperation = 'source-atop'; G.globalAlpha = 0.55; G.fillStyle = tint; G.fillRect(0, 0, src.width, h);
+    G.globalAlpha = 1; G.globalCompositeOperation = 'source-over';
+  });
+}
+function fStrips(flip, x, wl, rows, t, still) {
+  for (let r = 0; r < Math.min(rows, flip.height); r++) {
+    if (r > 1 && (r % (r < 6 ? 3 : 2)) === 1) continue;
+    const off = still ? 0 : Math.round(Math.sin(r * 0.9 - t * 1.4) * Math.min(1, r * 0.1));
+    G.drawImage(flip, 0, r, flip.width, 1, x + off, wl + 1 + r, flip.width, 1);
+  }
+}
+function fShipAt(kind, x, y, o) {   // a ship with her reflection and her crew; x is her stern, y the waterline
+  const s = flatShip(kind, o.sail, o.P, o.k || 0), D = s.D;
+  if (o.rows > 0) fStrips(fFlip(s.c, s.oy, s.oy, 'fs' + kind + o.sail + o.P.haze + o.P.sea1 + (o.k || 0), o.tint), x - s.ox, y, o.rows, o.t, o.still);
+  if (o.wake) { const ph = o.still ? 0 : Math.floor(o.t * 5) % 3; for (let i = 0; i < 9; i++) R(x - 3 - i * 4 - ph, y + 1 + (i >> 2), 2 + (i < 3 ? 1 : 0), 1, i < 4 ? '#ffffff' : mix('#ffffff', o.P.sea0, 0.5)); px(x + D.L + 1, y, '#ffffff'); px(x + D.L + 2, y + 1, mix('#ffffff', o.P.sea0, 0.4)); }
+  G.drawImage(s.c, x - s.ox, y - s.oy);
+  for (let c = 0; c < (o.crew || 0); c++) {
+    const i = c === 0 ? 4 : Math.round(9 + (c - 1) * (D.L - 16) / Math.max(1, o.crew - 2)), tt = sheerOf(D, i, y), b = o.still ? 0 : Math.sin(o.t * 1.9 + c * 2.1) > 0.7 ? -1 : 0;
+    R(x + i, tt - 2 + b, 1, 2, CREW_TUNICS[c % CREW_TUNICS.length]); px(x + i, tt - 3 + b, '#c48a58'); px(x + i, tt - 4 + b, '#2a1d14');
+  }
+}
+function fStreaks(W, y0, y1, t, P, still, sunX) {   // long thin streaks of light on the water, sliding slowly, longer and further apart close to
+  const c = mix(P.sea0, '#ffffff', 0.55), c2 = mix(P.sea1, P.sea0, 0.6), glint = mix(P.light, '#ffffff', 0.5);
+  for (let y = y0 + 2, r = 0; y < y1; y += 2 + Math.floor((y - y0) / 12), r++) {
+    const d = (y - y0) / Math.max(1, y1 - y0), n = 2 + Math.round(hash(r * 1.3) * 3), len = 2 + Math.round(d * 9);
+    for (let k = 0; k < n; k++) {
+      const x = Math.round((((hash(r * 7.1 + k * 3.3) * (W + 20) + (still ? 0 : t * (0.6 + d * 2.5) * (r % 2 ? 1 : -1))) % (W + 20)) + W + 20) % (W + 20) - 10);
+      R(x, y, len, 1, Math.abs(x - sunX) < 10 + d * 14 && d < 0.6 ? glint : d < 0.5 ? c : c2);
+    }
+  }
+}
+function fBoat(x, y, dir, t, k, P, still) {   // a fishing boat with a man rowing; x is her middle and y the waterline
+  const wood = fz(['#6e4a30', '#56687a', '#7a5a38'][k % 3], P, 0.1), lt = mix(wood, '#ecd09a', 0.45), st = still ? 0 : Math.floor(t * 2.2 + k) % 2;
+  R(x - 4, y + 1, 9, 1, mix(P.sea1, '#203040', 0.15));
+  R(x - 4, y - 1, 9, 2, wood); R(x - 4, y - 1, 9, 1, lt); px(x - 5, y - 2, lt); px(x + 5, y - 2, lt);
+  const rx = x - dir;
+  R(rx, y - 4, 1, 3, ['#efe3cc', '#c8623a', '#3f6f8e'][k % 3]); px(rx, y - 5, '#c48a58');
+  pline(rx + dir, y - 2, rx + dir * (2 + st * 2), y + 1, '#3a2a1e');
+}
+// The quay in front: stalls for the merchants, and people going by. Records where to tap.
+function fStall(cx, gy, id, t, lit, still) {   // a striped awning on two poles, the merchant behind the counter, a few goods on it
+  const m = MERCHANTS[id], L = m.look, x0 = cx - 7, cream = '#f2e9d2', wood = '#7a5a3a', woodL = '#b8915e';
+  const ph = (t * 0.7 + hash(cx) * 9) % 9, blink = !still && ph < 0.15, wave = !still && !m.bank && ph > 6.5 && ph < 7.6;
+  R(cx - 2, gy - 10, 5, 4, L.robe); px(cx + 2, gy - 10, mix(L.robe, '#ffffff', 0.3)); px(cx - 2, gy - 10, mix(L.robe, '#000000', 0.2));
+  R(cx - 1, gy - 13, 3, 3, L.skin); px(cx + 1, gy - 12, mix(L.skin, '#ffffff', 0.18));
+  if (L.style === 'veil') { R(cx - 2, gy - 14, 5, 1, L.veil); R(cx - 2, gy - 13, 1, 4, L.veil); R(cx + 2, gy - 13, 1, 4, L.veil); }
+  else if (L.style !== 'bald') { R(cx - 1, gy - 14, 3, 1, L.hair); if (L.style === 'long' || L.style === 'curly') { px(cx - 2, gy - 13, L.hair); px(cx + 2, gy - 13, L.hair); } }
+  if (L.hat === 'pilos') R(cx - 1, gy - 15, 3, 1, '#a07a4a');
+  if (L.beard) R(cx - 1, gy - 11, 3, 1, L.hair);
+  if (!blink) { px(cx - 1, gy - 12, '#2a1d14'); px(cx + 1, gy - 12, '#2a1d14'); }
+  if (wave) { px(cx + 3, gy - 11, L.robe); px(cx + 3, gy - 12, L.skin); }
+  R(x0, gy - 16, 1, 16, wood); R(x0 + 14, gy - 16, 1, 16, wood);
+  R(x0, gy - 6, 15, 6, wood); R(x0, gy - 6, 15, 1, woodL); R(x0, gy - 1, 15, 1, mix(wood, '#1a120c', 0.4));
+  for (let x = x0 + 2; x < x0 + 14; x += 3) px(x, gy - 4, mix(wood, '#1a120c', 0.25));
+  const o = S ? offer(S, id) : m;
+  if (m.bank) { R(x0 + 4, gy - 7, 6, 1, '#d4dade'); px(x0 + 5, gy - 8, '#f4f6f8'); px(x0 + 8, gy - 8, '#f4f6f8'); }
+  else { let xx = x0 + 3; for (const g of (m.talker ? ['scroll', 'scroll'] : Object.keys(o.sells).concat(Object.keys(o.buys))).slice(0, 3)) { mini(g, xx, gy - 6); xx += 4; } }
+  for (let i = 0; i < 17; i++) { const c = (i >> 1) % 2 ? L.robe : cream; R(x0 - 1 + i, gy - 18, 1, 2, c); px(x0 - 1 + i, gy - 18, mix(c, '#ffffff', 0.3)); if (i % 2 === 0) px(x0 - 1 + i, gy - 16, mix(c, '#000000', 0.15)); }
+  if (lit) { const b = still ? 0 : Math.floor(t * 2) % 2; R(cx - 1, gy - 23 - b, 3, 3, '#eac05a'); px(cx, gy - 23 - b, '#fff0a8'); px(cx, gy - 20 - b, '#eac05a'); }
+}
+function fWalker(x, gy, t, k, dir) {   // somebody walking along the quay: tall and thin, legs going
+  const L = WALKERS_HD[k], f = Math.floor(t * 4 + k * 1.3) % 2, back = mix(L.robe, '#000000', 0.2);
+  R(x - 1 + (f ? -1 : 0), gy - 4, 1, 4, mix(L.skin, '#000000', 0.25)); R(x + 1 + (f ? 1 : 0), gy - 4, 1, 4, L.skin);
+  R(x - 1, gy - 11, 3, 7, L.robe); px(x - dir, gy - 11, back); R(x - 1, gy - 8, 3, 1, L.trim);
+  R(x - 1, gy - 14, 2, 3, L.skin); px(x - 1 + (dir > 0 ? 1 : 0), gy - 13, '#2a1d14');
+  if (L.veil) R(x - 1, gy - 15, 2, 2, L.veil); else R(x - 1, gy - 15, 2, 1, L.hair);
+  if (L.carry === 'sack') { R(x - 3 * dir - 1, gy - 14, 3, 4, '#c9a46a'); px(x - 3 * dir - 1, gy - 14, '#e6c891'); }
+  if (L.carry === 'basket') { R(x + dir * 2, gy - 9, 3, 2, '#a87a44'); px(x + dir * 2, gy - 9, '#d8b070'); }
+}
+function fStalls(W, H, port, t, o, still) {
+  const gy = H - 1, spots = [];
+  for (const id of merchantsAt(port, S ? S.ch : 1).filter(id => !MERCHANTS[id].noStall)) {
+    const cx = Math.round(9 + MERCHANTS[id].at * (W - 18));
+    fStall(cx, gy, id, t, o.wants && o.wants.has(id), still);
+    spots.push({ id, kind: 'merchant', x0: cx - 9, x1: cx + 9, y0: gy - 22, y1: H });
+  }
+  if (o.walkers !== false) for (let k = 0; k < 2; k++) {
+    const sp = 4 + k * 2, dir = k ? -1 : 1, span = W + 20, p = (t * sp + k * 77) % span;
+    fWalker(Math.round(dir > 0 ? p - 10 : W + 10 - p), gy, t, k, dir);
+  }
+  if (o.spots) o.spots.push(...spots);
+}
+function paintFlatQuay(W, h, P) {   // the quay: a long slab lit along its edge, then paving
+  const S = stoneIn(P, 0);
+  R(0, 0, W, h, S.base);
+  for (let x = 0; x < W; x++) px(x, 0, (x * 7 + 3) % 5 < 2 ? S.dot : S.top);
+  R(0, 1, W, 1, S.gap);
+  for (let y = 2, r = 0; y < h; y += 4, r++) fCourse(-(r * 3) % 5, W, y, 4, S, 41 + r * 13);
+}
+function drawRhodesFlat(W, H, t, o) {
+  const tall = H > W * 0.9, P = flatPal(o.clock), still = reduceMotion, qy = H - 18, stage = o.stage || 1;
+  const hz0 = Math.max(8, Math.round(H * (tall ? 0.5 : 0.42)));
+  const hz = stage >= 10 ? Math.max(hz0, Math.min(68, H - 50)) : stage >= 9 ? Math.max(hz0, Math.min(58, H - 50)) : hz0;   // once the god has a neck, the horizon comes down a little, so his head stays in the picture
+  const hh = Math.max(24, Math.round(H * (tall ? 0.24 : 0.19))), hill = x => Math.round(hz + 4 - hh * (1 - smooth(0.28, 1, x / (W * 0.62))));
+  const shore = hz + 8, wl = hz + 12, cx = Math.round(W * 0.46), eve = o.clock > 0.8, sun = [Math.round(W * 0.84), Math.round(hz * (eve ? 0.62 : 0.3))];
+  const key = 'fl' + W + 'x' + H + ':' + hz + ':' + Math.round(o.clock * 60), sea = qy - hz, tint = mix(P.sea1, P.sea0, 0.25);
+  G.drawImage(layer(key + 'sky', W, hz, () => { fGrad(0, hz, W, [P.top, P.bot]); fGlow(sun[0], sun[1], Math.round(hz * 0.8), P.sun, 0.95); sunDisc(sun[0], sun[1], 3, mix('#ffffff', P.sun, 0.3)); flatCoast(W, hz, P); }), 0, 0);
+  fClouds(W, 3, Math.max(6, hz - Math.round(hz * 0.22) - 4), t, P, 13, tall ? 5 : 3);
+  G.drawImage(layer(key + 'sea', W, sea, () => fGrad(0, sea, W, [P.sea0, mix(P.sea0, P.sea1, 0.6), P.sea1])), 0, hz);
+  const city = layer(key + 'city', W, shore + 1, () => paintFlatCity(W, P, hz, hh, hill, shore));
+  const port = layer(key + 'port' + stage, W, wl + 1, () => paintFlatHarbour(W, P, hz, cx, stage));
+  fStrips(fFlip(city, shore, Math.min(qy - shore, Math.round(hh * 0.7)), key + 'rc', tint), 0, shore - 1, qy - shore, t, still);
+  fStrips(fFlip(port, wl, Math.min(qy - wl, 30), key + 'rp' + stage, tint), 0, wl - 1, qy - wl, t, still);
+  fStreaks(W, hz, qy, t, P, still, sun[0]);
+  G.drawImage(city, 0, 0);
+  G.drawImage(port, 0, 0);
+  G.drawImage(layer(key + 'rays', W, qy, () => fRays(sun[0], sun[1], W * 1.1, Math.PI * 0.62, Math.PI * 0.92, 4, P.sun, 0.12)), 0, 0);
+  flatGodLive(cx, hz + 9, stage, t, P, still);
+  fPennant(Math.round(W * 0.66) + 2, hz - 14, t, still);
+  for (let k = 0; k < 3; k++) { const y = Math.round(hz + 18 + (qy - hz - 30) * (0.1 + 0.4 * k)), dir = k % 2 ? -1 : 1, p = (t * (1.4 + k * 0.6) + k * 61) % (W + 20); if (y < qy - 10) fBoat(Math.round(dir > 0 ? p - 10 : W + 10 - p), y, dir, t, k, P, still); }
+  const bob = still ? 0 : Math.round(Math.sin(t * 1.3) * 0.6), kind = hdHullOf(), sy = qy - 7 + bob;
+  fShipAt('trader', Math.round(W * 0.76), hz + 14, { sail: 'furled', t, P, k: 0.08, still, rows: 6, tint });
+  fShipAt(kind, Math.round(W * 0.58) - (kind === 'large' ? 9 : kind === 'medium' ? 5 : 0), sy, { sail: 'furled', crew: 2, t, P, still, rows: qy - sy - 1, tint });
+  for (let k = 0; k < 2; k++) gull(((t * (6 + k * 2) + k * 70) % (W + 20)) - 10, 6 + k * 6 + Math.round(Math.sin(t * 2 + k) * 2), t, k);
+  G.drawImage(layer(key + 'quay', W, H - qy, () => paintFlatQuay(W, H - qy, P)), 0, qy);
+  fStalls(W, H, 'rhodes', t, o, still);
+}
+// The title, the flat way: first light at sea, islands fading into the haze, the ship running before the wind.
+function paintHeadland(x0, W, top, base, P) {   // a headland close by: rock in tall slabs, olives heaped on its ledges, and a little shrine of Poseidon on top for sailors to steer by
+  const S = { base: '#a3966f', top: '#d8cc9e', gap: '#7a7056', dot: '#eee3bf' }, leaf = '#2e4a40', dot = '#cfd290', h = base - top;
+  for (let y = top, r = 0; y < base; y += 6, r++) {
+    const k = (y - top) / Math.max(1, h), left = Math.round(x0 + (1 - Math.pow(k, 0.55)) * (W - x0) * 0.5 + (hash(r * 3.7) - 0.5) * 5);
+    fSlabs(left, W, y, Math.min(base, y + 7), S, r * 29 + 3);
+  }
+  for (let r = 0; r < Math.ceil(h / 6); r += 1) {   // olives heaped along the ledges, biggest at the top
+    const y = top + r * 6, k = r * 6 / Math.max(1, h), left = Math.round(x0 + (1 - Math.pow(k, 0.55)) * (W - x0) * 0.5);
+    if (hash(r * 4.3) < 0.75) fBlob(left + 1 + Math.floor(hash(r * 5.3) * 4), y + 2, 4 + Math.floor(hash(r * 2.1) * 3), leaf, dot, r * 11);
+  }
+  const sx = Math.round(x0 + (W - x0) * 0.58), m = '#efe7d6', ms = '#b8ad96';
+  for (const [bx, r] of [[x0 + (W - x0) * 0.32, 6], [W - 3, 7], [sx + 16, 5]]) fBlob(Math.round(bx), top + 2, r, leaf, dot, bx);
+  for (let i = 0; i < 3; i++) { R(sx + i * 4, top - 9, 2, 9, m); px(sx + i * 4 + 1, top - 9, ms); px(sx + i * 4, top - 1, ms); }
+  R(sx - 1, top - 11, 12, 2, m); R(sx - 1, top - 11, 12, 1, '#ffffff'); R(sx + 1, top - 12, 8, 1, m); R(sx - 2, top - 1, 14, 1, ms);
+}
+function drawDawnFlat(W, H, t, o) {
+  const P = flatPal(o.clock), still = reduceMotion, tall = H > W * 0.9, hz = Math.round(H * 0.5), sx = Math.round(W * 0.22), sy = Math.round(hz * 0.62), sea = H - hz;
+  const key = 'fd' + W + 'x' + H + ':' + Math.round(o.clock * 60), hx = Math.round(W * (tall ? 0.7 : 0.78)), htop = hz + Math.round(sea * (tall ? 0.14 : 0.08)), hbase = H - Math.round(sea * 0.22);
+  G.drawImage(layer(key + 's', W, hz, () => {
+    fGrad(0, hz, W, [P.top, mix(P.top, P.bot, 0.5), P.bot]);
+    fGlow(sx, sy, Math.round(hz * 0.95), P.sun, 0.9); sunDisc(sx, sy, 4, mix('#ffffff', P.sun, 0.3));
+    fRays(sx, sy, W * 1.2, -0.25, Math.PI * 0.3, 5, P.sun, 0.12);
+    islands(0, W, hz - 1, fz(P.far, P, 0.2), 5);
+    ridge(61, W, hz - 1, Math.max(3, hz * 0.07), 22, 9, P.near);
+    fGrad(hz - 7, 7, W, [rgba(P.haze, 0), rgba(P.haze, 0.6)]);
+    const iw = Math.round(W * 0.34), ih = Math.max(6, Math.round(hz * 0.13)), ic = mix(P.near, '#3a4a5a', 0.25), idot = mix(P.far, '#ffffff', 0.35);   // a nearer island, its trees dotted with light
+    for (let x = 0; x < iw; x++) { const k = x / iw, top = Math.round(hz - 1 - ih * Math.sin(Math.min(1, k * 1.3) * Math.PI * 0.5) * (1 - Math.pow(k, 3))); R(x, top, 1, hz - top, ic); }
+    for (let i = 0; i < 7; i++) { const x = Math.round(iw * (0.06 + i * 0.12)), k = x / iw, top = Math.round(hz - 1 - ih * Math.sin(Math.min(1, k * 1.3) * Math.PI * 0.5) * (1 - Math.pow(k, 3))); fBlob(x, top + 2, 3 + (i % 2), mix(ic, '#2a3a40', 0.3), idot, i * 7); }
+  }), 0, 0);
+  fClouds(W, 4, Math.round(hz * 0.75), t, P, 5, 6);
+  G.drawImage(layer(key + 'w', W, sea, () => {
+    fGrad(0, sea, W, [mix(P.bot, P.sea0, 0.5), P.sea0, P.sea1, mix(P.sea1, '#1c3048', 0.25)]);
+    for (let r = 1; r < sea; r += 1 + Math.floor(r / 16)) {   // the sun's road on the water
+      const d = r / sea, hw = 2 + d * W * 0.12;
+      for (let k = 0; k < 2 + Math.round(d * 4); k++) { const u = hash(r * 3.7 + k * 9.1) + hash(r * 5.3 + k * 2.3) - 1, len = 1 + Math.round(hash(r + k * 7.7) * (2 + d * 6)); R(Math.round(sx + u * hw - len / 2), r, len, 1, mix(P.sea0, P.sun, 0.8 - 0.4 * Math.abs(u) - 0.25 * d)); }
+    }
+  }), 0, hz);
+  fStreaks(W, hz, H, t, P, still, sx);
+  const kind = hdHullOf(), D = FLAT_HULLS[kind], wy = hz + Math.round(sea * (tall ? 0.42 : 0.6)), bob = still ? 0 : Math.round(Math.sin(t * 1.6) * 0.6);
+  fShipAt(kind, Math.round(W * (tall ? 0.36 : 0.44) - D.L / 2), wy + bob, { sail: 'full', crew: kind === 'small' ? 4 : 6, t, P, still, wake: true, rows: Math.min(D.mh, hbase - wy - 2), tint: mix(P.sea1, P.sea0, 0.3) });
+  const head = layer(key + 'head', W, hbase + 1, () => paintHeadland(hx, W, htop, hbase, P));
+  fStrips(fFlip(head, hbase, Math.min(hbase - htop + 12, H - hbase), key + 'hr', mix(P.sea1, '#1c3048', 0.2)), 0, hbase - 1, H - hbase, t, still);
+  G.drawImage(head, 0, 0);
+  for (let k = 0; k < 2; k++) gull(((t * (5 + k * 2) + k * 90) % (W + 20)) - 10, Math.round(hz * 0.3) + k * 8 + Math.round(Math.sin(t * 1.3 + k) * 2), t, k);
 }
 function drawHalic(W, H, t, o) {
   const tall = H > W * 0.9, pal = dayPal(o.clock), hz = Math.max(6, Math.round(H * (tall ? 0.5 : 0.44))), qy = H - 15, cx = Math.round(W * 0.46);
@@ -8079,6 +8493,7 @@ function eventSheet() {
 function menuSheet() {
   return `<h2 class="ev-title">Emporos</h2><p class="note">Chapter ${chapter(S).numeral} · ${chapter(S).name}. The voyage saves itself in this browser.</p><div class="stack">` +
     `<button class="btn wide" type="button" data-act="sound">${Snd.muted ? 'Turn the sound on' : 'Turn the sound off'}</button>` +
+    `<button class="btn wide" type="button" data-act="art">${ART === 'flat' ? 'Paint Rhodes in detail' : 'Paint Rhodes flat'}</button>` +
     `<button class="btn wide" type="button" data-act="restart">${UI.armed === 'restart' ? 'Tap again to start over from Chapter I' : 'Start the game again'}</button>` +
     `<button class="btn wide" type="button" data-act="close">Back to the voyage</button></div>` +
     '<p class="note">The places, the kings and the god of Rhodes are real. Ariston and his crew are not. Every picture and sound is made in code.</p>';
@@ -8545,6 +8960,7 @@ function doAct(act, b) {
       break;
     }
     case 'sound': toggleSound(); renderSheet(); break;
+    case 'art': setArt(ART === 'flat' ? 'detailed' : 'flat'); renderSheet(); break;
     case 'restart': if (UI.armed === 'restart') { closeSheet(); freshGame(); playIntro(); } else { UI.armed = 'restart'; renderSheet(); } break;
   }
   renderPanel(); updateHUD(); updateTabs();
@@ -8586,20 +9002,20 @@ function seaOpts() {
   return { clock: v.clock, storm: UI.storm, calm: v.wind === 'calm', wind: v.wind, row: v.row && !S.pending, crew: Math.min(bigShip(S) ? 10 : 8, S.crew.length), seed: 3 + idx * 5, scroll: idx * 700 + v.prog * 240, pirate: UI.pirate, patrol: UI.patrol, dolphins: UI.dolphins, raiders: lemboi(S), open: openSea(S), deckLoad: S.items.filter(i => i.where === 'deck').length };
 }
 function drawMain(t) {
-  const sea = S.phase === 'sea' && S.voyage, camp = S.phase === 'camp' && S.camp, port = S.port || 'rhodes', hd = !sea && !camp && HD_PORTS.has(port);
-  const fit = hd ? fitHD(els.scene, els.stage.clientWidth, els.stage.clientHeight, 270) : fitPixels(els.scene, els.stage.clientWidth, els.stage.clientHeight, 140);
+  const sea = S.phase === 'sea' && S.voyage, camp = S.phase === 'camp' && S.camp, port = S.port || 'rhodes', hd = !sea && !camp && HD_PORTS.has(port), flat = hd && ART === 'flat';
+  const fit = hd ? fitHD(els.scene, els.stage.clientWidth, els.stage.clientHeight, flat ? 170 : 270) : fitPixels(els.scene, els.stage.clientWidth, els.stage.clientHeight, 140);
   G = els.scene.getContext('2d'); G.imageSmoothingEnabled = false;
   if (sea) { syncSpots([], fit, 'none'); drawSea(fit.W, fit.H, t, seaOpts()); return; }
   if (camp) { syncSpots([], fit, 'none'); if (S.camp.stop === 'atsea') drawAnchor(fit.W, fit.H, t); else if (CAMPS[S.camp.stop].afloat) drawNightSail(fit.W, fit.H, t); else drawCamp(fit.W, fit.H, t, S.camp.stop); return; }
   const spots = [];
-  (PORT_SCENES[port] || drawRhodes)(fit.W, fit.H, t, { clock: S.ch > 1 ? 0.4 : 0.3, stage: chapter(S).stage[S.home ? 1 : 0], spots, wants: UI.wants });
-  if (S.phase === 'port' && !els.app.classList.contains('compact')) syncSpots(spots, fit, port + fit.W + 'x' + fit.H + ':' + fit.P + ':' + S.ch); else syncSpots([], fit, 'none');
+  ((flat && FLAT_SCENES[port]) || PORT_SCENES[port] || drawRhodes)(fit.W, fit.H, t, { clock: S.ch > 1 ? 0.4 : 0.3, stage: chapter(S).stage[S.home ? 1 : 0], spots, wants: UI.wants });
+  if (S.phase === 'port' && !els.app.classList.contains('compact')) syncSpots(spots, fit, port + ART + fit.W + 'x' + fit.H + ':' + fit.P + ':' + S.ch); else syncSpots([], fit, 'none');
 }
 function drawTheater(t) {
-  const view = els.tcanvas.parentElement, fit = fitHD(els.tcanvas, view.clientWidth, view.clientHeight, 270, 180), C = chapter(S);
+  const flat = ART === 'flat', view = els.tcanvas.parentElement, fit = fitHD(els.tcanvas, view.clientWidth, view.clientHeight, flat ? 170 : 270, flat ? 110 : 180), C = chapter(S);
   G = els.tcanvas.getContext('2d'); G.imageSmoothingEnabled = false;
-  if (TH.mode === 'title') drawDawn(fit.W, fit.H, t, { clock: S.ch > 1 ? 0.12 : 0.06 });
-  else drawRhodes(fit.W, fit.H, t, { clock: TH.mode === 'summary' ? 0.93 : C.season === 'summer' ? 0.42 : 0.3, stage: C.stage[TH.mode === 'summary' ? 1 : 0], walkers: true });
+  if (TH.mode === 'title') (flat ? drawDawnFlat : drawDawn)(fit.W, fit.H, t, { clock: S.ch > 1 ? 0.12 : 0.06 });
+  else (flat ? drawRhodesFlat : drawRhodes)(fit.W, fit.H, t, { clock: TH.mode === 'summary' ? 0.93 : C.season === 'summer' ? 0.42 : 0.3, stage: C.stage[TH.mode === 'summary' ? 1 : 0], walkers: true });
 }
 let lastFrame = 0, uiAcc = 1, saveAcc = 0;
 function frame(now) {
