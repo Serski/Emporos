@@ -1,0 +1,97 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 2
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Pixelify Sans,72,&H00FFFFFF,&H00FFFFFF,&H00261A1E,&H96000000,-1,0,0,0,100,100,1,0,1,7,4,2,60,60,380,1
+Style: Name,Press Start 2P,30,&H00FFFFFF,&H00FFFFFF,&H00261A1E,&H96000000,0,0,0,0,100,100,2,0,1,5,3,2,60,60,700,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 1,0:00:00.90,0:00:03.33,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}52  BC.  Vercingetorix,\Nleader  of
+Dialogue: 1,0:00:03.28,0:00:05.94,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}the  Gallic  revolt,\Nhas  a  brilliant
+Dialogue: 1,0:00:05.89,0:00:06.32,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}plan.
+Dialogue: 1,0:00:06.77,0:00:07.98,Sub,,0,0,0,,{\c&H00FFC070\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}VERCINGETORIX\N{\fnPixelify Sans\b1\fs72\bord7}We  sit  on  a\Nbig  hill...
+Dialogue: 1,0:00:07.93,0:00:09.24,Sub,,0,0,0,,{\c&H00FFC070\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}VERCINGETORIX\N{\fnPixelify Sans\b1\fs72\bord7}and  wait  for\Nour  friends.
+Dialogue: 1,0:00:09.54,0:00:12.01,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}He  takes  80,000\Nmen  into  the  hill
+Dialogue: 1,0:00:11.96,0:00:13.11,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}fort  of  Alesia.
+Dialogue: 1,0:00:13.31,0:00:15.14,Sub,,0,0,0,,{\c&H00FFC070\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}VERCINGETORIX\N{\fnPixelify Sans\b1\fs72\bord7}Caesar  can't\Npossibly  surround  an
+Dialogue: 1,0:00:15.09,0:00:15.79,Sub,,0,0,0,,{\c&H00FFC070\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}VERCINGETORIX\N{\fnPixelify Sans\b1\fs72\bord7}entire  hill.
+Dialogue: 1,0:00:15.94,0:00:18.16,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Caesar  surrounds\Nthe  entire  hill.
+Dialogue: 1,0:00:19.01,0:00:20.16,Sub,,0,0,0,,{\c&H0080FF90\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}SOLDIER\N{\fnPixelify Sans\b1\fs72\bord7}Wall's\Nfinished,  sir.
+Dialogue: 1,0:00:20.11,0:00:21.84,Sub,,0,0,0,,{\c&H0080FF90\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}SOLDIER\N{\fnPixelify Sans\b1\fs72\bord7}Eleven  miles,  all\Nthe  way  round.
+Dialogue: 1,0:00:21.99,0:00:23.89,Sub,,0,0,0,,{\c&H0050C8FF\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}CAESAR\N{\fnPixelify Sans\b1\fs72\bord7}Good.  Now\Nthe  traps.
+Dialogue: 1,0:00:24.14,0:00:26.00,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Hidden  pits  full\Nof  spikes,  which
+Dialogue: 1,0:00:25.95,0:00:27.53,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}the  soldiers\Nnamed  "lilies".
+Dialogue: 1,0:00:27.63,0:00:29.45,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Sharpened  branches,\Nwhich  they
+Dialogue: 1,0:00:29.40,0:00:30.58,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}named\N"tombstones".
+Dialogue: 1,0:00:30.88,0:00:32.67,Sub,,0,0,0,,{\c&H0050C8FF\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}CAESAR\N{\fnPixelify Sans\b1\fs72\bord7}Who's  naming\Nthese?
+Dialogue: 1,0:00:32.87,0:00:34.23,Sub,,0,0,0,,{\c&H0080FF90\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}SOLDIER\N{\fnPixelify Sans\b1\fs72\bord7}Marcus,  sir.\NHe's  having  a
+Dialogue: 1,0:00:34.18,0:00:34.99,Sub,,0,0,0,,{\c&H0080FF90\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}SOLDIER\N{\fnPixelify Sans\b1\fs72\bord7}difficult  year.
+Dialogue: 1,0:00:35.39,0:00:37.55,Sub,,0,0,0,,{\c&H0050C8FF\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}CAESAR\N{\fnPixelify Sans\b1\fs72\bord7}Fine.  Now  build\Nanother  wall.
+Dialogue: 1,0:00:37.50,0:00:39.88,Sub,,0,0,0,,{\c&H0050C8FF\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}CAESAR\N{\fnPixelify Sans\b1\fs72\bord7}Fourteen  miles,\Nfacing  outwards.
+Dialogue: 1,0:00:40.23,0:00:41.79,Sub,,0,0,0,,{\c&H0080FF90\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}SOLDIER\N{\fnPixelify Sans\b1\fs72\bord7}So  we're\Nbesieging  them...
+Dialogue: 1,0:00:41.89,0:00:42.78,Sub,,0,0,0,,{\c&H0050C8FF\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}CAESAR\N{\fnPixelify Sans\b1\fs72\bord7}Yes.
+Dialogue: 1,0:00:43.08,0:00:44.50,Sub,,0,0,0,,{\c&H0080FF90\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}SOLDIER\N{\fnPixelify Sans\b1\fs72\bord7}...while  being\Nbesieged.
+Dialogue: 1,0:00:44.70,0:00:46.13,Sub,,0,0,0,,{\c&H0050C8FF\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}CAESAR\N{\fnPixelify Sans\b1\fs72\bord7}Very  efficient.
+Dialogue: 1,0:00:46.88,0:00:49.33,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Inside  Alesia,\Nthe  food  runs  out.
+Dialogue: 1,0:00:49.43,0:00:51.34,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}At  the  war  council,\Na  chieftain
+Dialogue: 1,0:00:51.29,0:00:53.32,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}named  Critognatus\Nsuggests  eating
+Dialogue: 1,0:00:53.27,0:00:54.21,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}the  old  people.
+Dialogue: 1,0:00:56.26,0:00:58.64,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}The  council  files\Nit  under  Plan  B.
+Dialogue: 1,0:00:59.19,0:01:00.51,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Then  the\Nfriends  arrive.
+Dialogue: 1,0:01:00.46,0:01:02.21,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Caesar  says  there\Nwere  a  quarter
+Dialogue: 1,0:01:02.16,0:01:03.33,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}of  a  million\Nof  them.
+Dialogue: 1,0:01:03.53,0:01:05.38,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Caesar  also\Nwrote  the  book.
+Dialogue: 1,0:01:07.63,0:01:09.69,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}The  Gauls  outside\Nattack  the  outer
+Dialogue: 1,0:01:09.64,0:01:11.65,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}wall.  The  Gauls\Ninside  attack  the
+Dialogue: 1,0:01:11.60,0:01:12.30,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}inner  wall.
+Dialogue: 1,0:01:12.35,0:01:14.26,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}The  Romans,  in\Nthe  middle,  fight
+Dialogue: 1,0:01:14.21,0:01:14.78,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}everyone.
+Dialogue: 1,0:01:15.03,0:01:16.56,Sub,,0,0,0,,{\c&H0080FF90\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}SOLDIER\N{\fnPixelify Sans\b1\fs72\bord7}Sir,  which  way\Ndo  we  face?
+Dialogue: 1,0:01:16.71,0:01:17.61,Sub,,0,0,0,,{\c&H0050C8FF\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}CAESAR\N{\fnPixelify Sans\b1\fs72\bord7}Yes.
+Dialogue: 1,0:01:18.36,0:01:20.46,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}One  night,  the\NGauls  attack  in  the
+Dialogue: 1,0:01:20.41,0:01:20.76,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}dark.
+Dialogue: 1,0:01:21.21,0:01:22.54,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}They  find\Nthe  lilies.
+Dialogue: 1,0:01:23.89,0:01:25.51,Sub,,0,0,0,,{\c&H0050C8FF\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}CAESAR\N{\fnPixelify Sans\b1\fs72\bord7}All  right,  Marcus.
+Dialogue: 1,0:01:25.46,0:01:26.39,Sub,,0,0,0,,{\c&H0050C8FF\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}CAESAR\N{\fnPixelify Sans\b1\fs72\bord7}Good  name.
+Dialogue: 1,0:01:26.94,0:01:29.21,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}On  the  final  day,\N60,000  Gauls  hit
+Dialogue: 1,0:01:29.16,0:01:31.10,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}the  weakest  part\Nof  the  wall.
+Dialogue: 1,0:01:31.05,0:01:32.28,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}It  starts  to  give.
+Dialogue: 1,0:01:32.43,0:01:34.22,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Caesar  puts  on\Nhis  bright  red
+Dialogue: 1,0:01:34.17,0:01:36.26,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}cloak  and  goes\Nthere  in  person,  so
+Dialogue: 1,0:01:36.21,0:01:37.52,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}everyone\Ncan  see  him.
+Dialogue: 1,0:01:37.72,0:01:39.20,Sub,,0,0,0,,{\c&H0080FF90\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}SOLDIER\N{\fnPixelify Sans\b1\fs72\bord7}Including  the\Nenemy,  sir?
+Dialogue: 1,0:01:39.35,0:01:41.40,Sub,,0,0,0,,{\c&H0050C8FF\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}CAESAR\N{\fnPixelify Sans\b1\fs72\bord7}Especially\Nthe  enemy.
+Dialogue: 1,0:01:41.85,0:01:43.52,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}His  cavalry\Nrides  round  the
+Dialogue: 1,0:01:43.47,0:01:45.38,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}outside  and  hits\Nthe  Gauls  from
+Dialogue: 1,0:01:45.33,0:01:45.81,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}behind.
+Dialogue: 1,0:01:45.96,0:01:47.36,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}The  friends\Ngo  home.
+Dialogue: 1,0:01:48.01,0:01:49.68,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}The  next  day,\NVercingetorix
+Dialogue: 1,0:01:49.63,0:01:51.65,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}surrenders.  He\Nputs  on  his  finest
+Dialogue: 1,0:01:51.60,0:01:53.38,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}armour,  rides\Nout  on  his  best
+Dialogue: 1,0:01:53.33,0:01:53.86,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}horse...
+Dialogue: 1,0:01:53.91,0:01:55.59,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}...and  does  a\Nfull  lap  around
+Dialogue: 1,0:01:55.54,0:01:55.99,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Caesar.
+Dialogue: 1,0:01:57.94,0:01:59.43,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Nobody  knows  why.
+Dialogue: 1,0:01:59.68,0:02:01.36,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Then  he  throws\Nhis  armour  at
+Dialogue: 1,0:02:01.31,0:02:03.17,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Caesar's  feet\Nand  sits  there  in
+Dialogue: 1,0:02:03.12,0:02:03.63,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}silence.
+Dialogue: 1,0:02:05.28,0:02:07.36,Sub,,0,0,0,,{\c&H0050C8FF\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}CAESAR\N{\fnPixelify Sans\b1\fs72\bord7}You  know,  you  could\Nhave  just  sent
+Dialogue: 1,0:02:07.31,0:02:07.90,Sub,,0,0,0,,{\c&H0050C8FF\fad(40,0)}{\fnPress Start 2P\b0\fs30\bord5}CAESAR\N{\fnPixelify Sans\b1\fs72\bord7}a  letter.
+Dialogue: 1,0:02:08.75,0:02:11.17,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Nineteen  centuries\Nlater,  Emperor
+Dialogue: 1,0:02:11.12,0:02:13.62,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Napoleon  III  built\NVercingetorix  a
+Dialogue: 1,0:02:13.57,0:02:15.43,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}giant  statue\Non  the  hill.
+Dialogue: 1,0:02:15.48,0:02:17.27,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}It  looks\Nsuspiciously  like
+Dialogue: 1,0:02:17.22,0:02:17.87,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Napoleon.
+Dialogue: 1,0:02:19.42,0:02:21.29,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}The  same  year,\Nhe  published  a
+Dialogue: 1,0:02:21.24,0:02:22.99,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}biography  of\NJulius  Caesar.
+Dialogue: 1,0:02:23.14,0:02:24.57,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}He  liked\Nboth  teams.
+Dialogue: 1,0:02:25.32,0:02:26.95,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Five  years\Nafter  that,  the
+Dialogue: 1,0:02:26.90,0:02:28.90,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Prussians  surrounded\NNapoleon  at
+Dialogue: 1,0:02:28.85,0:02:30.78,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Sedan,  and  he\Nhad  to  surrender.
+Dialogue: 1,0:02:31.33,0:02:32.66,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}He  sent  a  letter.
+Dialogue: 1,0:02:34.21,0:02:35.98,Sub,,0,0,0,,{\c&H00FFFFFF\fad(40,0)}Ctrl  +  Alt\N+  Defeat.
